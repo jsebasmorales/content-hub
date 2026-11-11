@@ -131,6 +131,12 @@ export default defineConfig(
     rules: { 'no-restricted-properties': 'off' },
   },
   {
+    // The test harness picks its database from TEST_DATABASE_URL (a test-only switch, never
+    // read by application code), so SDD §3 rule 5 does not apply to it.
+    files: ['tests/support/**'],
+    rules: { 'no-restricted-properties': 'off' },
+  },
+  {
     files: ['tests/**', '**/*.test.ts'],
     rules: { 'max-lines-per-function': 'off' },
   },

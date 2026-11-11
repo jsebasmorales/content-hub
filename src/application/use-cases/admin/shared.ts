@@ -9,6 +9,7 @@ import type {
   UserRepository,
 } from '../../ports/repositories';
 import type { AuditLog } from '../../ports/services';
+import type { AccessUnitOfWork } from '../../ports/unit-of-work';
 
 export type AdminError =
   | 'forbidden'
@@ -24,6 +25,8 @@ export interface AdminDeps {
   readonly roles: RoleRepository;
   readonly sessions: SessionRepository;
   readonly audit: AuditLog;
+  /** Serialises changes that could leave the system without a Leader (D-031). */
+  readonly unitOfWork: AccessUnitOfWork;
   readonly allowedEmailDomain: string;
 }
 

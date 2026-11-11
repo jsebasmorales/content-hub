@@ -538,7 +538,7 @@ La validación de seguridad es un entregable, no una tarea final. Se ejecuta en 
 **Pendientes (por orden de impacto):**
 
 1. **Cuenta de Netlify.** Crear la cuenta del equipo, revisar los términos del plan gratuito y vigilar el consumo de créditos (300 al mes) durante el primer mes. Si hace falta más, pasar a un plan de pago no cambia el diseño.
-2. **Atlassian:** crear la app OAuth 2.0 en la consola de desarrolladores y confirmar que el perfil devuelve el correo `@holafly.com` de todos los usuarios.
+2. **Atlassian:** _parcial._ La app OAuth 2.0 (Account-level, `read:me`) ya existe y el login funciona en local con la cuenta del Líder, incluido PKCE (D-021, D-033). Falta confirmar que el perfil devuelve el correo `@holafly.com` de 2 o 3 compañeros, y crear la app y la Callback URL de producción.
 3. **Jira:** crear el webhook (o la regla de automatización) y el token de servicio al entrar a desarrollo; confirmar si admite secreto y la clave exacta del proyecto.
 4. **Crowdin:** crear el token de lectura y los dos webhooks; confirmar los nombres de eventos por archivo y el mapeo archivo ↔ sección.
 5. **Prueba del OCR:** antes de la fase 3, probar `detect` con 3 o 4 de tus capturas reales (PDP, Home, App) para confirmar la precisión esperada.

@@ -82,6 +82,13 @@ valores de ejemplo en [.env.example](.env.example). Nunca subas `.env` al reposi
 - [docs/SDD_Content_Hub.md](docs/SDD_Content_Hub.md): contrato de diseño y fases.
 - [docs/DECISIONES.md](docs/DECISIONES.md): decisiones no cubiertas por el SDD, con su motivo.
 - [docs/COMO_EJECUTAR.md](docs/COMO_EJECUTAR.md): uso diario y cómo crear la app OAuth de Atlassian.
+- [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md): capas, recorrido de una petición, puertos, datos y cómo
+  agregar rutas, permisos y puertos.
+- [docs/ACCESO_Y_SEGURIDAD.md](docs/ACCESO_Y_SEGURIDAD.md): quién entra, roles, sesiones, cabeceras y auditoría.
+- [docs/PRUEBAS.md](docs/PRUEBAS.md): estrategia de pruebas, fakes y qué corre el CI.
+- [docs/VARIABLES_DE_ENTORNO.md](docs/VARIABLES_DE_ENTORNO.md): referencia de cada variable y reglas por entorno.
+- [docs/runbooks/USUARIOS_Y_ACCESO.md](docs/runbooks/USUARIOS_Y_ACCESO.md): invitar, dar de baja y resolver accesos.
+- [docs/runbooks/DESPLIEGUE.md](docs/runbooks/DESPLIEGUE.md): despliegue a Netlify (borrador previo al primero).
 - `docs/reference/Content_Hub_Mockup.html`: referencia visual del producto.
 
 ## Contribuir

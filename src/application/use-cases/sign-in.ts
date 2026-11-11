@@ -7,6 +7,7 @@ import { err, ok, type Result } from '@shared/result';
 import type { ExternalIdentity } from '../ports/auth-provider';
 import type { RoleRepository, SessionRepository, UserRepository } from '../ports/repositories';
 import type { AuditLog, Clock, TokenService } from '../ports/services';
+import type { AccessTransaction, AccessUnitOfWork } from '../ports/unit-of-work';
 
 export interface SignInConfig {
   readonly allowedEmailDomain: string;
@@ -18,6 +19,7 @@ export interface SignInDeps {
   readonly roles: RoleRepository;
   readonly sessions: SessionRepository;
   readonly audit: AuditLog;
+  readonly unitOfWork: AccessUnitOfWork;
   readonly tokens: TokenService;
   readonly clock: Clock;
   readonly config: SignInConfig;
@@ -56,10 +58,19 @@ export class SignIn {
   }
 
   private async findOrBootstrap(email: string): Promise<User | null> {
-    const { users, roles, config } = this.deps;
+    const { users, config, unitOfWork } = this.deps;
     const existing = await users.findByEmail(email);
     const isBootstrapEmail = email === normalizeEmail(config.bootstrapLeaderEmail);
+    // Cheap pre-check outside the lock: once a Leader exists the bootstrap email does nothing.
     if (!isBootstrapEmail || (await users.countActiveLeaders()) > 0) return existing;
+    // Two first logins at once must not both create a Leader: re-check under the lock (D-031).
+    return unitOfWork.withLeaderLock((tx) => this.bootstrapLeader(tx, email));
+  }
+
+  private async bootstrapLeader(tx: AccessTransaction, email: string): Promise<User | null> {
+    const { users, roles, audit } = tx;
+    const existing = await users.findByEmail(email);
+    if ((await users.countActiveLeaders()) > 0) return existing;
     const leaderRole = await roles.findByName(LEADER_ROLE_NAME);
     if (!leaderRole) return existing;
     if (existing) {
@@ -68,7 +79,7 @@ export class SignIn {
     } else {
       await users.create({ email, roleId: leaderRole.id, status: 'activo', invitedBy: null });
     }
-    await this.deps.audit.record({
+    await audit.record({
       actorId: null,
       action: 'auth.bootstrap_leader',
       targetType: 'user',

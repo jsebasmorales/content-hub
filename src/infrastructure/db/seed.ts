@@ -1,4 +1,3 @@
-import { eq } from 'drizzle-orm';
 import { PERMISSION_CATALOG } from '@domain/access/permissions';
 import { DEFAULT_ROLE_GRANTS } from '@domain/access/role';
 import type { Database } from './client';
@@ -16,12 +15,20 @@ export async function seedAccessData(db: Database): Promise<void> {
     .onConflictDoNothing();
 
   for (const [name, keys] of Object.entries(DEFAULT_ROLE_GRANTS)) {
-    const [existing] = await db.select().from(role).where(eq(role.name, name)).limit(1);
-    if (existing) continue;
-    const [created] = await db.insert(role).values({ name, isSystem: true }).returning();
-    if (!created) throw new Error(`Could not create role ${name}`);
-    await db
-      .insert(rolePermission)
-      .values(keys.map((permissionKey) => ({ roleId: created.id, permissionKey, granted: true })));
+    await db.transaction(async (tx) => {
+      // `role.name` is unique: when two cold starts race, only one insert returns a row and the
+      // loser skips the grants, so default grants are written exactly once (D-032).
+      const [created] = await tx
+        .insert(role)
+        .values({ name, isSystem: true })
+        .onConflictDoNothing({ target: role.name })
+        .returning();
+      if (!created) return;
+      await tx
+        .insert(rolePermission)
+        .values(
+          keys.map((permissionKey) => ({ roleId: created.id, permissionKey, granted: true })),
+        );
+    });
   }
 }
