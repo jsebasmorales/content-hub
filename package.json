@@ -17,10 +17,12 @@
     "format:check": "prettier --check .",
     "arch": "depcruise src tests --config .dependency-cruiser.cjs",
     "test": "vitest run --passWithNoTests",
-    "test:coverage": "vitest run --coverage",
+    "test:coverage": "vitest run tests/unit --coverage",
     "e2e": "playwright test",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "tsx --env-file=.env src/infrastructure/db/migrate-cli.ts"
+    "db:migrate": "tsx --env-file=.env src/infrastructure/db/migrate-cli.ts",
+    "test:unit": "vitest run tests/unit",
+    "test:integration": "vitest run tests/integration"
   },
   "dependencies": {
     "@astrojs/netlify": "^8.2.12",
@@ -49,5 +51,6 @@
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.72.2",
     "vitest": "^5.1.0"
-  }
+  },
+  "packageManager": "pnpm@12.18.0"
 }

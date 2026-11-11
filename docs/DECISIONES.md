@@ -144,3 +144,8 @@ Estado: `aprobada` = confirmada por Sebas; `revisar` = a confirmar.
 
 - **Opción:** `astro build` falla al final en Windows (EPERM al crear enlaces simbólicos) a menos que esté activado el _Modo de desarrollador_ de Windows. En Linux (CI y Netlify) funciona. El desarrollo diario usa `pnpm dev` y no se ve afectado.
 - **Motivo:** Comportamiento conocido del empaquetado del adaptador de Netlify en Windows.
+
+### D-029 · CI: versiones de acciones y seguridad — revisar
+
+- **Opción:** Las acciones de GitHub se fijan por etiqueta mayor (`@v4`) y Dependabot las actualiza semanalmente. Permisos del flujo: solo lectura. Seguridad en CI: gitleaks con historial completo, `pnpm audit --audit-level=high` y CodeQL en un flujo aparte. El CI **no se pudo ejecutar** desde este equipo; se valida al subir el repositorio.
+- **Motivo:** El SDD (§11.2) pide fijar versiones. Fijar por hash de commit es más estricto, pero no se pueden verificar los hashes sin conexión; se recomienda hacerlo en la Fase 5. `gitleaks-action` es gratuita para repositorios de cuentas personales; si el repositorio pasa a una organización de GitHub requiere una licencia (o se cambia por el binario de gitleaks).
