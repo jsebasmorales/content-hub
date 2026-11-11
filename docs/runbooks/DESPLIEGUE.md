@@ -35,6 +35,21 @@ Configúralas en **Site configuration → Environment variables**, no en un arch
 
 Los _previews_ de Netlify deben usar **otra base de datos vacía**, nunca la de producción.
 
+## Rol de ejecución de la BD (D-030)
+
+El rol que trae Netlify DB (_Read and write_) es dueño de las tablas y por eso solo debe usarse para
+migrar. La app se conecta con un rol sin DDL (`app_runtime`):
+
+1. En PowerShell: `$env:DATABASE_URL = Read-Host "Cadena del dueño"` (Netlify → Database → production → _Read and write_).
+2. `node scripts/create-runtime-role.mjs`. Crea o rota el rol, concede solo SELECT/INSERT/UPDATE/DELETE
+   (sin UPDATE/DELETE/TRUNCATE en `audit_log`), prueba la conexión _pooled_ con la misma configuración
+   del pool de la app e imprime la cadena nueva.
+3. `Remove-Item Env:DATABASE_URL`.
+4. En Netlify, reemplaza `DATABASE_URL` por la cadena impresa y vuelve a desplegar. Si la prueba
+   _pooled_ falló, usa la cadena directa que también imprime.
+5. Las migraciones siguen corriéndose con la cadena del dueño (paso 1 de **Pasos**). Ejecutar el script
+   de nuevo rota la contraseña del rol.
+
 ## Pasos
 
 1. **Migrar.** **[pendiente]** Debe ser un paso previo a publicar, con el rol de migración. Hasta

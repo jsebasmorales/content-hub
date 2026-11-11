@@ -537,8 +537,9 @@ La validación de seguridad es un entregable, no una tarea final. Se ejecuta en 
 
 **Pendientes (por orden de impacto):**
 
-1. **Cuenta de Netlify.** Crear la cuenta del equipo, revisar los términos del plan gratuito y vigilar el consumo de créditos (300 al mes) durante el primer mes. Si hace falta más, pasar a un plan de pago no cambia el diseño.
-2. **Atlassian:** _parcial._ La app OAuth 2.0 (Account-level, `read:me`) ya existe y el login funciona en local con la cuenta del Líder, incluido PKCE (D-021, D-033). Falta confirmar que el perfil devuelve el correo `@holafly.com` de 2 o 3 compañeros, y crear la app y la Callback URL de producción.
+1. **Cuenta de Netlify:** _parcial._ El proyecto `content-hub-hly`, Netlify DB (Neon) y las variables de producción ya existen, y la Fase 0 está desplegada y verificada (`pnpm verify:deploy`, D-026). Falta vigilar el consumo de créditos (300 al mes) durante el primer mes. Si hace falta más, pasar a un plan de pago no cambia el diseño.
+2. **Atlassian:** _parcial._ La app OAuth 2.0 (Account-level, `read:me`) de producción ya existe, con su Callback URL, y el login funciona en producción con la cuenta del Líder (D-021, D-033). Falta confirmar que el perfil devuelve el correo `@holafly.com` de 2 o 3 compañeros.
+   _Seguimiento de la Fase 0:_ separar el rol de BD de migración del de ejecución y pasar a la conexión _pooled_ (D-030).
 3. **Jira:** crear el webhook (o la regla de automatización) y el token de servicio al entrar a desarrollo; confirmar si admite secreto y la clave exacta del proyecto.
 4. **Crowdin:** crear el token de lectura y los dos webhooks; confirmar los nombres de eventos por archivo y el mapeo archivo ↔ sección.
 5. **Prueba del OCR:** antes de la fase 3, probar `detect` con 3 o 4 de tus capturas reales (PDP, Home, App) para confirmar la precisión esperada.

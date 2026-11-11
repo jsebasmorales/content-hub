@@ -163,7 +163,7 @@ Estado: `aprobada` = confirmada por Sebas; `revisar` = a confirmar; `pendiente` 
 
 - **Opción:** (1) Añadir `netlify.toml` con la versión de Node fijada (la misma que el CI) y el comando de build. (2) Las migraciones corren como paso del despliegue, antes de publicar, con `pnpm db:migrate` leyendo `DATABASE_URL_MIGRATE` del entorno (sin depender de un archivo `.env`). (3) Dos roles de BD: **migración** (dueño de las tablas, solo en el paso de despliegue) y **ejecución** (`DATABASE_URL`, solo SELECT/INSERT/UPDATE/DELETE sobre las tablas necesarias, sin DDL ni capacidad de quitar el trigger de `audit_log`). (4) Los _previews_ usan una base distinta y vacía (SDD §11.2).
 - **Motivo:** D-015 dice "se migra en el despliegue" pero nada lo implementa, y hoy un solo rol migra y opera, con lo que el trigger de inmutabilidad (D-017) se puede desactivar. SDD §11.2 pide mínimo privilegio y §14 migraciones automáticas con _rollback_ documentado.
-- **Estado:** sin implementar. Depende de crear la cuenta de Netlify y la BD (pendiente 1 del SDD §17). Debe estar cerrada antes del primer despliegue.
+- **Estado:** parcial. Netlify y la BD existen y se desplegó la Fase 0 con un solo rol (el dueño). Para cerrar el punto (3) se añade `scripts/create-runtime-role.mjs` (rol `app_runtime` sin DDL, `audit_log` solo con SELECT/INSERT, prueba de la conexión _pooled_); procedimiento en `docs/runbooks/DESPLIEGUE.md`. Siguen pendientes `netlify.toml` y las migraciones como paso del despliegue (puntos 1 y 2).
 
 ### D-031 · Invariantes de acceso garantizados por la base de datos — aprobada
 
