@@ -89,3 +89,28 @@ Estado: `aprobada` = confirmada por Sebas; `revisar` = a confirmar.
 
 - **Opción:** `permission` es un catálogo (`key`) poblado desde el dominio. `audit_log` es de solo inserción mediante trigger en la propia base de datos (rechaza UPDATE, DELETE y TRUNCATE); la retención ≥ 1 año (§11.2) se hará con un rol de mantenimiento en una fase posterior.
 - **Motivo:** §4.3 y §11.2 piden inmutabilidad; hacerla cumplir en la base de datos evita que un error de código la rompa.
+
+### D-018 · Dobles de prueba (fakes) de los puertos — revisar
+
+- **Opción:** Los casos de uso se prueban contra los adaptadores reales sobre PGlite en memoria (un Postgres real, igual de rápido que un fake). Solo `Clock` tiene un doble (`FakeClock`) y el proveedor Atlassian se prueba con un `fetch` simulado. No se crearon fakes en memoria de los repositorios.
+- **Motivo:** El SDD §3 (regla 7) pide un fake por puerto. En Fase 0 los fakes duplicarían lógica de consultas sin ganar velocidad. **Pendiente de revisar**: si prefieres cumplir la regla al pie de la letra, se añaden en una fase posterior.
+
+### D-019 · Bootstrap del primer Líder al iniciar sesión — aprobada
+
+- **Opción:** Al iniciar sesión, si el correo coincide con `BOOTSTRAP_LEADER_EMAIL` y no existe ningún Líder activo, se crea (o se promueve) a ese usuario como Líder y se registra en auditoría. Si ya hay un Líder activo, el correo de bootstrap deja de tener efecto.
+- **Motivo:** El SDD (§10.2) lo define como "válida solo mientras no exista ningún Líder" sin precisar el momento. Hacerlo en el login evita procesos de arranque con efectos secundarios.
+
+### D-020 · Semilla de roles y permisos — aprobada
+
+- **Opción:** `seedAccessData` (idempotente) crea el catálogo de permisos y los roles Líder y Colaborador con los permisos por defecto (D-001). Se ejecuta en `pnpm db:migrate` y al arrancar la app. Los permisos por defecto solo se escriben al crear el rol, para no pisar cambios hechos luego por un Líder.
+- **Motivo:** Garantiza que las tablas siempre tengan los datos mínimos sin intervención manual.
+
+### D-021 · Proveedor Atlassian: PKCE por verificar — revisar
+
+- **Opción:** El adaptador envía `code_challenge` (S256) y `code_verifier` además de `state`, como pide el SDD §11.2. Está implementado y probado con red simulada, pero **sin activar**.
+- **Motivo:** La documentación pública de Atlassian 3LO no confirma que acepte PKCE para este tipo de app. Se verificará al crear la app OAuth (pendiente 2 del SDD §17); si lo rechaza, se mantiene `state` + secreto de cliente y se retira PKCE.
+
+### D-022 · Cookie de sesión — aprobada
+
+- **Opción:** Cookie `__Host-hub_session` (HttpOnly, Secure, SameSite=Lax, Path=/) cuando `PUBLIC_APP_URL` es https; `hub_session` en http local. Solo guarda el token opaco; los permisos nunca van en la cookie.
+- **Motivo:** El prefijo `__Host-` impide que otro subdominio la sobrescriba; en http local los navegadores rechazan `Secure`.
