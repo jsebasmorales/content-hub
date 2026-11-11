@@ -74,3 +74,18 @@ Estado: `aprobada` = confirmada por Sebas; `revisar` = a confirmar.
 
 - **Opción:** Doble capa. (1) `env.schema` en `astro.config.mjs` tipa cada variable con `astro:env`. (2) `infrastructure/config/env.ts` valida reglas cruzadas con Zod (`env-rules.ts`) al importarse, es decir, al primer arranque del servidor / cold start. La compilación (`astro build`) no exige las variables.
 - **Motivo:** Astro solo valida secretos cuando se leen; las reglas cruzadas (dominio del líder, `local` prohibido en producción, Atlassian completo) no caben en el esquema de Astro. No exigir secretos en el build permite compilar previews sin datos reales (SDD §11.2). Los mensajes de error nunca incluyen valores.
+
+### D-015 · Driver de Postgres en producción: `pg` — revisar
+
+- **Opción:** `pg` (node-postgres) con la cadena de conexión _pooled_ de Netlify DB / Neon. Local y pruebas: PGlite. La elección se hace por el prefijo de `DATABASE_URL` (`pglite:` o `postgres://`).
+- **Motivo:** El SDD pide "driver serverless" (§2). `pg` funciona en Netlify Functions con el endpoint con pooler, soporta transacciones (necesarias para las reglas "siempre al menos un Líder") y es portable a cualquier otro hosting o a Docker. **Pendiente de revisar** en la Fase 5 con pruebas de carga; si hay problemas de conexiones, se cambia a `@neondatabase/serverless` solo en `client.ts`.
+
+### D-016 · Unicidad de `webhook_event.delivery_id` — aprobada
+
+- **Opción:** Índice único compuesto `(source, delivery_id)`.
+- **Motivo:** El SDD dice "único"; con dos orígenes (Jira y Crowdin) un identificador podría coincidir entre ellos. La idempotencia por origen es equivalente y más segura.
+
+### D-017 · Tabla `permission` y `audit_log` — aprobada
+
+- **Opción:** `permission` es un catálogo (`key`) poblado desde el dominio. `audit_log` es de solo inserción mediante trigger en la propia base de datos (rechaza UPDATE, DELETE y TRUNCATE); la retención ≥ 1 año (§11.2) se hará con un rol de mantenimiento en una fase posterior.
+- **Motivo:** §4.3 y §11.2 piden inmutabilidad; hacerla cumplir en la base de datos evita que un error de código la rompa.
