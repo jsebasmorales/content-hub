@@ -19,6 +19,26 @@ describe('applySecurityHeaders (SDD §11.2)', () => {
     expect(csp).not.toContain('unsafe-inline');
   });
 
+  it("keeps Astro's script-src and style-src and adds the directives it lacks", () => {
+    const astro = "default-src 'self'; script-src 'self' 'sha256-abc'; style-src 'self'";
+    const csp = headersAfterApplying({ 'Content-Security-Policy': astro }).get(
+      'Content-Security-Policy',
+    );
+    expect(csp).toContain("script-src 'self' 'sha256-abc'");
+    expect(csp).toContain("style-src 'self'");
+    expect(csp).toContain("frame-ancestors 'none'");
+    expect(csp).not.toContain('unsafe-inline');
+  });
+
+  it('does not repeat a directive Astro already sent', () => {
+    const astro = "form-action 'self'; object-src 'none'; script-src 'self'";
+    const csp = headersAfterApplying({ 'Content-Security-Policy': astro }).get(
+      'Content-Security-Policy',
+    );
+    expect(csp?.match(/form-action/g)).toHaveLength(1);
+    expect(csp?.match(/object-src/g)).toHaveLength(1);
+  });
+
   it('sets HSTS for one year including subdomains', () => {
     expect(headers.get('Strict-Transport-Security')).toBe('max-age=31536000; includeSubDomains');
   });
