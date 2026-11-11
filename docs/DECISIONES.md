@@ -114,3 +114,18 @@ Estado: `aprobada` = confirmada por Sebas; `revisar` = a confirmar.
 
 - **Opción:** Cookie `__Host-hub_session` (HttpOnly, Secure, SameSite=Lax, Path=/) cuando `PUBLIC_APP_URL` es https; `hub_session` en http local. Solo guarda el token opaco; los permisos nunca van en la cookie.
 - **Motivo:** El prefijo `__Host-` impide que otro subdominio la sobrescriba; en http local los navegadores rechazan `Secure`.
+
+### D-023 · Límite de tasa, CSP y cabeceras — aprobada
+
+- **Opción:** (1) Tabla `rate_limit_bucket` (ventana fija) en Postgres; no figura en §4.3 pero §11.2 exige un contador en BD. Cada ruta declara su límite en el registro (`routes.ts`): login 10/min por IP, inicio OAuth 20/min por IP, administración 30/min por usuario. (2) CSP con la función integrada de Astro (hashes, sin `unsafe-inline`) en una etiqueta `<meta>`, más una cabecera con `frame-ancestors 'none'`, `base-uri`, `form-action` y `object-src`, que `<meta>` no puede expresar. El SDD pide "nonces"; los hashes de Astro logran lo mismo sin `unsafe-inline`. (3) Cache-Control por defecto `private, no-store`.
+- **Motivo:** §11.2 y §2 ("activar la CSP integrada de Astro si la versión la ofrece"). Limitar solo rutas sensibles evita una escritura en BD por cada visita.
+
+### D-024 · 404 uniforme para todo lo no declarado — aprobada
+
+- **Opción:** El middleware responde con la misma página 404 (y cuerpo vacío en `/api/`) a rutas inexistentes, rutas no registradas y rutas ocultas por permisos. Los intentos denegados de usuarios con sesión se registran en `audit_log` (`authz.denied`).
+- **Motivo:** §10.3: no se debe poder distinguir "no existe" de "no tienes permiso".
+
+### D-025 · Tamaño máximo de cuerpo — aprobada
+
+- **Opción:** 64 KB para cualquier petición que no sea GET/HEAD/OPTIONS (413 si lo supera según `Content-Length`). Los webhooks (1 MB, §11.2) tendrán su propio límite cuando existan en la Fase 1.
+- **Motivo:** §11.2 exige límites de tamaño de cuerpo; en Fase 0 solo hay formularios pequeños.

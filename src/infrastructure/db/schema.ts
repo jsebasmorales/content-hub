@@ -140,3 +140,20 @@ export const webhookEvent = pgTable(
     index('webhook_event_pending_idx').on(table.processedAt),
   ],
 );
+
+/**
+ * Fixed-window counters for rate limiting. Kept in the database, not in memory, because
+ * serverless instances share no memory (SDD §11.2). Not listed in SDD §4.3; see D-023.
+ */
+export const rateLimitBucket = pgTable(
+  'rate_limit_bucket',
+  {
+    key: text('key').notNull(),
+    windowStart: timestamptz('window_start').notNull(),
+    hits: integer('hits').notNull().default(0),
+  },
+  (table) => [
+    primaryKey({ columns: [table.key, table.windowStart] }),
+    index('rate_limit_window_idx').on(table.windowStart),
+  ],
+);

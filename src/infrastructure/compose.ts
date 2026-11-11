@@ -5,10 +5,12 @@ import { SignIn } from '@application/use-cases/sign-in';
 import { SignOut } from '@application/use-cases/sign-out';
 import type { AppEnv } from './config/env-rules';
 import { AtlassianAuthProvider } from './auth/atlassian-provider';
+import { CsrfService } from './auth/csrf';
 import { LocalAuthProvider } from './auth/local-provider';
 import { CryptoTokenService, SystemClock } from './auth/token-service';
 import type { Database } from './db/client';
 import { DbAuditLog } from './db/repositories/audit-log';
+import { DbRateLimiter } from './db/repositories/rate-limiter';
 import { DbRoleRepository } from './db/repositories/role-repository';
 import { DbSessionRepository } from './db/repositories/session-repository';
 import { DbUserRepository } from './db/repositories/user-repository';
@@ -18,6 +20,8 @@ export type ComposeEnv = Pick<
   | 'ALLOWED_EMAIL_DOMAIN'
   | 'BOOTSTRAP_LEADER_EMAIL'
   | 'AUTH_PROVIDER'
+  | 'SESSION_SECRET'
+  | 'PUBLIC_APP_URL'
   | 'ATLASSIAN_CLIENT_ID'
   | 'ATLASSIAN_CLIENT_SECRET'
   | 'ATLASSIAN_REDIRECT_URI'
@@ -46,6 +50,9 @@ export function composeApp(db: Database, env: ComposeEnv, clock: Clock = new Sys
     roles,
     sessions,
     audit,
+    rateLimiter: new DbRateLimiter(db, clock),
+    csrf: new CsrfService(env.SESSION_SECRET),
+    settings: { secureCookies: env.PUBLIC_APP_URL.startsWith('https://') },
     authProvider: chooseAuthProvider(env),
     signIn: new SignIn({
       users,

@@ -20,6 +20,8 @@ export const TEST_ENV: ComposeEnv = {
   ALLOWED_EMAIL_DOMAIN: 'holafly.com',
   BOOTSTRAP_LEADER_EMAIL: 'lider@holafly.com',
   AUTH_PROVIDER: 'local',
+  SESSION_SECRET: 'test-secret-test-secret-test-secret-123',
+  PUBLIC_APP_URL: 'http://localhost:4321',
 };
 
 export interface TestApp {

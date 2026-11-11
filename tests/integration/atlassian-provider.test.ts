@@ -12,8 +12,8 @@ const json = (body: unknown, status = 200): Response =>
 
 /** Fake of the network: answers the token call, then the profile call. */
 function fakeFetch(profile: unknown, tokenStatus = 200): typeof fetch {
-  return (input: string | URL) => {
-    const url = input.toString();
+  return (input: Parameters<typeof fetch>[0]) => {
+    const url = input instanceof Request ? input.url : input.toString();
     if (url.includes('/oauth/token')) {
       return Promise.resolve(json({ access_token: 'tok' }, tokenStatus));
     }
