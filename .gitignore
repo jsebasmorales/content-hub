@@ -1,0 +1,27 @@
+# dependencies
+node_modules/
+
+# build output
+dist/
+.astro/
+.netlify/
+
+# environment (never commit real values)
+.env
+.env.*
+!.env.example
+
+# local database files (PGlite)
+.data/
+
+# test output
+coverage/
+playwright-report/
+test-results/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/extensions.json
+*.log
