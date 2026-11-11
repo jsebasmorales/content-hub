@@ -46,6 +46,12 @@ Para detener el servidor, pulsa `Ctrl + C` en la terminal.
 - **`pnpm dev` se cae mencionando Deno o "edge functions":** ya no debería pasar. `astro.config.mjs`
   desactiva la emulación local de Netlify Edge Functions (la app no define ninguna) porque exigía
   tener Deno instalado. Si vuelve a aparecer, revisa que `edgeFunctions: false` siga en esa línea.
+- **Atlassian muestra `redirect_uri is not registered for client`:** la Callback URL que envía la
+  app no coincide letra por letra con la registrada en la consola (puerto, `http` o `https`,
+  barra final), o `ATLASSIAN_REDIRECT_URI` contiene la URL larga de autorización en vez de solo
+  la callback.
+- **La pantalla de login sigue pidiendo solo el correo ("Modo de desarrollo"):** falta
+  `AUTH_PROVIDER=atlassian` en `.env` o no reiniciaste `pnpm dev`.
 - **Quieres empezar de cero con la base de datos local:** borra la carpeta `.data` y ejecuta
   `pnpm db:migrate`.
 
@@ -56,17 +62,27 @@ Para detener el servidor, pulsa `Ctrl + C` en la terminal.
 Hoy el acceso usa el modo de desarrollo. Para que el equipo entre con su cuenta Atlassian:
 
 1. Entra a https://developer.atlassian.com/console/myapps/ con tu cuenta de Holafly.
-2. Pulsa **Create** → **OAuth 2.0 integration**. Ponle el nombre "Content Hub".
+2. Pulsa **Create** → **OAuth 2.0 integration**. Ponle el nombre "Content Hub". En **Access type**
+   elige **Account-level** (la app solo lee el perfil con `read:me`; no accede a sitios de Jira ni
+   Confluence). Acepta los términos de desarrollador y pulsa **Create**.
 3. En **Permissions** → **Add** junto a "User identity API" → **Configure** → marca `read:me`.
 4. En **Authorization** → **Add** (OAuth 2.0 authorization code grants) → en **Callback URL**
    escribe `https://TU-DOMINIO/api/auth/callback`. (Para probar en tu computador, puedes crear
-   otra app con `http://localhost:4321/api/auth/callback`.)
+   otra app con `http://localhost:4321/api/auth/callback`.) Pulsa **Save changes**: si no
+   guardas, la URL no queda registrada.
 5. En **Settings** copia **Client ID** y **Secret**.
 6. Guárdalos en las variables de entorno de Netlify (o en tu `.env` local):
    - `ATLASSIAN_CLIENT_ID`
    - `ATLASSIAN_CLIENT_SECRET`
-   - `ATLASSIAN_REDIRECT_URI` (la misma Callback URL del paso 4)
-   - `AUTH_PROVIDER=atlassian`
+   - `ATLASSIAN_REDIRECT_URI` (la misma Callback URL del paso 4, solo esa, por ejemplo
+     `http://localhost:4321/api/auth/callback`. **No** pegues la URL larga de
+     `auth.atlassian.com/authorize` que muestra la consola: es solo un ejemplo y la app genera sola
+     el `state`)
+   - `AUTH_PROVIDER=atlassian` (cambia el `local` que trae `.env.example`; sin esto la app sigue
+     en modo desarrollo y no muestra el botón de Atlassian)
+
+   Los valores van sin comillas ni espacios, cada uno en una sola línea. Reinicia `pnpm dev`
+   después de editar `.env`.
 7. **Comprobación importante** (pendiente 2 del SDD): inicia sesión con 2 o 3 compañeros y confirma
    que Atlassian devuelve su correo @holafly.com. Si alguien no lo devuelve, el Hub lo rechaza a
    propósito; se resuelve ajustando la visibilidad del correo en su perfil de Atlassian.

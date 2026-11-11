@@ -108,10 +108,11 @@ Estado: `aprobada` = confirmada por Sebas; `revisar` = a confirmar; `pendiente` 
 - **Opción:** `seedAccessData` (idempotente) crea el catálogo de permisos y los roles Líder y Colaborador con los permisos por defecto (D-001). Se ejecuta en `pnpm db:migrate` y al arrancar la app. Los permisos por defecto solo se escriben al crear el rol, para no pisar cambios hechos luego por un Líder.
 - **Motivo:** Garantiza que las tablas siempre tengan los datos mínimos sin intervención manual.
 
-### D-021 · Proveedor Atlassian: PKCE por verificar — pendiente
+### D-021 · Proveedor Atlassian: PKCE por verificar — verificado en local (ver D-033)
 
-- **Opción:** El adaptador envía `code_challenge` (S256) y `code_verifier` además de `state`, como pide el SDD §11.2. Está implementado y probado con red simulada, pero **sin activar**.
-- **Motivo:** La documentación pública de Atlassian 3LO no confirma que acepte PKCE para este tipo de app. **Queda pendiente hasta crear la app OAuth** (pendiente 2 del SDD §17). Si Atlassian lo rechaza, se mantiene `state` + secreto de cliente y se retira PKCE.
+- **Opción:** El adaptador envía `code_challenge` (S256) y `code_verifier` además de `state`, como pide el SDD §11.2. Está implementado y probado con red simulada.
+- **Motivo:** La documentación pública de Atlassian 3LO no confirma que acepte PKCE para este tipo de app. Si Atlassian lo rechaza, se mantiene `state` + secreto de cliente y se retira PKCE.
+- **Estado:** la verificación con la app real se registró en D-033.
 
 ### D-022 · Cookie de sesión — aprobada
 
@@ -174,3 +175,9 @@ Estado: `aprobada` = confirmada por Sebas; `revisar` = a confirmar; `pendiente` 
 - **Opción:** (1) `getApp()` no guarda la promesa si el arranque falla: la siguiente petición reintenta. (2) `seedAccessData` crea cada rol y sus permisos por defecto dentro de una transacción con `ON CONFLICT DO NOTHING` sobre `role.name`; si dos arranques en frío coinciden, solo uno escribe los permisos por defecto.
 - **Motivo:** Con `??=` un fallo puntual de la BD en un arranque en frío dejaba la instancia devolviendo errores hasta reciclarse, y dos instancias simultáneas podían chocar con la restricción única de `role.name`. Sigue cumpliendo D-020: los permisos por defecto se escriben solo al crear el rol.
 - **Estado:** **hecho**, con prueba de arranques concurrentes (`tests/integration/seed-and-forms.test.ts`).
+
+### D-033 · Atlassian OAuth verificado en local, con PKCE activo — aprobada
+
+- **Opción:** App OAuth 2.0 (3LO) de **Account-level**, con el scope mínimo `read:me` y Callback URL `http://localhost:4321/api/auth/callback`. El adaptador sigue enviando `state` y PKCE (S256), y mantiene el secreto de cliente.
+- **Motivo:** La app solo identifica a la persona; no accede a sitios de Jira ni Confluence, así que Resource-level no aporta. La autorización real (dominio `@holafly.com` más usuario invitado y activo) la hace el Hub, no Atlassian. **Verificado el 2026-11-11:** el inicio de sesión completo funciona con PKCE activo, por lo que Atlassian no lo rechaza (cierra la duda de D-021). El Client Secret se regeneró tras mostrarse parcialmente en una captura.
+- **Alcance:** probado solo en local y con una cuenta (la del Líder). Falta confirmar el correo `@holafly.com` de 2 o 3 compañeros y crear la app y la Callback URL de producción, que debe ser una app distinta (SDD §17, pendiente 2).
