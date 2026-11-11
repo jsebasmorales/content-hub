@@ -136,7 +136,16 @@ export default defineConfig(
   },
   {
     files: ['**/*.astro'],
-    rules: { 'astro/no-set-html-directive': 'error' },
+    rules: {
+      'astro/no-set-html-directive': 'error',
+      // Types inside .astro templates are verified by `astro check`; the ESLint parser cannot
+      // resolve imports there and reports false positives.
+      '@typescript-eslint/no-unsafe-return': 'off',
+      '@typescript-eslint/no-unsafe-assignment': 'off',
+      '@typescript-eslint/no-unsafe-member-access': 'off',
+      '@typescript-eslint/no-unsafe-call': 'off',
+      'max-lines-per-function': 'off',
+    },
   },
   {
     files: ['**/*.js', '**/*.mjs', '**/*.cjs'],

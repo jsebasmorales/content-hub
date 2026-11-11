@@ -1,0 +1,18 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+
+const principal = Astro.locals.principal;
+const displayName = principal?.user.name ?? principal?.user.email ?? '';
+---
+
+<BaseLayout title="Resumen ejecutivo">
+  <h1>Resumen ejecutivo</h1>
+  <p class="lede">Hola, {displayName}. Bienvenido al Content Hub de Holafly.</p>
+  <section class="card">
+    <h2>Estamos construyendo los cimientos</h2>
+    <p>
+      Aquí aparecerá el resumen del trabajo de Contenido cuando se conecte Jira. Por ahora puedes
+      comprobar que tu acceso y tu menú funcionan.
+    </p>
+  </section>
+</BaseLayout>

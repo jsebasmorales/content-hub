@@ -1,0 +1,57 @@
+---
+import { getApp } from '@infrastructure/container';
+import { buildMenu } from '../navigation';
+import '../styles/tokens.css';
+import '../styles/base.css';
+
+interface Props {
+  title: string;
+}
+
+const { title } = Astro.props;
+const principal = Astro.locals.principal;
+const menu = principal ? buildMenu(principal.permissions) : [];
+const csrfToken = principal ? (await getApp()).csrf.tokenFor(principal.sessionId) : '';
+const pathname = Astro.url.pathname;
+---
+
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>{title} · Content Hub</title>
+  </head>
+  <body>
+    <div class="shell">
+      {principal && (
+        <header class="topbar">
+          <a class="brand" href="/">
+            Content Hub
+          </a>
+          <nav class="menu" aria-label="Principal">
+            {menu.map((item) => (
+              <a href={item.href} aria-current={item.href === pathname ? 'page' : undefined}>
+                {item.label}
+              </a>
+            ))}
+          </nav>
+          <div class="account">
+            <span>{principal.user.email}</span>
+            <form method="post" action="/api/auth/logout">
+              <input type="hidden" name="_csrf" value={csrfToken} />
+              <button class="btn btn-quiet" type="submit">
+                Cerrar sesión
+              </button>
+            </form>
+          </div>
+        </header>
+      )}
+      <main class="content">
+        <slot />
+      </main>
+    </div>
+  </body>
+</html>

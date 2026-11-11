@@ -129,3 +129,18 @@ Estado: `aprobada` = confirmada por Sebas; `revisar` = a confirmar.
 
 - **Opción:** 64 KB para cualquier petición que no sea GET/HEAD/OPTIONS (413 si lo supera según `Content-Length`). Los webhooks (1 MB, §11.2) tendrán su propio límite cuando existan en la Fase 1.
 - **Motivo:** §11.2 exige límites de tamaño de cuerpo; en Fase 0 solo hay formularios pequeños.
+
+### D-026 · La etiqueta CSP de producción no se puede verificar en local — revisar
+
+- **Opción:** Se activa `security.csp` de Astro (hashes). Astro no la emite en modo desarrollo, y `astro preview` no existe con el adaptador de Netlify; además, en Windows el empaquetado de Netlify exige permisos de enlaces simbólicos. La verificación de la etiqueta `<meta>` se hará en el primer despliegue (Deploy Preview de Netlify) y quedará como casilla de la revisión de seguridad (§11.3). Las cabeceras enviadas por el middleware sí se prueban automáticamente.
+- **Motivo:** Es una limitación de herramientas, no de diseño. Las páginas actuales no cargan JavaScript, por lo que el riesgo de rotura es bajo.
+
+### D-027 · Administración de usuarios en Fase 0 — aprobada
+
+- **Opción:** `/permisos` permite invitar un correo, cambiar el rol y dar de baja / reactivar a una persona (las bajas revocan las sesiones al instante). La matriz rol × permiso con vista previa (§10.2) queda para la Fase 2, como indica la §16. Cambiar a Líder exige marcar una casilla de confirmación. Una persona reactivada vuelve al estado "invitado" y debe iniciar sesión de nuevo.
+- **Motivo:** El alcance de la Fase 0 pide "invitar un correo y asignar rol"; la baja es necesaria para cumplir §11.2 (sesiones revocadas al desactivar).
+
+### D-028 · Script `build` en Windows — informativo
+
+- **Opción:** `astro build` falla al final en Windows (EPERM al crear enlaces simbólicos) a menos que esté activado el _Modo de desarrollador_ de Windows. En Linux (CI y Netlify) funciona. El desarrollo diario usa `pnpm dev` y no se ve afectado.
+- **Motivo:** Comportamiento conocido del empaquetado del adaptador de Netlify en Windows.

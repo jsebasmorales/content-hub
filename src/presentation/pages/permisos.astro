@@ -1,0 +1,132 @@
+---
+import { getApp } from '@infrastructure/container';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { flashFromQuery } from '../admin-messages';
+
+const principal = Astro.locals.principal;
+if (!principal) return new Response(null, { status: 404 });
+
+const app = await getApp();
+const overview = await app.getAccessOverview.execute(principal);
+if (!overview.ok) return new Response(null, { status: 404 });
+
+const { users, roles } = overview.value;
+const csrfToken = app.csrf.tokenFor(principal.sessionId);
+const flash = flashFromQuery(Astro.url.searchParams);
+const statusLabel = { invitado: 'Invitado', activo: 'Activo', desactivado: 'Desactivado' } as const;
+---
+
+<BaseLayout title="Permisos">
+  <h1>Permisos</h1>
+  <p class="lede">
+    Invita a personas del equipo y asigna su rol. Solo los Líderes ven esta página.
+  </p>
+
+  {flash && (
+    <p class={`notice notice-${flash.kind}`} role={flash.kind === 'error' ? 'alert' : 'status'}>
+      {flash.text}
+    </p>
+  )}
+
+  <section class="card">
+    <h2>Invitar a una persona</h2>
+    <form method="post" action="/api/admin/users">
+      <input type="hidden" name="_csrf" value={csrfToken} />
+      <input type="hidden" name="intent" value="invite" />
+      <div class="field">
+        <label for="invite-email">Correo de Holafly</label>
+        <input
+          id="invite-email"
+          name="email"
+          type="email"
+          required
+          maxlength="254"
+          placeholder="nombre@holafly.com"
+        />
+      </div>
+      <div class="field">
+        <label for="invite-role">Rol</label>
+        <select id="invite-role" name="roleId" required>
+          {roles.map((role) => (
+            <option value={role.id}>{role.name}</option>
+          ))}
+        </select>
+      </div>
+      <div class="field">
+        <label class="check">
+          <input type="checkbox" name="confirmLeader" value="yes" />
+          Confirmo que, si elijo Líder, esta persona tendrá acceso total y podrá cambiar permisos.
+        </label>
+      </div>
+      <button class="btn" type="submit">
+        Enviar invitación
+      </button>
+    </form>
+  </section>
+
+  <section class="card">
+    <h2>Personas con acceso</h2>
+    <table>
+      <thead>
+        <tr>
+          <th scope="col">Correo</th>
+          <th scope="col">Estado</th>
+          <th scope="col">Rol</th>
+          <th scope="col">Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {users.map((user) => (
+          <tr>
+            <td>{user.email}</td>
+            <td>
+              <span class={`badge badge-${user.status}`}>{statusLabel[user.status]}</span>
+            </td>
+            <td>
+              <form class="inline-form" method="post" action="/api/admin/users">
+                <input type="hidden" name="_csrf" value={csrfToken} />
+                <input type="hidden" name="intent" value="role" />
+                <input type="hidden" name="userId" value={user.id} />
+                <label class="sr-only" for={`role-${user.id}`}>
+                  Rol de {user.email}
+                </label>
+                <select id={`role-${user.id}`} name="roleId">
+                  {roles.map((role) => (
+                    <option value={role.id} selected={role.id === user.roleId}>
+                      {role.name}
+                    </option>
+                  ))}
+                </select>
+                <label class="check">
+                  <input type="checkbox" name="confirmLeader" value="yes" />
+                  Confirmar Líder
+                </label>
+                <button class="btn btn-quiet" type="submit">
+                  Cambiar rol
+                </button>
+              </form>
+            </td>
+            <td>
+              <form class="inline-form" method="post" action="/api/admin/users">
+                <input type="hidden" name="_csrf" value={csrfToken} />
+                <input type="hidden" name="intent" value="status" />
+                <input type="hidden" name="userId" value={user.id} />
+                <input
+                  type="hidden"
+                  name="active"
+                  value={user.status === 'desactivado' ? 'true' : 'false'}
+                />
+                <button
+                  class={`btn btn-quiet ${user.status === 'desactivado' ? '' : 'btn-danger'}`}
+                  type="submit"
+                >
+                  {user.status === 'desactivado' ? 'Reactivar' : 'Dar de baja'}
+                </button>
+              </form>
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </section>
+</BaseLayout>

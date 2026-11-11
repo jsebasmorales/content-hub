@@ -1,6 +1,7 @@
 import { eq } from 'drizzle-orm';
 import type { PermissionGrant } from '@domain/access/permission-set';
 import type { RoleRecord, RoleRepository } from '@application/ports/repositories';
+import { isUuid } from '@shared/ids';
 import type { Database } from '../client';
 import { role, rolePermission } from '../schema';
 
@@ -15,6 +16,7 @@ export class DbRoleRepository implements RoleRepository {
   }
 
   async findById(id: string): Promise<RoleRecord | null> {
+    if (!isUuid(id)) return null;
     const [row] = await this.db.select().from(role).where(eq(role.id, id)).limit(1);
     return row ? toRecord(row) : null;
   }

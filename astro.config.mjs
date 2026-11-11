@@ -1,6 +1,7 @@
 // @ts-check
 import netlify from '@astrojs/netlify';
 import { defineConfig, envField } from 'astro/config';
+import { contentHub } from './src/presentation/astro-integration.ts';
 
 /** Required server secret. Missing or invalid => the app refuses to start (SDD §15). */
 const required = (/** @type {object} */ extra = {}) =>
@@ -13,6 +14,8 @@ const optional = () => envField.string({ context: 'server', access: 'secret', op
 export default defineConfig({
   output: 'server',
   adapter: netlify(),
+  // Registers every route from the registry plus the security middleware (D-010).
+  integrations: [contentHub()],
   // Sessions live in our own database (SDD §2), not in Netlify Blobs.
   session: false,
   security: {

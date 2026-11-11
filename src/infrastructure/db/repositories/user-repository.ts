@@ -2,6 +2,7 @@ import { and, eq, sql } from 'drizzle-orm';
 import { LEADER_ROLE_NAME } from '@domain/access/role';
 import type { User } from '@domain/access/user';
 import type { NewUser, UserRepository } from '@application/ports/repositories';
+import { isUuid } from '@shared/ids';
 import type { Database } from '../client';
 import { appUser, role } from '../schema';
 
@@ -47,6 +48,7 @@ export class DbUserRepository implements UserRepository {
   }
 
   async findById(id: string): Promise<User | null> {
+    if (!isUuid(id)) return null;
     const [row] = await this.select().where(eq(appUser.id, id)).limit(1);
     return row ? toUser(row) : null;
   }

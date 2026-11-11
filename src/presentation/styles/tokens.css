@@ -1,0 +1,53 @@
+/*
+ * Holafly design tokens: the single place for colors (SDD §18).
+ * Values come from the approved mockup. Dark theme follows the system setting.
+ */
+:root {
+  --page: #f9f9f7;
+  --surface: #fcfcfb;
+  --ink: #0b0b0b;
+  --ink-2: #52514e;
+  --muted: #6b6a64;
+  --grid: #e1e0d9;
+  --axis: #8a8981;
+  --border: rgb(11 11 11 / 10%);
+  --wash: #f0efec;
+
+  --brand: #e6485c;
+  /* Darker coral for text-on-color: white on #c42f47 passes WCAG AA (5.4:1). */
+  --brand-strong: #c42f47;
+  --brand-wash: #fdecee;
+  --violet: #6250d6;
+  --aqua: #1baf7a;
+  --amber: #eda100;
+  --green: #008300;
+
+  --good-text: #006300;
+  --bad-text: #b02a2a;
+  --bad-wash: #fbeaea;
+  --good-wash: #e7f5ea;
+
+  --radius: 10px;
+  --space: 1rem;
+  --font: system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --page: #0d0d0d;
+    --surface: #1a1a19;
+    --ink: #f0efec;
+    --ink-2: #c3c2b7;
+    --muted: #a3a29b;
+    --grid: #2c2c2a;
+    --border: rgb(255 255 255 / 10%);
+    --wash: #262624;
+
+    --brand-wash: #3a1d22;
+    --violet: #9085e9;
+    --good-text: #4cc34c;
+    --bad-text: #ff8f8f;
+    --bad-wash: #3a1f1f;
+    --good-wash: #1b2f1f;
+  }
+}

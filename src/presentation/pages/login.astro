@@ -1,0 +1,61 @@
+---
+import { getApp } from '@infrastructure/container';
+import '../styles/tokens.css';
+import '../styles/base.css';
+
+if (Astro.locals.principal) return Astro.redirect('/', 303);
+
+const app = await getApp();
+const usesRedirect = app.authProvider.kind === 'redirect';
+// One generic message for every kind of refusal, so the page never reveals who is invited.
+const failed = Astro.url.searchParams.has('error');
+---
+
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Iniciar sesión · Content Hub</title>
+  </head>
+  <body>
+    <main class="center">
+      <section class="card login-card">
+        <h1>Content Hub</h1>
+        <p class="lede">Acceso solo para el equipo de Holafly con invitación.</p>
+        {failed && (
+          <p class="notice notice-error" role="alert">
+            No pudimos darte acceso. Revisa que uses tu correo @holafly.com y que un Líder te haya
+            invitado.
+          </p>
+        )}
+        {usesRedirect ? (
+          <a class="btn" href="/api/auth/start">
+            Entrar con Atlassian
+          </a>
+        ) : (
+          <form method="post" action="/api/auth/login">
+            <div class="field">
+              <label for="email">Correo de Holafly</label>
+              <input
+                id="email"
+                name="email"
+                type="email"
+                autocomplete="email"
+                required
+                maxlength="254"
+                placeholder="nombre@holafly.com"
+              />
+            </div>
+            <button class="btn" type="submit">
+              Entrar
+            </button>
+            <p class="lede">Modo de desarrollo: no se pide contraseña.</p>
+          </form>
+        )}
+      </section>
+    </main>
+  </body>
+</html>

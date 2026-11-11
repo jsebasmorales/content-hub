@@ -1,5 +1,9 @@
 import type { AuthProvider } from '@application/ports/auth-provider';
 import type { Clock } from '@application/ports/services';
+import { ChangeUserRole } from '@application/use-cases/admin/change-user-role';
+import { GetAccessOverview } from '@application/use-cases/admin/get-access-overview';
+import { InviteUser } from '@application/use-cases/admin/invite-user';
+import { SetUserStatus } from '@application/use-cases/admin/set-user-status';
 import { ResolveSession } from '@application/use-cases/resolve-session';
 import { SignIn } from '@application/use-cases/sign-in';
 import { SignOut } from '@application/use-cases/sign-out';
@@ -45,6 +49,8 @@ export function composeApp(db: Database, env: ComposeEnv, clock: Clock = new Sys
   const audit = new DbAuditLog(db);
   const tokens = new CryptoTokenService();
 
+  const admin = { users, roles, sessions, audit, allowedEmailDomain: env.ALLOWED_EMAIL_DOMAIN };
+
   return {
     users,
     roles,
@@ -68,6 +74,10 @@ export function composeApp(db: Database, env: ComposeEnv, clock: Clock = new Sys
     }),
     resolveSession: new ResolveSession({ sessions, roles, tokens, clock }),
     signOut: new SignOut({ sessions, tokens, audit }),
+    inviteUser: new InviteUser(admin),
+    changeUserRole: new ChangeUserRole(admin),
+    setUserStatus: new SetUserStatus(admin),
+    getAccessOverview: new GetAccessOverview(admin),
   };
 }
 
