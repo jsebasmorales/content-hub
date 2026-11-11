@@ -23,10 +23,10 @@ El equipo de Contenido de Holafly gestiona su trabajo en Jira (proyecto **JSM-CO
 
 El **Content Hub** resuelve dos cosas:
 
-| # | Objetivo | Resultado esperado |
-|---|---|---|
-| 1 | **Dashboard de gestión** sobre Jira | Resumen ejecutivo, tareas, SLAs, incumplimientos, objetivos (árbol de épicas), capacidad vs demanda, lo aprendido, definiciones. |
-| 2 | **Content Ecosystem** (buscador de campos) | Encontrar cualquier texto por frase, llave de traducción o ubicación; ver captura con recuadro rojo, dónde se edita, dependencias y checklist de impacto. |
+| #   | Objetivo                                   | Resultado esperado                                                                                                                                        |
+| --- | ------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | **Dashboard de gestión** sobre Jira        | Resumen ejecutivo, tareas, SLAs, incumplimientos, objetivos (árbol de épicas), capacidad vs demanda, lo aprendido, definiciones.                          |
+| 2   | **Content Ecosystem** (buscador de campos) | Encontrar cualquier texto por frase, llave de traducción o ubicación; ver captura con recuadro rojo, dónde se edita, dependencias y checklist de impacto. |
 
 Requisitos transversales (todos **[OBLIGATORIO]**):
 
@@ -49,19 +49,19 @@ Requisitos transversales (todos **[OBLIGATORIO]**):
 
 ## 2. Decisiones de arquitectura
 
-| Decisión | Elección | Motivo |
-|---|---|---|
-| Framework | **Astro** (última versión estable al crear el proyecto; hoy 7.x) con `output: 'server'` y páginas prerenderizadas donde no dependan del usuario | HTML por defecto, JS solo donde hace falta (islas). |
-| Lenguaje | TypeScript `strict`, `noUncheckedIndexedAccess` | Menos errores en runtime. |
-| Interactividad | **Islas mínimas** con Preact (o vanilla + Web Components) únicamente en: buscador, editor de recuadro, gráficos interactivos, administrador de roles | Mantener el JS del cliente pequeño. |
-| Adaptador y hosting | **`@astrojs/netlify`**; todo el producto en **Netlify**, por ahora en el plan gratuito | Un solo lugar para web, base de datos y archivos. El plan gratuito de Netlify permite uso comercial; se revisan sus términos al crear la cuenta. Con `session: false` en la configuración de Astro, porque las sesiones van en nuestra BD y no en Netlify Blobs. |
-| Base de datos | **Netlify DB** (PostgreSQL administrado, Neon) + **Drizzle ORM** + migraciones versionadas; conexión con driver serverless | SQLite no es opción en un entorno serverless (sin disco persistente). Permisos, auditoría, caché de Jira y búsqueda (FTS + `pg_trgm`) en un solo motor. |
-| Validación | **Zod** en todas las fronteras (entradas HTTP, payloads de webhooks, respuestas de Jira/Crowdin, variables de entorno) | Nada entra sin validarse. |
-| Autenticación | **Inicio de sesión con Atlassian (OAuth 2.0, 3LO)** detrás del puerto `AuthProvider` | Decisión cerrada: el equipo ya tiene cuenta Atlassian y no hace falta Google Workspace. Se puede añadir Google después sin tocar el resto. |
-| Sesiones | Cookie de sesión opaca, `HttpOnly`, `Secure`, `SameSite=Lax`, almacenada en BD con rotación y expiración | Revocable en servidor. |
-| Cola/Jobs | Tabla `webhook_event` en Postgres + **Background Functions de Netlify** para el procesamiento; reconciliación **manual** (botón) y **perezosa**. Las **funciones programadas de Netlify** quedan como opción para un respaldo automático | El webhook solo valida, guarda el evento y responde; el trabajo pesado corre aparte. |
-| Almacenamiento | **Netlify Blobs** (capturas) | Mismo proveedor. Acceso solo mediante endpoint autenticado. |
-| Gráficos | SVG renderizado **en servidor** (componentes `.astro`) con paleta Holafly | Cero JS para gráficos estáticos. |
+| Decisión            | Elección                                                                                                                                                                                                                                 | Motivo                                                                                                                                                                                                                                                           |
+| ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Framework           | **Astro** (última versión estable al crear el proyecto; hoy 7.x) con `output: 'server'` y páginas prerenderizadas donde no dependan del usuario                                                                                          | HTML por defecto, JS solo donde hace falta (islas).                                                                                                                                                                                                              |
+| Lenguaje            | TypeScript `strict`, `noUncheckedIndexedAccess`                                                                                                                                                                                          | Menos errores en runtime.                                                                                                                                                                                                                                        |
+| Interactividad      | **Islas mínimas** con Preact (o vanilla + Web Components) únicamente en: buscador, editor de recuadro, gráficos interactivos, administrador de roles                                                                                     | Mantener el JS del cliente pequeño.                                                                                                                                                                                                                              |
+| Adaptador y hosting | **`@astrojs/netlify`**; todo el producto en **Netlify**, por ahora en el plan gratuito                                                                                                                                                   | Un solo lugar para web, base de datos y archivos. El plan gratuito de Netlify permite uso comercial; se revisan sus términos al crear la cuenta. Con `session: false` en la configuración de Astro, porque las sesiones van en nuestra BD y no en Netlify Blobs. |
+| Base de datos       | **Netlify DB** (PostgreSQL administrado, Neon) + **Drizzle ORM** + migraciones versionadas; conexión con driver serverless                                                                                                               | SQLite no es opción en un entorno serverless (sin disco persistente). Permisos, auditoría, caché de Jira y búsqueda (FTS + `pg_trgm`) en un solo motor.                                                                                                          |
+| Validación          | **Zod** en todas las fronteras (entradas HTTP, payloads de webhooks, respuestas de Jira/Crowdin, variables de entorno)                                                                                                                   | Nada entra sin validarse.                                                                                                                                                                                                                                        |
+| Autenticación       | **Inicio de sesión con Atlassian (OAuth 2.0, 3LO)** detrás del puerto `AuthProvider`                                                                                                                                                     | Decisión cerrada: el equipo ya tiene cuenta Atlassian y no hace falta Google Workspace. Se puede añadir Google después sin tocar el resto.                                                                                                                       |
+| Sesiones            | Cookie de sesión opaca, `HttpOnly`, `Secure`, `SameSite=Lax`, almacenada en BD con rotación y expiración                                                                                                                                 | Revocable en servidor.                                                                                                                                                                                                                                           |
+| Cola/Jobs           | Tabla `webhook_event` en Postgres + **Background Functions de Netlify** para el procesamiento; reconciliación **manual** (botón) y **perezosa**. Las **funciones programadas de Netlify** quedan como opción para un respaldo automático | El webhook solo valida, guarda el evento y responde; el trabajo pesado corre aparte.                                                                                                                                                                             |
+| Almacenamiento      | **Netlify Blobs** (capturas)                                                                                                                                                                                                             | Mismo proveedor. Acceso solo mediante endpoint autenticado.                                                                                                                                                                                                      |
+| Gráficos            | SVG renderizado **en servidor** (componentes `.astro`) con paleta Holafly                                                                                                                                                                | Cero JS para gráficos estáticos.                                                                                                                                                                                                                                 |
 
 **Reglas Astro [OBLIGATORIO]:**
 
@@ -123,39 +123,39 @@ Convenciones: ids UUID v7, `created_at/updated_at` en UTC, borrado lógico donde
 
 ### 4.1 Jira (caché de solo lectura)
 
-| Tabla | Campos clave |
-|---|---|
-| `jira_issue` | `key` (único), `summary`, `status`, `status_category`, `request_type`, `priority`, `assignee_id`, `reporter_id`, `created_at`, `resolved_at`, `epic_key`, `labels[]`, `sla_*` (inicio, objetivo, pausa, incumplido), `time_in_progress_seconds`, `raw` (JSONB, opcional), `jira_updated_at`, `synced_at` |
-| `jira_epic` | `key`, `name`, `status`, `objective_id` |
-| `jira_status_transition` | `issue_key`, `from`, `to`, `at` (para tiempos reales de "En progreso") |
-| `objective` | `id`, `name`, `level` (company / marketing / team), `parent_id`, `epic_key` |
-| `sync_run` | `id`, `source` (jira / crowdin), `kind` (webhook / manual / reconcile), `started_at`, `finished_at`, `status`, `items`, `error` |
+| Tabla                    | Campos clave                                                                                                                                                                                                                                                                                             |
+| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `jira_issue`             | `key` (único), `summary`, `status`, `status_category`, `request_type`, `priority`, `assignee_id`, `reporter_id`, `created_at`, `resolved_at`, `epic_key`, `labels[]`, `sla_*` (inicio, objetivo, pausa, incumplido), `time_in_progress_seconds`, `raw` (JSONB, opcional), `jira_updated_at`, `synced_at` |
+| `jira_epic`              | `key`, `name`, `status`, `objective_id`                                                                                                                                                                                                                                                                  |
+| `jira_status_transition` | `issue_key`, `from`, `to`, `at` (para tiempos reales de "En progreso")                                                                                                                                                                                                                                   |
+| `objective`              | `id`, `name`, `level` (company / marketing / team), `parent_id`, `epic_key`                                                                                                                                                                                                                              |
+| `sync_run`               | `id`, `source` (jira / crowdin), `kind` (webhook / manual / reconcile), `started_at`, `finished_at`, `status`, `items`, `error`                                                                                                                                                                          |
 
 Reglas de dominio: % de esfuerzo por objetivo = tickets (ponderados por tiempo en "En progreso" cuando exista); SLAs con meta del **90 %**; fecha de referencia = fecha actual del servidor (no fija como en el mockup).
 
 ### 4.2 Content Ecosystem
 
-| Tabla | Campos clave |
-|---|---|
-| `eco_category` | `id`, `name`, `position` — las 14 iniciales: Home, PDP, App, Emails, Landing Page, Markdown Page, Blog, WhatsApp, B2B, Short FAQ Section, Product Feature, Push notifications, Checkout, Holafly Hub |
-| `eco_section` | `id`, `category_id`, `page`, `name`, `platform`, `crowdin_project`, `crowdin_file`, `strapi_collection`, `strapi_url` (solo referencia y enlace para editar), `entry`, `owner_id`, `translation_status`, `screenshot_id`, `confluence_ref` |
-| `eco_field` | `id`, `section_id`, `label`, `current_text`, `crowdin_key`, `platform_override`, `status` (ok / revisar / desactualizado), `last_verified_at`, `last_verified_by`, `box_x, box_y, box_w, box_h` (px sobre la captura), `box_source` (ocr / manual), `box_confidence`, `note`, `managed_by_translations` (bool) |
-| `eco_dependency` | `field_id`, `depends_on_field_id` o `depends_on_ref`, `kind`, `note` |
-| `eco_screenshot` | `id`, `storage_key`, `width`, `height`, `sha256`, `uploaded_by`, `uploaded_at` |
-| `eco_synonym` | `term`, `synonym`, `lang_pair` (ES↔EN), `active` |
-| `eco_change_log` | historial de cambios por campo (quién, qué, cuándo, antes/después) |
+| Tabla            | Campos clave                                                                                                                                                                                                                                                                                                   |
+| ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `eco_category`   | `id`, `name`, `position` — las 14 iniciales: Home, PDP, App, Emails, Landing Page, Markdown Page, Blog, WhatsApp, B2B, Short FAQ Section, Product Feature, Push notifications, Checkout, Holafly Hub                                                                                                           |
+| `eco_section`    | `id`, `category_id`, `page`, `name`, `platform`, `crowdin_project`, `crowdin_file`, `strapi_collection`, `strapi_url` (solo referencia y enlace para editar), `entry`, `owner_id`, `translation_status`, `screenshot_id`, `confluence_ref`                                                                     |
+| `eco_field`      | `id`, `section_id`, `label`, `current_text`, `crowdin_key`, `platform_override`, `status` (ok / revisar / desactualizado), `last_verified_at`, `last_verified_by`, `box_x, box_y, box_w, box_h` (px sobre la captura), `box_source` (ocr / manual), `box_confidence`, `note`, `managed_by_translations` (bool) |
+| `eco_dependency` | `field_id`, `depends_on_field_id` o `depends_on_ref`, `kind`, `note`                                                                                                                                                                                                                                           |
+| `eco_screenshot` | `id`, `storage_key`, `width`, `height`, `sha256`, `uploaded_by`, `uploaded_at`                                                                                                                                                                                                                                 |
+| `eco_synonym`    | `term`, `synonym`, `lang_pair` (ES↔EN), `active`                                                                                                                                                                                                                                                               |
+| `eco_change_log` | historial de cambios por campo (quién, qué, cuándo, antes/después)                                                                                                                                                                                                                                             |
 
 ### 4.3 Acceso y auditoría
 
-| Tabla | Campos clave |
-|---|---|
-| `app_user` | `id`, `email` (único, `@holafly.com`), `name`, `role_id`, `status` (invitado / activo / desactivado), `invited_by`, `invited_at`, `last_login_at` |
-| `role` | `id`, `name` (Colaborador, Líder; extensible), `is_system` |
-| `permission` | catálogo fijo de recursos (sección 10) |
-| `role_permission` | `role_id`, `permission_key`, `granted` |
-| `session` | `id` (hash), `user_id`, `expires_at`, `ip`, `user_agent` |
-| `audit_log` | `id`, `actor_id`, `action`, `target_type`, `target_id`, `before`, `after`, `ip`, `at` (**solo inserción**) |
-| `webhook_event` | `id`, `source`, `delivery_id` (único, idempotencia), `type`, `payload`, `received_at`, `processed_at`, `attempts`, `error` |
+| Tabla             | Campos clave                                                                                                                                      |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `app_user`        | `id`, `email` (único, `@holafly.com`), `name`, `role_id`, `status` (invitado / activo / desactivado), `invited_by`, `invited_at`, `last_login_at` |
+| `role`            | `id`, `name` (Colaborador, Líder; extensible), `is_system`                                                                                        |
+| `permission`      | catálogo fijo de recursos (sección 10)                                                                                                            |
+| `role_permission` | `role_id`, `permission_key`, `granted`                                                                                                            |
+| `session`         | `id` (hash), `user_id`, `expires_at`, `ip`, `user_agent`                                                                                          |
+| `audit_log`       | `id`, `actor_id`, `action`, `target_type`, `target_id`, `before`, `after`, `ip`, `at` (**solo inserción**)                                        |
+| `webhook_event`   | `id`, `source`, `delivery_id` (único, idempotencia), `type`, `payload`, `received_at`, `processed_at`, `attempts`, `error`                        |
 
 ---
 
@@ -163,20 +163,20 @@ Reglas de dominio: % de esfuerzo por objetivo = tickets (ponderados por tiempo e
 
 Las páginas replican el mockup. Cada una es una **ruta propia** (no un one-page):
 
-| Ruta | Recurso de permiso | Notas |
-|---|---|---|
-| `/` Resumen ejecutivo | `section.exec` | KPIs grandes con tooltip ⓘ. |
-| `/resumen` Resumen | `section.summary` | |
-| `/ecosystem` Content Ecosystem | `section.eco` | Buscador por categoría + barra + botón. |
-| `/tareas` Tareas | `section.work` | Une las tres pestañas anteriores con un solo filtro. |
-| `/sla` SLAs | `section.sla` | |
-| `/incumplimientos` SLAs incumplidos | `section.breach` | |
-| `/objetivos` Objetivos | `section.goals` | Árbol compañía → marketing → épica de equipo → tickets. |
-| `/capacidad` Capacidad vs demanda | `section.capacity` | |
-| `/trimestres` Trimestre a trimestre | `section.qoq` | |
-| `/aprendido` Lo aprendido | `section.learn` | |
-| `/definiciones` Definiciones | `section.defs` | |
-| `/permisos` Administrador de roles | `admin.roles` | Solo Líder. |
+| Ruta                                | Recurso de permiso | Notas                                                   |
+| ----------------------------------- | ------------------ | ------------------------------------------------------- |
+| `/` Resumen ejecutivo               | `section.exec`     | KPIs grandes con tooltip ⓘ.                             |
+| `/resumen` Resumen                  | `section.summary`  |                                                         |
+| `/ecosystem` Content Ecosystem      | `section.eco`      | Buscador por categoría + barra + botón.                 |
+| `/tareas` Tareas                    | `section.work`     | Une las tres pestañas anteriores con un solo filtro.    |
+| `/sla` SLAs                         | `section.sla`      |                                                         |
+| `/incumplimientos` SLAs incumplidos | `section.breach`   |                                                         |
+| `/objetivos` Objetivos              | `section.goals`    | Árbol compañía → marketing → épica de equipo → tickets. |
+| `/capacidad` Capacidad vs demanda   | `section.capacity` |                                                         |
+| `/trimestres` Trimestre a trimestre | `section.qoq`      |                                                         |
+| `/aprendido` Lo aprendido           | `section.learn`    |                                                         |
+| `/definiciones` Definiciones        | `section.defs`     |                                                         |
+| `/permisos` Administrador de roles  | `admin.roles`      | Solo Líder.                                             |
 
 Rendimiento por página: las páginas que **no** dependen del usuario más allá de la visibilidad se generan con datos cacheados (sección 12); los gráficos se renderizan como SVG en servidor.
 
@@ -190,12 +190,12 @@ Rendimiento por página: las páginas que **no** dependen del usuario más allá
 - **Fuente de verdad = Jira.** La BD es una caché derivada; cualquier divergencia se resuelve a favor de Jira.
 - **Tres mecanismos juntos**, para que nunca se quede desactualizado:
 
-| Mecanismo | Cuándo | Qué hace |
-|---|---|---|
-| **Carga inicial** | Una vez al desplegar (`pnpm sync:jira --full`) | Trae todo el histórico del proyecto con paginación y límites de tasa. |
-| **Webhook** | Tiempo real | Eventos `jira:issue_created`, `jira:issue_updated`, `jira:issue_deleted`, y cambios de épica/estado. Cada evento actualiza solo el ticket afectado. |
-| **Reconciliación perezosa** | Al abrir el dashboard, si el último sync tiene más de 15 min, se lanza en segundo plano (máx. 1 cada 5 min). Reemplaza al cron mientras no haya plan que lo permita | Cubre eventos perdidos o webhooks caídos. |
-| **Botón "Resincronizar con Jira"** | Manual (permiso `action.sync`) | Lanza una reconciliación inmediata (hay un botón análogo para Crowdin); limitado a 1 por minuto por usuario; muestra estado y hora del último sync. |
+| Mecanismo                          | Cuándo                                                                                                                                                              | Qué hace                                                                                                                                            |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Carga inicial**                  | Una vez al desplegar (`pnpm sync:jira --full`)                                                                                                                      | Trae todo el histórico del proyecto con paginación y límites de tasa.                                                                               |
+| **Webhook**                        | Tiempo real                                                                                                                                                         | Eventos `jira:issue_created`, `jira:issue_updated`, `jira:issue_deleted`, y cambios de épica/estado. Cada evento actualiza solo el ticket afectado. |
+| **Reconciliación perezosa**        | Al abrir el dashboard, si el último sync tiene más de 15 min, se lanza en segundo plano (máx. 1 cada 5 min). Reemplaza al cron mientras no haya plan que lo permita | Cubre eventos perdidos o webhooks caídos.                                                                                                           |
+| **Botón "Resincronizar con Jira"** | Manual (permiso `action.sync`)                                                                                                                                      | Lanza una reconciliación inmediata (hay un botón análogo para Crowdin); limitado a 1 por minuto por usuario; muestra estado y hora del último sync. |
 
 ### 6.2 Webhook de Jira
 
@@ -230,10 +230,10 @@ Respetar `Retry-After` y 429; backoff con jitter; paginación por `nextPageToken
 
 Los eventos `string.*` pertenecen a proyectos por cadenas; aquí se usan los de archivo. Confirmar los nombres exactos en la documentación de eventos por archivos de Crowdin Enterprise al crear los webhooks.
 
-| Evento | Uso en el Hub |
-|---|---|
-| `file.added`, `file.updated`, `file.deleted` | Cambió el texto fuente o las llaves de un archivo → releer las cadenas del archivo y compararlas con los campos (7.4). |
-| `file.translated`, `file.approved`, `project.translated`, `project.approved` | Reflejar el estado de traducción (`translation_status`) de la sección. |
+| Evento                                                                       | Uso en el Hub                                                                                                          |
+| ---------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `file.added`, `file.updated`, `file.deleted`                                 | Cambió el texto fuente o las llaves de un archivo → releer las cadenas del archivo y compararlas con los campos (7.4). |
+| `file.translated`, `file.approved`, `project.translated`, `project.approved` | Reflejar el estado de traducción (`translation_status`) de la sección.                                                 |
 
 ### 7.3 Recepción segura
 
@@ -267,12 +267,12 @@ Categoría → Sección (ubicación con una captura) → Campos (texto, llave, r
 
 ### 8.2 Vías de entrada (de la más masiva a la más fina)
 
-| Vía | Quién | Qué hace | Fase |
-|---|---|---|---|
-| **A. Importación inicial (una sola vez)** | Sebas | Se exporta a **CSV** la base "Content Ecosystem" de Confluence (espacio Content). Importador `pnpm import:confluence <archivo.csv>` con **modo simulación** e informe. Después de importar, **el Hub es la fuente de verdad** y la base de Confluence queda como archivo histórico de solo lectura. | 2 |
-| **B. Carga por archivos de datos** | Sebas | Archivos versionados en el repositorio (`/data/ecosystem/*.yaml`, más las capturas) que un script (`pnpm ecosystem:load`) valida con Zod y carga, con modo simulación. Es la vía para añadir y corregir contenido mientras no exista editor. | 2 |
-| **C. Bandeja "Llaves sin ubicar"** | Sebas | Llaves nuevas detectadas por Crowdin que aún no están en el Ecosystem: se listan y se añaden con la vía B. | 4 |
-| **D. Detección de huecos** | Automático | Reporte semanal: secciones sin captura, campos sin llave, llaves sin owner, campos sin verificar > 90 días. | 4 |
+| Vía                                       | Quién      | Qué hace                                                                                                                                                                                                                                                                                            | Fase |
+| ----------------------------------------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- |
+| **A. Importación inicial (una sola vez)** | Sebas      | Se exporta a **CSV** la base "Content Ecosystem" de Confluence (espacio Content). Importador `pnpm import:confluence <archivo.csv>` con **modo simulación** e informe. Después de importar, **el Hub es la fuente de verdad** y la base de Confluence queda como archivo histórico de solo lectura. | 2    |
+| **B. Carga por archivos de datos**        | Sebas      | Archivos versionados en el repositorio (`/data/ecosystem/*.yaml`, más las capturas) que un script (`pnpm ecosystem:load`) valida con Zod y carga, con modo simulación. Es la vía para añadir y corregir contenido mientras no exista editor.                                                        | 2    |
+| **C. Bandeja "Llaves sin ubicar"**        | Sebas      | Llaves nuevas detectadas por Crowdin que aún no están en el Ecosystem: se listan y se añaden con la vía B.                                                                                                                                                                                          | 4    |
+| **D. Detección de huecos**                | Automático | Reporte semanal: secciones sin captura, campos sin llave, llaves sin owner, campos sin verificar > 90 días.                                                                                                                                                                                         | 4    |
 
 ### 8.3 Reglas de importación (A)
 
@@ -321,7 +321,7 @@ Basada en el comportamiento ya validado en el mockup:
 - **Motor:** Postgres `tsvector` (diccionario español + inglés) + `pg_trgm` para tolerancia a errores (equivale al fuzzy ≤ 1 del mockup) + tabla `eco_synonym` (ES↔EN, administrable por el Líder).
 - **Coincidencia:** AND de términos con coincidencia literal, por sinónimo o aproximada; puntuación con bonificación por frase exacta.
 - **Autocompletado (estilo Google):** endpoint `GET /api/ecosystem/suggest?q=&cat=` con tipos de sugerencia (frase, campo, llave, ubicación, "¿quisiste decir?"), respetando la categoría elegida; respuesta < 100 ms, `debounce` de 120 ms en el cliente, cancelación de peticiones previas.
-- **Accesibilidad:** patrón *combobox* ARIA con navegación por teclado (↑ ↓ Enter Esc).
+- **Accesibilidad:** patrón _combobox_ ARIA con navegación por teclado (↑ ↓ Enter Esc).
 - **Permisos:** la búsqueda solo responde si el usuario tiene el permiso del módulo `section.eco` (el acceso es a todo el módulo, sin filtrar por categoría); nunca se filtra en el cliente y no se revela cuántos resultados ocultos existen.
 - **Entradas:** longitud máxima 120 caracteres, consultas parametrizadas, límite de tasa por usuario.
 
@@ -345,22 +345,22 @@ Basada en el comportamiento ya validado en el mockup:
 - Matriz rol × permiso con interruptores; cambios con **vista previa** ("este rol verá estas secciones") y confirmación.
 - Reglas de seguridad: no se puede dejar el sistema **sin ningún Líder**; un Líder no puede quitarse a sí mismo el último permiso de administración; todo cambio queda en `audit_log` con antes/después.
 - **Acceso por invitación:** el Líder añade el correo `@holafly.com` de cada persona y su rol (Colaborador o Líder) en `/permisos`. Solo quien está invitado y activo puede entrar; no hay alta automática. Para dar de baja se desactiva al usuario y sus sesiones se revocan al instante. Para promover a Líder se pide confirmación y queda en auditoría.
-- Arranque (*bootstrap*): el primer Líder se define por variable de entorno (`BOOTSTRAP_LEADER_EMAIL`), válida solo mientras no exista ningún Líder.
+- Arranque (_bootstrap_): el primer Líder se define por variable de entorno (`BOOTSTRAP_LEADER_EMAIL`), válida solo mientras no exista ningún Líder.
 
 ### 10.3 "Ocultar, no bloquear" — cómo se aplica
 
 La visibilidad se decide en **un único punto** (`AccessPolicy` en `domain/access`) y se aplica en todas las capas:
 
-| Capa | Comportamiento |
-|---|---|
-| **Navegación** | El menú se construye en servidor con solo las secciones permitidas. No existen enlaces, ni iconos de candado, ni texto "sin acceso". |
-| **Rutas** | Si el usuario pide una ruta no permitida, responde **404** (igual que una ruta inexistente), nunca 403, para no revelar que existe. |
-| **API** | Mismo criterio: 404 y sin cuerpo informativo. |
-| **Datos** | Las consultas reciben el conjunto de permisos y filtran en SQL. Los totales y KPIs se calculan **solo con lo visible**. |
-| **Búsqueda/sugerencias** | Filtradas en servidor (sección 9). |
-| **Caché** | Las claves de caché incluyen el hash del conjunto de permisos; nunca se sirve a un usuario una respuesta cacheada de otro perfil. |
-| **Cliente** | El HTML/JS enviado no contiene datos, rutas ni nombres de secciones no permitidas. |
-| **Cambios de permisos** | Se aplican en la siguiente petición (los permisos se leen por petición o con caché de ≤ 60 s invalidada al guardar); no se incrustan en la cookie de sesión. |
+| Capa                     | Comportamiento                                                                                                                                               |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Navegación**           | El menú se construye en servidor con solo las secciones permitidas. No existen enlaces, ni iconos de candado, ni texto "sin acceso".                         |
+| **Rutas**                | Si el usuario pide una ruta no permitida, responde **404** (igual que una ruta inexistente), nunca 403, para no revelar que existe.                          |
+| **API**                  | Mismo criterio: 404 y sin cuerpo informativo.                                                                                                                |
+| **Datos**                | Las consultas reciben el conjunto de permisos y filtran en SQL. Los totales y KPIs se calculan **solo con lo visible**.                                      |
+| **Búsqueda/sugerencias** | Filtradas en servidor (sección 9).                                                                                                                           |
+| **Caché**                | Las claves de caché incluyen el hash del conjunto de permisos; nunca se sirve a un usuario una respuesta cacheada de otro perfil.                            |
+| **Cliente**              | El HTML/JS enviado no contiene datos, rutas ni nombres de secciones no permitidas.                                                                           |
+| **Cambios de permisos**  | Se aplican en la siguiente petición (los permisos se leen por petición o con caché de ≤ 60 s invalidada al guardar); no se incrustan en la cookie de sesión. |
 
 Prueba obligatoria: un perfil sin acceso a una sección no debe poder detectar su existencia por menú, URL directa, API, búsqueda, caché ni código fuente de la página.
 
@@ -372,35 +372,39 @@ La validación de seguridad es un entregable, no una tarea final. Se ejecuta en 
 
 ### 11.1 Modelo de amenazas (resumen)
 
-| Activo | Amenaza | Control principal |
-|---|---|---|
-| Datos de Jira y del Ecosystem | Acceso de personas ajenas | Inicio de sesión Atlassian + correo @holafly.com + invitación + RBAC en servidor |
-| Permisos | Escalada de privilegios | `admin.roles` solo Líder, auditoría, validación en servidor |
-| Webhooks | Eventos falsos | Firma/secreto, idempotencia, re-lectura desde la fuente |
-| Tokens de API | Filtración | Gestor de secretos, mínimo privilegio, rotación |
-| Capturas | Archivo malicioso / fuga | Validación de firma, recodificación, acceso autenticado |
-| Búsqueda | Inyección, abuso | Consultas parametrizadas, límites |
-| Dashboard | Datos de otro perfil por caché | Claves de caché por permisos |
+| Activo                        | Amenaza                        | Control principal                                                                |
+| ----------------------------- | ------------------------------ | -------------------------------------------------------------------------------- |
+| Datos de Jira y del Ecosystem | Acceso de personas ajenas      | Inicio de sesión Atlassian + correo @holafly.com + invitación + RBAC en servidor |
+| Permisos                      | Escalada de privilegios        | `admin.roles` solo Líder, auditoría, validación en servidor                      |
+| Webhooks                      | Eventos falsos                 | Firma/secreto, idempotencia, re-lectura desde la fuente                          |
+| Tokens de API                 | Filtración                     | Gestor de secretos, mínimo privilegio, rotación                                  |
+| Capturas                      | Archivo malicioso / fuga       | Validación de firma, recodificación, acceso autenticado                          |
+| Búsqueda                      | Inyección, abuso               | Consultas parametrizadas, límites                                                |
+| Dashboard                     | Datos de otro perfil por caché | Claves de caché por permisos                                                     |
 
 ### 11.2 Controles por área
 
 **Autenticación y sesión**
+
 - Inicio de sesión con **Atlassian OAuth 2.0 (3LO)**: `state` y PKCE, scopes mínimos (`read:me`), y validar que el correo del perfil sea `@holafly.com` **y exista como usuario invitado y activo**. Si Atlassian no devuelve el correo (por la visibilidad del perfil), se rechaza el acceso y se avisa al Líder. El puerto `AuthProvider` permite añadir Google más adelante.
 - Sesión opaca en BD, expiración absoluta (12 h) e inactividad (60 min), rotación del identificador tras el login, cierre de sesión que la revoca en servidor.
 - Usuario desactivado ⇒ sesiones revocadas de inmediato.
 
 **Autorización**
+
 - Denegar por defecto. Toda ruta y endpoint declara el permiso que exige; una prueba automática recorre todas las rutas y falla si alguna no lo declara.
 - Comprobar permisos en servidor en cada petición; nunca confiar en datos del cliente.
 - Protección contra IDOR: los identificadores de recursos se verifican contra el alcance del usuario.
 
 **Entrada y salida**
+
 - Zod en todo; límites de tamaño de cuerpo; tipos de contenido permitidos.
 - Escape automático de Astro; prohibido `set:html` con datos externos (si es imprescindible, sanitizar con una lista blanca).
 - SQL solo mediante Drizzle/parametrizado.
 - Resaltado de búsqueda con DOM seguro (sin `innerHTML` con texto del usuario).
 
 **CSRF y CORS**
+
 - `security.checkOrigin` activo + cookies `SameSite=Lax` + token anti-CSRF en acciones que cambian estado. CORS cerrado (mismo origen).
 
 **Cabeceras** (middleware): `Content-Security-Policy` con nonces (sin `unsafe-inline`), `Strict-Transport-Security` (1 año, `includeSubDomains`), `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy` mínima, `frame-ancestors 'none'`, `Cross-Origin-Opener-Policy: same-origin`.
@@ -440,15 +444,15 @@ La validación de seguridad es un entregable, no una tarea final. Se ejecuta en 
 
 **Presupuesto (medido en CI con Lighthouse CI y en producción con RUM simple):**
 
-| Métrica | Meta |
-|---|---|
-| LCP | ≤ 1,5 s en 4G simulada |
-| INP | ≤ 150 ms |
-| CLS | ≤ 0,05 |
+| Métrica                             | Meta                                                   |
+| ----------------------------------- | ------------------------------------------------------ |
+| LCP                                 | ≤ 1,5 s en 4G simulada                                 |
+| INP                                 | ≤ 150 ms                                               |
+| CLS                                 | ≤ 0,05                                                 |
 | JS enviado en páginas del dashboard | ≤ 30 KB gzip (idealmente 0 en páginas sin interacción) |
-| JS de `/ecosystem` | ≤ 60 KB gzip |
-| TTFB (con caché caliente) | ≤ 200 ms |
-| Respuesta del autocompletado | ≤ 100 ms (p95) |
+| JS de `/ecosystem`                  | ≤ 60 KB gzip                                           |
+| TTFB (con caché caliente)           | ≤ 200 ms                                               |
+| Respuesta del autocompletado        | ≤ 100 ms (p95)                                         |
 
 **Tácticas:**
 
@@ -456,7 +460,7 @@ La validación de seguridad es un entregable, no una tarea final. Se ejecuta en 
 2. **Datos precalculados:** un job tras cada sync calcula los agregados (KPIs, SLAs, árbol de objetivos) y los guarda en tablas/vistas materializadas; las páginas solo leen.
 3. **Caché por capas:** caché de agregados precalculados en la BD (en un entorno serverless no hay memoria compartida entre instancias) + `ETag`/`Cache-Control: private, max-age` (nunca `public` para páginas con permisos); invalidación por evento de sync.
 4. **Gráficos en SVG de servidor,** sin librerías de gráficos en el cliente.
-5. **Fuentes:** sistema o una sola familia con `font-display: swap` y *preload*; sin bibliotecas de iconos (SVG en línea).
+5. **Fuentes:** sistema o una sola familia con `font-display: swap` y _preload_; sin bibliotecas de iconos (SVG en línea).
 6. **Imágenes:** capturas servidas en WebP/AVIF con `width/height`, `loading="lazy"` salvo la principal, y una sola captura por sección.
 7. **Compresión** Brotli en el proxy; HTTP/2 o 3.
 8. **Índices de BD** para cada consulta de página; revisión con `EXPLAIN` en las 10 consultas más frecuentes.
@@ -466,17 +470,17 @@ La validación de seguridad es un entregable, no una tarea final. Se ejecuta en 
 
 ## 13. Calidad, pruebas y CI/CD
 
-| Nivel | Qué cubre | Herramienta |
-|---|---|---|
-| Unitarias | `domain` completo (cálculo de SLA, % esfuerzo, impacto transitivo, búsqueda/puntuación, `AccessPolicy`) | Vitest — cobertura ≥ 90 % en `domain` |
-| Integración | Repositorios con Postgres real (contenedor local de pruebas), clientes Jira/Crowdin contra *fakes* o grabaciones, verificación de firmas | Vitest + Testcontainers |
-| Contrato | Esquemas Zod contra respuestas reales anonimizadas de Jira/Crowdin | Vitest |
-| E2E | Login, navegación por rol, búsqueda y sugerencias, recuadro rojo, administrador de roles, "ocultar no bloquear" | Playwright |
-| Accesibilidad | Páginas clave | axe en Playwright (WCAG 2.1 AA) |
-| Rendimiento | Presupuesto de la sección 12 | Lighthouse CI |
-| Seguridad | Sección 11.3 | CodeQL/Semgrep, gitleaks, audit |
+| Nivel         | Qué cubre                                                                                                                                | Herramienta                           |
+| ------------- | ---------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------- |
+| Unitarias     | `domain` completo (cálculo de SLA, % esfuerzo, impacto transitivo, búsqueda/puntuación, `AccessPolicy`)                                  | Vitest — cobertura ≥ 90 % en `domain` |
+| Integración   | Repositorios con Postgres real (contenedor local de pruebas), clientes Jira/Crowdin contra _fakes_ o grabaciones, verificación de firmas | Vitest + Testcontainers               |
+| Contrato      | Esquemas Zod contra respuestas reales anonimizadas de Jira/Crowdin                                                                       | Vitest                                |
+| E2E           | Login, navegación por rol, búsqueda y sugerencias, recuadro rojo, administrador de roles, "ocultar no bloquear"                          | Playwright                            |
+| Accesibilidad | Páginas clave                                                                                                                            | axe en Playwright (WCAG 2.1 AA)       |
+| Rendimiento   | Presupuesto de la sección 12                                                                                                             | Lighthouse CI                         |
+| Seguridad     | Sección 11.3                                                                                                                             | CodeQL/Semgrep, gitleaks, audit       |
 
-**Pipeline (GitHub Actions):** instalar → lint → `astro check` → dependency-cruiser → unitarias → integración → build → e2e → Lighthouse → seguridad → publicar imagen. Ramas protegidas, revisión obligatoria, commits convencionales, *preview* por PR, migraciones revisadas.
+**Pipeline (GitHub Actions):** instalar → lint → `astro check` → dependency-cruiser → unitarias → integración → build → e2e → Lighthouse → seguridad → publicar imagen. Ramas protegidas, revisión obligatoria, commits convencionales, _preview_ por PR, migraciones revisadas.
 
 **Definición de terminado (por tarea):** código tipado, pruebas incluidas, sin avisos de lint, permisos declarados, registro de decisiones actualizado, sin regresión de presupuesto.
 
@@ -487,8 +491,8 @@ La validación de seguridad es un entregable, no una tarea final. Se ejecuta en 
 - Logs estructurados (JSON) con `request_id`; métricas: latencia, errores, cola de webhooks, antigüedad del último sync de Jira y de Crowdin.
 - Página interna `/estado` (solo Líder): último sync, eventos fallidos, webhooks pendientes de renovar, cuota de API.
 - Alertas: sync sin éxito > 30 min, webhooks con firma inválida, cola con retraso, errores 5xx.
-- *Runbooks* en `docs/runbooks`: re-sincronización completa, rotación de tokens, restauración de BD, reinstalar webhooks.
-- Despliegue con migraciones automáticas y *rollback* documentado; entornos dev/staging/prod.
+- _Runbooks_ en `docs/runbooks`: re-sincronización completa, rotación de tokens, restauración de BD, reinstalar webhooks.
+- Despliegue con migraciones automáticas y _rollback_ documentado; entornos dev/staging/prod.
 
 ---
 
@@ -500,15 +504,15 @@ La validación de seguridad es un entregable, no una tarea final. Se ejecuta en 
 
 ## 16. Fases y criterios de aceptación
 
-| Fase | Entregable | Criterios de aceptación |
-|---|---|---|
-| **0. Cimientos** | Repo, estructura de capas, CI, Astro configurado, esquema de BD, login con `@holafly.com`, sesiones, `AccessPolicy`, middleware de seguridad | Login solo con dominio válido; CI verde; dependency-cruiser activo; cabeceras de seguridad correctas; pruebas de autorización por defecto-deniega. |
-| **1. Jira + dashboard** | Carga inicial, webhook, reconciliación, botón resincronizar, páginas del dashboard (exec, resumen, tareas, SLAs, incumplimientos, objetivos, capacidad, trimestres, aprendido, definiciones) | Un cambio en Jira se refleja en < 1 min; webhook rechaza firmas inválidas; presupuesto de rendimiento cumplido; cifras coinciden con Jira en una muestra de 30 tickets. |
-| **2. Roles + Ecosystem lectura** | Administrador de roles, "ocultar no bloquear", importación desde Confluence (modo simulación + real), carga por archivos de datos, buscador con autocompletado, detalle con captura y recuadro (coordenadas manuales al inicio) | Prueba 10.3 superada; importación reproducible con informe; búsqueda y sugerencias < 100 ms; navegación por teclado. |
-| **3. Detección asistida de recuadros** | Comando `ecosystem:detect` (OCR), informe de dudosos y no encontrados, carga de capturas por script | Meta a medir con una muestra de 30 campos: ≥ 80 % propuestos correctamente sin retoques; los dudosos y no encontrados aparecen siempre en el informe; carga idempotente y capturas validadas. |
-| **4. Crowdin** | Webhook de Crowdin, bandeja "Llaves sin ubicar", detección de huecos, aviso de recaptura cuando cambia un texto | Cambio de texto fuente marca el campo como "revisar" en < 1 min y avisa de que la captura puede estar desactualizada; eventos duplicados no se reprocesan; reporte semanal de huecos. |
-| **5. Endurecimiento y lanzamiento** | Revisión de seguridad completa (11.3), pruebas de carga, runbooks, formación | Lista 11.3 cerrada; sin hallazgos críticos/altos; plan de incidentes aprobado. |
-| **Futuro** | Editor de contenido del Ecosystem (alta guiada, subida de capturas, edición de recuadro y dependencias), captura automática de páginas, atributo de llave en el front, funciones programadas de Netlify como respaldo automático | Se decide con datos de uso real; el modelo y el permiso `action.ecoedit` ya existen. |
+| Fase                                   | Entregable                                                                                                                                                                                                                       | Criterios de aceptación                                                                                                                                                                       |
+| -------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **0. Cimientos**                       | Repo, estructura de capas, CI, Astro configurado, esquema de BD, login con `@holafly.com`, sesiones, `AccessPolicy`, middleware de seguridad                                                                                     | Login solo con dominio válido; CI verde; dependency-cruiser activo; cabeceras de seguridad correctas; pruebas de autorización por defecto-deniega.                                            |
+| **1. Jira + dashboard**                | Carga inicial, webhook, reconciliación, botón resincronizar, páginas del dashboard (exec, resumen, tareas, SLAs, incumplimientos, objetivos, capacidad, trimestres, aprendido, definiciones)                                     | Un cambio en Jira se refleja en < 1 min; webhook rechaza firmas inválidas; presupuesto de rendimiento cumplido; cifras coinciden con Jira en una muestra de 30 tickets.                       |
+| **2. Roles + Ecosystem lectura**       | Administrador de roles, "ocultar no bloquear", importación desde Confluence (modo simulación + real), carga por archivos de datos, buscador con autocompletado, detalle con captura y recuadro (coordenadas manuales al inicio)  | Prueba 10.3 superada; importación reproducible con informe; búsqueda y sugerencias < 100 ms; navegación por teclado.                                                                          |
+| **3. Detección asistida de recuadros** | Comando `ecosystem:detect` (OCR), informe de dudosos y no encontrados, carga de capturas por script                                                                                                                              | Meta a medir con una muestra de 30 campos: ≥ 80 % propuestos correctamente sin retoques; los dudosos y no encontrados aparecen siempre en el informe; carga idempotente y capturas validadas. |
+| **4. Crowdin**                         | Webhook de Crowdin, bandeja "Llaves sin ubicar", detección de huecos, aviso de recaptura cuando cambia un texto                                                                                                                  | Cambio de texto fuente marca el campo como "revisar" en < 1 min y avisa de que la captura puede estar desactualizada; eventos duplicados no se reprocesan; reporte semanal de huecos.         |
+| **5. Endurecimiento y lanzamiento**    | Revisión de seguridad completa (11.3), pruebas de carga, runbooks, formación                                                                                                                                                     | Lista 11.3 cerrada; sin hallazgos críticos/altos; plan de incidentes aprobado.                                                                                                                |
+| **Futuro**                             | Editor de contenido del Ecosystem (alta guiada, subida de capturas, edición de recuadro y dependencias), captura automática de páginas, atributo de llave en el front, funciones programadas de Netlify como respaldo automático | Se decide con datos de uso real; el modelo y el permiso `action.ecoedit` ya existen.                                                                                                          |
 
 ---
 
@@ -516,20 +520,20 @@ La validación de seguridad es un entregable, no una tarea final. Se ejecuta en 
 
 **Decisiones cerradas:**
 
-| Tema | Decisión |
-|---|---|
-| Hosting | **Netlify** para todo, por ahora en el plan gratuito: Astro con `@astrojs/netlify`, Netlify DB (Postgres) y Netlify Blobs. |
-| Acceso | **Inicio de sesión con Atlassian.** Solo entran las personas **invitadas** por un Líder; el resto no puede ver el Hub. |
-| Roles | Dos: **Colaborador** y **Líder**. Hoy solo Sebas es Líder. |
-| Permisos del Ecosistema | Sobre el **módulo completo**; quien lo ve, ve todo su contenido. |
-| Actualización de datos | Webhooks de Jira y Crowdin (cuando se creen en desarrollo) + **botón de resincronización** + reconciliación perezosa. Sin cron por ahora. |
-| SLAs de Jira | **Time to response** y **Time to done**. |
-| Crowdin | Dos proyectos **por archivos** (app 19, ecommerce 55), Enterprise (Team+), inglés como idioma fuente. |
-| Confluence | Se exporta a **CSV una vez**; el Hub pasa a ser la **fuente de verdad**. |
-| Strapi | **No se lee**; solo guarda colección y enlace para ir a editar. |
-| Capturas | Las **sube Sebas** (páginas públicas, en inglés). Los recuadros los propone un OCR local y se revisan. Sin atributo de llave en el front. |
-| Retención | Valores por defecto de la sección 11.2. |
-| Contenido del Ecosistema | Lo carga Sebas; sin editor en v1. |
+| Tema                     | Decisión                                                                                                                                  |
+| ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| Hosting                  | **Netlify** para todo, por ahora en el plan gratuito: Astro con `@astrojs/netlify`, Netlify DB (Postgres) y Netlify Blobs.                |
+| Acceso                   | **Inicio de sesión con Atlassian.** Solo entran las personas **invitadas** por un Líder; el resto no puede ver el Hub.                    |
+| Roles                    | Dos: **Colaborador** y **Líder**. Hoy solo Sebas es Líder.                                                                                |
+| Permisos del Ecosistema  | Sobre el **módulo completo**; quien lo ve, ve todo su contenido.                                                                          |
+| Actualización de datos   | Webhooks de Jira y Crowdin (cuando se creen en desarrollo) + **botón de resincronización** + reconciliación perezosa. Sin cron por ahora. |
+| SLAs de Jira             | **Time to response** y **Time to done**.                                                                                                  |
+| Crowdin                  | Dos proyectos **por archivos** (app 19, ecommerce 55), Enterprise (Team+), inglés como idioma fuente.                                     |
+| Confluence               | Se exporta a **CSV una vez**; el Hub pasa a ser la **fuente de verdad**.                                                                  |
+| Strapi                   | **No se lee**; solo guarda colección y enlace para ir a editar.                                                                           |
+| Capturas                 | Las **sube Sebas** (páginas públicas, en inglés). Los recuadros los propone un OCR local y se revisan. Sin atributo de llave en el front. |
+| Retención                | Valores por defecto de la sección 11.2.                                                                                                   |
+| Contenido del Ecosistema | Lo carga Sebas; sin editor en v1.                                                                                                         |
 
 **Pendientes (por orden de impacto):**
 
@@ -543,14 +547,14 @@ La validación de seguridad es un entregable, no una tarea final. Se ejecuta en 
 
 ## 18. Mapa del mockup al producto
 
-| En el mockup | En el producto |
-|---|---|
-| Datos de ejemplo (331 tickets, fecha fija) | Datos reales de Jira; fecha del servidor |
-| 3 roles y candados en páginas bloqueadas | 2 roles; secciones sin acceso **ocultas** |
-| Un solo HTML con enrutamiento por hash | Rutas Astro reales con permisos en servidor |
-| Ecosystem con 18 secciones / 33 campos sembrados | Datos importados y mantenidos según la sección 8 |
-| Captura PDP embebida en base64 | Capturas subidas por Sebas con el script de carga y servidas con autenticación |
-| Recuadros con coordenadas fijas en los datos | Recuadros propuestos por OCR y revisados (manual como respaldo) |
-| Redibujar el recuadro arrastrando | Fuera de v1; entra con el editor futuro |
-| Búsqueda en el navegador | Búsqueda en servidor con filtrado por permisos |
-| Paleta: coral `#e6485c`, violeta, aqua, amarillo, verde; tema claro/oscuro | Mantener tokens de diseño en un único archivo CSS de variables |
+| En el mockup                                                               | En el producto                                                                 |
+| -------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| Datos de ejemplo (331 tickets, fecha fija)                                 | Datos reales de Jira; fecha del servidor                                       |
+| 3 roles y candados en páginas bloqueadas                                   | 2 roles; secciones sin acceso **ocultas**                                      |
+| Un solo HTML con enrutamiento por hash                                     | Rutas Astro reales con permisos en servidor                                    |
+| Ecosystem con 18 secciones / 33 campos sembrados                           | Datos importados y mantenidos según la sección 8                               |
+| Captura PDP embebida en base64                                             | Capturas subidas por Sebas con el script de carga y servidas con autenticación |
+| Recuadros con coordenadas fijas en los datos                               | Recuadros propuestos por OCR y revisados (manual como respaldo)                |
+| Redibujar el recuadro arrastrando                                          | Fuera de v1; entra con el editor futuro                                        |
+| Búsqueda en el navegador                                                   | Búsqueda en servidor con filtrado por permisos                                 |
+| Paleta: coral `#e6485c`, violeta, aqua, amarillo, verde; tema claro/oscuro | Mantener tokens de diseño en un único archivo CSS de variables                 |

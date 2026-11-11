@@ -1,0 +1,10 @@
+dist
+.astro
+.netlify
+node_modules
+pnpm-lock.yaml
+coverage
+playwright-report
+test-results
+src/infrastructure/db/migrations
+docs/reference
