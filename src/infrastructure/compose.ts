@@ -1,5 +1,11 @@
 import type { AuthProvider } from '@application/ports/auth-provider';
-import type { Clock } from '@application/ports/services';
+import type { RateLimiter } from '@application/ports/rate-limiter';
+import type {
+  RoleRepository,
+  SessionRepository,
+  UserRepository,
+} from '@application/ports/repositories';
+import type { AuditLog, Clock, TokenService } from '@application/ports/services';
 import { ChangeUserRole } from '@application/use-cases/admin/change-user-role';
 import { GetAccessOverview } from '@application/use-cases/admin/get-access-overview';
 import { InviteUser } from '@application/use-cases/admin/invite-user';
@@ -41,14 +47,20 @@ function chooseAuthProvider(env: ComposeEnv): AuthProvider {
   });
 }
 
-/** Wires adapters to use cases. Contains no Astro code, so tests can build the same app. */
-export function composeApp(db: Database, env: ComposeEnv, clock: Clock = new SystemClock()) {
-  const users = new DbUserRepository(db);
-  const roles = new DbRoleRepository(db);
-  const sessions = new DbSessionRepository(db);
-  const audit = new DbAuditLog(db);
-  const tokens = new CryptoTokenService();
+/** Every port the use cases depend on. Real adapters and in-memory fakes both fit. */
+export interface Ports {
+  readonly users: UserRepository;
+  readonly roles: RoleRepository;
+  readonly sessions: SessionRepository;
+  readonly audit: AuditLog;
+  readonly rateLimiter: RateLimiter;
+  readonly tokens: TokenService;
+  readonly authProvider: AuthProvider;
+}
 
+/** Wires ports to use cases. No Astro code, so tests build the very same app. */
+export function wireApp(ports: Ports, env: ComposeEnv, clock: Clock) {
+  const { users, roles, sessions, audit, tokens } = ports;
   const admin = { users, roles, sessions, audit, allowedEmailDomain: env.ALLOWED_EMAIL_DOMAIN };
 
   return {
@@ -56,10 +68,10 @@ export function composeApp(db: Database, env: ComposeEnv, clock: Clock = new Sys
     roles,
     sessions,
     audit,
-    rateLimiter: new DbRateLimiter(db, clock),
+    rateLimiter: ports.rateLimiter,
     csrf: new CsrfService(env.SESSION_SECRET),
     settings: { secureCookies: env.PUBLIC_APP_URL.startsWith('https://') },
-    authProvider: chooseAuthProvider(env),
+    authProvider: ports.authProvider,
     signIn: new SignIn({
       users,
       roles,
@@ -79,6 +91,23 @@ export function composeApp(db: Database, env: ComposeEnv, clock: Clock = new Sys
     setUserStatus: new SetUserStatus(admin),
     getAccessOverview: new GetAccessOverview(admin),
   };
+}
+
+/** Production wiring: real adapters over a database. */
+export function composeApp(db: Database, env: ComposeEnv, clock: Clock = new SystemClock()) {
+  return wireApp(
+    {
+      users: new DbUserRepository(db),
+      roles: new DbRoleRepository(db),
+      sessions: new DbSessionRepository(db),
+      audit: new DbAuditLog(db),
+      rateLimiter: new DbRateLimiter(db, clock),
+      tokens: new CryptoTokenService(),
+      authProvider: chooseAuthProvider(env),
+    },
+    env,
+    clock,
+  );
 }
 
 export type App = ReturnType<typeof composeApp>;

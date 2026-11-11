@@ -18,6 +18,8 @@ export default defineConfig({
   integrations: [contentHub()],
   // Sessions live in our own database (SDD §2), not in Netlify Blobs.
   session: false,
+  // Always ship CSS as files, never inline <style>, so styles never depend on CSP hashes (D-026).
+  build: { inlineStylesheets: 'never' },
   security: {
     // CSRF protection for POST/PUT/PATCH/DELETE (SDD §2, mandatory).
     checkOrigin: true,

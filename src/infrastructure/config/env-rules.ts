@@ -49,6 +49,23 @@ export class EnvError extends Error {
   }
 }
 
+/**
+ * In production the database must be a real Postgres reached over TLS: the embedded database
+ * would lose data on serverless, and an unencrypted link would expose credentials (SDD §11.2).
+ */
+function productionDatabaseProblems(url: string): string[] {
+  if (url.startsWith('pglite:'))
+    return ['DATABASE_URL: the embedded database is forbidden in production'];
+  const parsed = URL.canParse(url) ? new URL(url) : null;
+  if (!parsed) return ['DATABASE_URL: not a valid connection string'];
+  const isLocalHost = ['localhost', '127.0.0.1', '[::1]'].includes(parsed.hostname);
+  const sslmode = parsed.searchParams.get('sslmode');
+  const encrypted = sslmode !== null && ['require', 'verify-ca', 'verify-full'].includes(sslmode);
+  return isLocalHost || encrypted
+    ? []
+    : ['DATABASE_URL: must include sslmode=require in production'];
+}
+
 /** Cross-field rules (SDD §15, docs/DECISIONES.md D-004 and D-005). */
 function crossFieldProblems(env: AppEnv, context: EnvContext): string[] {
   const problems: string[] = [];
@@ -56,6 +73,7 @@ function crossFieldProblems(env: AppEnv, context: EnvContext): string[] {
   if (leaderDomain !== env.ALLOWED_EMAIL_DOMAIN.toLowerCase()) {
     problems.push('BOOTSTRAP_LEADER_EMAIL: must belong to ALLOWED_EMAIL_DOMAIN');
   }
+  if (context.isProduction) problems.push(...productionDatabaseProblems(env.DATABASE_URL));
   if (env.AUTH_PROVIDER === 'local' && context.isProduction) {
     problems.push('AUTH_PROVIDER: "local" is forbidden in production');
   }

@@ -52,7 +52,14 @@ async function openPglite(location: string): Promise<DatabaseHandle> {
 }
 
 function openPostgres(url: string): Promise<DatabaseHandle> {
-  const pool = new pg.Pool({ connectionString: url, max: 5 });
+  // Small, short-lived pool: each serverless instance is brief and the provider pools too.
+  const pool = new pg.Pool({
+    connectionString: url,
+    max: 5,
+    idleTimeoutMillis: 10_000,
+    connectionTimeoutMillis: 5_000,
+    statement_timeout: 15_000,
+  });
   const db = drizzlePg({ client: pool, schema });
   return Promise.resolve({
     db,

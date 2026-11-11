@@ -22,7 +22,8 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx --env-file=.env src/infrastructure/db/migrate-cli.ts",
     "test:unit": "vitest run tests/unit",
-    "test:integration": "vitest run tests/integration"
+    "test:integration": "vitest run tests/integration",
+    "verify:deploy": "node scripts/verify-deploy.mjs"
   },
   "dependencies": {
     "@astrojs/netlify": "^8.2.12",

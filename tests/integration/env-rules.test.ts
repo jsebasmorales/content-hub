@@ -51,8 +51,42 @@ describe('parseEnv', () => {
   });
 
   it('requires Atlassian settings when AUTH_PROVIDER=atlassian', () => {
-    const problems = problemsOf({ ...valid, AUTH_PROVIDER: 'atlassian' }, prod);
+    const problems = problemsOf(
+      {
+        ...valid,
+        AUTH_PROVIDER: 'atlassian',
+        DATABASE_URL: 'postgres://u:p@db.example.com/app?sslmode=require',
+      },
+      prod,
+    );
     expect(problems).toHaveLength(3);
+  });
+
+  describe('production database', () => {
+    const prodAtlassian = {
+      ...valid,
+      AUTH_PROVIDER: 'atlassian',
+      ATLASSIAN_CLIENT_ID: 'id',
+      ATLASSIAN_CLIENT_SECRET: 'secret',
+      ATLASSIAN_REDIRECT_URI: 'https://hub.example.com/api/auth/callback',
+    };
+    const withDb = (DATABASE_URL: string) => problemsOf({ ...prodAtlassian, DATABASE_URL }, prod);
+
+    it('forbids the embedded database', () => {
+      expect(withDb('pglite:.data/dev').join()).toContain('embedded database is forbidden');
+    });
+
+    it('requires TLS for remote Postgres', () => {
+      expect(withDb('postgres://u:p@db.example.com/app').join()).toContain('sslmode=require');
+      expect(withDb('postgres://u:p@db.example.com/app?sslmode=disable').join()).toContain(
+        'sslmode',
+      );
+    });
+
+    it('accepts encrypted remote Postgres and a local one', () => {
+      expect(withDb('postgres://u:p@db.example.com/app?sslmode=require')).toEqual([]);
+      expect(withDb('postgres://u:p@localhost:5432/app')).toEqual([]);
+    });
   });
 
   it('never includes secret values in error messages', () => {
