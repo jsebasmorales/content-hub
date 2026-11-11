@@ -1,6 +1,13 @@
 // @ts-check
 import netlify from '@astrojs/netlify';
-import { defineConfig } from 'astro/config';
+import { defineConfig, envField } from 'astro/config';
+
+/** Required server secret. Missing or invalid => the app refuses to start (SDD §15). */
+const required = (/** @type {object} */ extra = {}) =>
+  envField.string({ context: 'server', access: 'secret', ...extra });
+
+/** Optional server secret: becomes required by its phase (docs/DECISIONES.md D-005). */
+const optional = () => envField.string({ context: 'server', access: 'secret', optional: true });
 
 // https://astro.build/config
 export default defineConfig({
@@ -11,5 +18,39 @@ export default defineConfig({
   security: {
     // CSRF protection for POST/PUT/PATCH/DELETE (SDD §2, mandatory).
     checkOrigin: true,
+  },
+  env: {
+    // Validate secrets when the server starts/builds, not lazily on first read.
+    validateSecrets: true,
+    schema: {
+      // --- Required from Phase 0 ---
+      DATABASE_URL: required(),
+      SESSION_SECRET: required({ min: 32 }),
+      ALLOWED_EMAIL_DOMAIN: required({ default: 'holafly.com' }),
+      BOOTSTRAP_LEADER_EMAIL: required(),
+      PUBLIC_APP_URL: required(),
+      AUTH_PROVIDER: envField.enum({
+        context: 'server',
+        access: 'secret',
+        values: ['local', 'atlassian'],
+      }),
+      // --- Atlassian OAuth 2.0 (login) ---
+      ATLASSIAN_CLIENT_ID: optional(),
+      ATLASSIAN_CLIENT_SECRET: optional(),
+      ATLASSIAN_REDIRECT_URI: optional(),
+      // --- Jira (Phase 1) ---
+      JIRA_BASE_URL: optional(),
+      JIRA_EMAIL: optional(),
+      JIRA_API_TOKEN: optional(),
+      JIRA_PROJECT_KEY: optional(),
+      JIRA_WEBHOOK_SECRET: optional(),
+      // --- Crowdin (Phase 4) ---
+      CROWDIN_TOKEN: optional(),
+      CROWDIN_PROJECT_IDS: optional(),
+      CROWDIN_WEBHOOK_SECRET: optional(),
+      // --- Storage and ingestion (Phases 2-3) ---
+      BLOB_READ_WRITE_TOKEN: optional(),
+      INGEST_API_TOKEN: optional(),
+    },
   },
 });

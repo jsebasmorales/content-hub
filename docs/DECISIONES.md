@@ -69,3 +69,8 @@ Estado: `aprobada` = confirmada por Sebas; `revisar` = a confirmar.
 
 - **Opción:** `src/infrastructure/container.ts` es el único módulo de infraestructura que `presentation` puede importar (conecta casos de uso con adaptadores reales). dependency-cruiser y ESLint lo imponen.
 - **Motivo:** El SDD define presentation → application → domain pero las páginas necesitan casos de uso ya cableados; sin un punto único de cableado habría imports dispersos hacia infraestructura.
+
+### D-014 · Dónde se valida el entorno — aprobada
+
+- **Opción:** Doble capa. (1) `env.schema` en `astro.config.mjs` tipa cada variable con `astro:env`. (2) `infrastructure/config/env.ts` valida reglas cruzadas con Zod (`env-rules.ts`) al importarse, es decir, al primer arranque del servidor / cold start. La compilación (`astro build`) no exige las variables.
+- **Motivo:** Astro solo valida secretos cuando se leen; las reglas cruzadas (dominio del líder, `local` prohibido en producción, Atlassian completo) no caben en el esquema de Astro. No exigir secretos en el build permite compilar previews sin datos reales (SDD §11.2). Los mensajes de error nunca incluyen valores.

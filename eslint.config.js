@@ -1,4 +1,5 @@
 import js from '@eslint/js';
+import { defineConfig } from 'eslint/config';
 import astro from 'eslint-plugin-astro';
 import globals from 'globals';
 import tseslint from 'typescript-eslint';
@@ -40,7 +41,7 @@ const restrictImports = (patterns, message) => ({
   'no-restricted-imports': ['error', { patterns: [{ group: patterns, message }] }],
 });
 
-export default tseslint.config(
+export default defineConfig(
   {
     ignores: [
       'dist/',
