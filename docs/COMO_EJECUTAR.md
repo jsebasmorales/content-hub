@@ -83,6 +83,7 @@ Hoy el acceso usa el modo de desarrollo. Para que el equipo entre con su cuenta 
 
    Los valores van sin comillas ni espacios, cada uno en una sola línea. Reinicia `pnpm dev`
    después de editar `.env`.
+
 7. **Comprobación importante** (pendiente 2 del SDD): inicia sesión con 2 o 3 compañeros y confirma
    que Atlassian devuelve su correo @holafly.com. Si alguien no lo devuelve, el Hub lo rechaza a
    propósito; se resuelve ajustando la visibilidad del correo en su perfil de Atlassian.

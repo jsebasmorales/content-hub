@@ -34,7 +34,7 @@ Estado: `aprobada` = confirmada por Sebas; `revisar` = a confirmar; `pendiente` 
 
 - **Opción:** Drizzle sobre Postgres estándar. Local y pruebas: PGlite (Postgres embebido, sin Docker). Producción: Postgres administrado (Netlify DB / Neon). Se elige por configuración (`DATABASE_URL`); `docker-compose.yml` queda listo para un Postgres en contenedor.
 - **Motivo:** Docker no está instalado en el equipo de desarrollo. Al ser Postgres estándar, migrar de hosting es cambiar la cadena de conexión.
-- **Enmienda (revisión de arquitectura):** PGlite tiene una sola conexión, así que no puede detectar carreras (D-031) ni probar el driver `pg` con TLS. El SDD §13 pedía Postgres real; el CI es Linux y sí puede darlo. **Pendiente:** añadir `services: postgres` al job de CI y repetir `test:integration` contra él (ver D-031).
+- **Enmienda (revisión de arquitectura):** PGlite tiene una sola conexión, así que no puede detectar carreras (D-031) ni probar el driver `pg` con TLS. El SDD §13 pedía Postgres real; el CI es Linux y sí puede darlo. **Hecho:** el job `postgres` de CI repite `test:integration` contra un Postgres 17 real (ver D-031). Falta comprobar el driver con TLS de Neon, que solo se puede hacer con la base real (D-030).
 
 ### D-007 · Identificadores UUID v7 — aprobada
 
@@ -164,11 +164,13 @@ Estado: `aprobada` = confirmada por Sebas; `revisar` = a confirmar; `pendiente` 
 - **Motivo:** D-015 dice "se migra en el despliegue" pero nada lo implementa, y hoy un solo rol migra y opera, con lo que el trigger de inmutabilidad (D-017) se puede desactivar. SDD §11.2 pide mínimo privilegio y §14 migraciones automáticas con _rollback_ documentado.
 - **Estado:** sin implementar. Depende de crear la cuenta de Netlify y la BD (pendiente 1 del SDD §17). Debe estar cerrada antes del primer despliegue.
 
-### D-031 · Invariantes de acceso garantizados por la base de datos — revisar
+### D-031 · Invariantes de acceso garantizados por la base de datos — aprobada
 
-- **Opción:** Las reglas "siempre hay un Líder activo" y "un Líder no se degrada a sí mismo" (§10.2) se aplican dentro de una transacción que bloquea con `SELECT … FOR UPDATE` las filas de Líderes activos antes de contar y escribir. `ChangeUserRole`, `SetUserStatus` y el _bootstrap_ de `SignIn` pasan por un puerto transaccional. El CI repite `test:integration` contra un Postgres real (`services: postgres`) con una prueba que lanza dos degradaciones a la vez.
-- **Motivo:** Hoy se comprueba (`countActiveLeaders`) y luego se escribe, sin bloqueo: dos Líderes que se degraden a la vez dejan el sistema sin Líder. PGlite (una sola conexión) no puede reproducirlo. D-019 permite recuperar el acceso con el correo de _bootstrap_, lo que acota el daño, pero el invariante debe garantizarlo la BD.
-- **Estado:** sin implementar; es el cambio de mayor tamaño de esta revisión (toca el puerto de repositorios y su fake, D-018).
+- **Opción:** Las reglas "siempre hay un Líder activo" y "un Líder no se degrada a sí mismo" (§10.2) se aplican dentro de una transacción que toma un **bloqueo asesor** (`pg_advisory_xact_lock`) antes de contar y escribir. Se eligió en lugar de `SELECT … FOR UPDATE` sobre las filas de Líderes porque también serializa el _bootstrap_, donde todavía no hay filas que bloquear. Nuevo puerto `AccessUnitOfWork.withLeaderLock` (`application/ports/unit-of-work.ts`) con adaptador `DbAccessUnitOfWork` y fake `InMemoryAccessUnitOfWork` (cola de una sola ejecución). `ChangeUserRole`, `SetUserStatus` y el _bootstrap_ de `SignIn` pasan por él; el cambio y su fila de auditoría confirman juntos o ninguno. `InviteUser` no lo necesita: invitar no reduce el número de Líderes.
+- **Motivo:** Se comprobaba (`countActiveLeaders`) y luego se escribía, sin bloqueo: dos Líderes que se degradaran a la vez dejaban el sistema sin Líder. D-019 permite recuperar el acceso con el correo de _bootstrap_, lo que acotaba el daño, pero el invariante debe garantizarlo la BD.
+- **Pruebas:** `tests/integration/leader-lock.test.ts` (dos degradaciones, dos desactivaciones y tres primeros inicios de sesión simultáneos) contra el fake y contra Postgres. Quitando el bloqueo del fake, las tres fallan. Un job de CI (`postgres`) repite `test:integration` contra un Postgres real con `TEST_DATABASE_URL`; cada app de prueba usa una base de datos propia y desechable.
+- **Límite conocido:** PGlite tiene una sola conexión, así que en local la prueba valida el uso del bloqueo y la decisión sobre datos frescos, no el paralelismo real. Ese se ejerce en el job de CI. Ese job no se ha podido ejecutar en el equipo de desarrollo (sin Docker): su primera ejecución será en GitHub Actions.
+- **Estado:** **hecho**.
 
 ### D-032 · Arranque tolerante a fallos y carreras — aprobada
 

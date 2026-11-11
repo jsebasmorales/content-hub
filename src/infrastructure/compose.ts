@@ -6,6 +6,7 @@ import type {
   UserRepository,
 } from '@application/ports/repositories';
 import type { AuditLog, Clock, TokenService } from '@application/ports/services';
+import type { AccessUnitOfWork } from '@application/ports/unit-of-work';
 import { ChangeUserRole } from '@application/use-cases/admin/change-user-role';
 import { GetAccessOverview } from '@application/use-cases/admin/get-access-overview';
 import { InviteUser } from '@application/use-cases/admin/invite-user';
@@ -24,6 +25,7 @@ import { DbRateLimiter } from './db/repositories/rate-limiter';
 import { DbRoleRepository } from './db/repositories/role-repository';
 import { DbSessionRepository } from './db/repositories/session-repository';
 import { DbUserRepository } from './db/repositories/user-repository';
+import { DbAccessUnitOfWork } from './db/unit-of-work';
 
 export type ComposeEnv = Pick<
   AppEnv,
@@ -54,14 +56,22 @@ export interface Ports {
   readonly sessions: SessionRepository;
   readonly audit: AuditLog;
   readonly rateLimiter: RateLimiter;
+  readonly unitOfWork: AccessUnitOfWork;
   readonly tokens: TokenService;
   readonly authProvider: AuthProvider;
 }
 
 /** Wires ports to use cases. No Astro code, so tests build the very same app. */
 export function wireApp(ports: Ports, env: ComposeEnv, clock: Clock) {
-  const { users, roles, sessions, audit, tokens } = ports;
-  const admin = { users, roles, sessions, audit, allowedEmailDomain: env.ALLOWED_EMAIL_DOMAIN };
+  const { users, roles, sessions, audit, tokens, unitOfWork } = ports;
+  const admin = {
+    users,
+    roles,
+    sessions,
+    audit,
+    unitOfWork,
+    allowedEmailDomain: env.ALLOWED_EMAIL_DOMAIN,
+  };
 
   return {
     users,
@@ -77,6 +87,7 @@ export function wireApp(ports: Ports, env: ComposeEnv, clock: Clock) {
       roles,
       sessions,
       audit,
+      unitOfWork,
       tokens,
       clock,
       config: {
@@ -102,6 +113,7 @@ export function composeApp(db: Database, env: ComposeEnv, clock: Clock = new Sys
       sessions: new DbSessionRepository(db),
       audit: new DbAuditLog(db),
       rateLimiter: new DbRateLimiter(db, clock),
+      unitOfWork: new DbAccessUnitOfWork(db),
       tokens: new CryptoTokenService(),
       authProvider: chooseAuthProvider(env),
     },

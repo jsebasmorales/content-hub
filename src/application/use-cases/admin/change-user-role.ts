@@ -12,38 +12,42 @@ export interface ChangeUserRoleInput {
 
 /**
  * Assigns a different role to a user. The system always keeps at least one active Leader and
- * a Leader cannot demote themselves (SDD §10.2).
+ * a Leader cannot demote themselves (SDD §10.2). The count, the decision and the write happen
+ * under the leader lock, so two concurrent demotions cannot both succeed (D-031).
  */
 export class ChangeUserRole {
   constructor(private readonly deps: AdminDeps) {}
 
   async execute(actor: Principal, input: ChangeUserRoleInput): Promise<Result<void, AdminError>> {
     if (!isAdmin(actor)) return err('forbidden');
-    const { users, roles } = this.deps;
-    const target = await users.findById(input.userId);
-    if (!target) return err('unknown-user');
-    const nextRole = await roles.findById(input.roleId);
-    if (!nextRole) return err('unknown-role');
-    if (needsLeaderConfirmation(nextRole, input.confirmLeader)) return err('confirmation-required');
+    return this.deps.unitOfWork.withLeaderLock(async ({ users, roles, audit }) => {
+      const target = await users.findById(input.userId);
+      if (!target) return err('unknown-user');
+      const nextRole = await roles.findById(input.roleId);
+      if (!nextRole) return err('unknown-role');
+      if (needsLeaderConfirmation(nextRole, input.confirmLeader)) {
+        return err('confirmation-required');
+      }
 
-    const rule = validateLeaderChange({
-      currentRole: target.role,
-      nextRole,
-      activeLeaderCount: await users.countActiveLeaders(),
-      isSelf: target.id === actor.user.id,
-    });
-    if (!rule.ok) return err(rule.error);
+      const rule = validateLeaderChange({
+        currentRole: target.role,
+        nextRole,
+        activeLeaderCount: await users.countActiveLeaders(),
+        isSelf: target.id === actor.user.id,
+      });
+      if (!rule.ok) return err(rule.error);
 
-    await users.setRole(target.id, nextRole.id);
-    await this.deps.audit.record({
-      actorId: actor.user.id,
-      action: 'user.role_changed',
-      targetType: 'user',
-      targetId: target.id,
-      before: { role: target.role.name },
-      after: { role: nextRole.name },
-      ip: input.ip,
+      await users.setRole(target.id, nextRole.id);
+      await audit.record({
+        actorId: actor.user.id,
+        action: 'user.role_changed',
+        targetType: 'user',
+        targetId: target.id,
+        before: { role: target.role.name },
+        after: { role: nextRole.name },
+        ip: input.ip,
+      });
+      return ok(undefined);
     });
-    return ok(undefined);
   }
 }
