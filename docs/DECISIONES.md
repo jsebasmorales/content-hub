@@ -75,10 +75,10 @@ Estado: `aprobada` = confirmada por Sebas; `revisar` = a confirmar.
 - **Opción:** Doble capa. (1) `env.schema` en `astro.config.mjs` tipa cada variable con `astro:env`. (2) `infrastructure/config/env.ts` valida reglas cruzadas con Zod (`env-rules.ts`) al importarse, es decir, al primer arranque del servidor / cold start. La compilación (`astro build`) no exige las variables.
 - **Motivo:** Astro solo valida secretos cuando se leen; las reglas cruzadas (dominio del líder, `local` prohibido en producción, Atlassian completo) no caben en el esquema de Astro. No exigir secretos en el build permite compilar previews sin datos reales (SDD §11.2). Los mensajes de error nunca incluyen valores.
 
-### D-015 · Driver de Postgres en producción: `pg` — revisar
+### D-015 · Driver de Postgres en producción: `pg` con TLS obligatorio — aprobada
 
-- **Opción:** `pg` (node-postgres) con la cadena de conexión _pooled_ de Netlify DB / Neon. Local y pruebas: PGlite. La elección se hace por el prefijo de `DATABASE_URL` (`pglite:` o `postgres://`).
-- **Motivo:** El SDD pide "driver serverless" (§2). `pg` funciona en Netlify Functions con el endpoint con pooler, soporta transacciones (necesarias para las reglas "siempre al menos un Líder") y es portable a cualquier otro hosting o a Docker. **Pendiente de revisar** en la Fase 5 con pruebas de carga; si hay problemas de conexiones, se cambia a `@neondatabase/serverless` solo en `client.ts`.
+- **Opción:** `pg` (node-postgres) con la cadena de conexión _pooled_ de Netlify DB / Neon. Local y pruebas: PGlite. En producción la configuración **rechaza** la base embebida y exige `sslmode=require` (o `verify-*`) salvo en localhost. Pool pequeño (5 conexiones), cierre de inactivas a 10 s, espera de conexión de 5 s y `statement_timeout` de 15 s.
+- **Motivo:** El SDD pide "driver serverless" (§2). `pg` funciona en Netlify Functions con el endpoint con pooler, soporta las transacciones que necesitan las reglas de "siempre un Líder" y es portable a otro hosting o a Docker. Se mantiene la revisión con pruebas de carga en la Fase 5; si hubiera problemas de conexiones, se cambia solo `client.ts` a `@neondatabase/serverless`.
 
 ### D-016 · Unicidad de `webhook_event.delivery_id` — aprobada
 
@@ -90,10 +90,10 @@ Estado: `aprobada` = confirmada por Sebas; `revisar` = a confirmar.
 - **Opción:** `permission` es un catálogo (`key`) poblado desde el dominio. `audit_log` es de solo inserción mediante trigger en la propia base de datos (rechaza UPDATE, DELETE y TRUNCATE); la retención ≥ 1 año (§11.2) se hará con un rol de mantenimiento en una fase posterior.
 - **Motivo:** §4.3 y §11.2 piden inmutabilidad; hacerla cumplir en la base de datos evita que un error de código la rompa.
 
-### D-018 · Dobles de prueba (fakes) de los puertos — revisar
+### D-018 · Fakes de los puertos — aprobada (regla cumplida)
 
-- **Opción:** Los casos de uso se prueban contra los adaptadores reales sobre PGlite en memoria (un Postgres real, igual de rápido que un fake). Solo `Clock` tiene un doble (`FakeClock`) y el proveedor Atlassian se prueba con un `fetch` simulado. No se crearon fakes en memoria de los repositorios.
-- **Motivo:** El SDD §3 (regla 7) pide un fake por puerto. En Fase 0 los fakes duplicarían lógica de consultas sin ganar velocidad. **Pendiente de revisar**: si prefieres cumplir la regla al pie de la letra, se añaden en una fase posterior.
+- **Opción:** Cada puerto tiene su adaptador real y un fake en `src/infrastructure/fakes/` (repositorios, auditoría, tokens, reloj, límite de tasa y proveedores de acceso). La función `wireApp` arma los mismos casos de uso con cualquiera de los dos. Las suites de comportamiento corren contra **ambos** (Postgres real y fakes) y una prueba de contrato comprueba que se comportan igual.
+- **Motivo:** SDD §3, regla 7. Si un fake se desvía del adaptador real, las pruebas de contrato fallan.
 
 ### D-019 · Bootstrap del primer Líder al iniciar sesión — aprobada
 
@@ -105,10 +105,10 @@ Estado: `aprobada` = confirmada por Sebas; `revisar` = a confirmar.
 - **Opción:** `seedAccessData` (idempotente) crea el catálogo de permisos y los roles Líder y Colaborador con los permisos por defecto (D-001). Se ejecuta en `pnpm db:migrate` y al arrancar la app. Los permisos por defecto solo se escriben al crear el rol, para no pisar cambios hechos luego por un Líder.
 - **Motivo:** Garantiza que las tablas siempre tengan los datos mínimos sin intervención manual.
 
-### D-021 · Proveedor Atlassian: PKCE por verificar — revisar
+### D-021 · Proveedor Atlassian: PKCE por verificar — pendiente
 
 - **Opción:** El adaptador envía `code_challenge` (S256) y `code_verifier` además de `state`, como pide el SDD §11.2. Está implementado y probado con red simulada, pero **sin activar**.
-- **Motivo:** La documentación pública de Atlassian 3LO no confirma que acepte PKCE para este tipo de app. Se verificará al crear la app OAuth (pendiente 2 del SDD §17); si lo rechaza, se mantiene `state` + secreto de cliente y se retira PKCE.
+- **Motivo:** La documentación pública de Atlassian 3LO no confirma que acepte PKCE para este tipo de app. **Queda pendiente hasta crear la app OAuth** (pendiente 2 del SDD §17). Si Atlassian lo rechaza, se mantiene `state` + secreto de cliente y se retira PKCE.
 
 ### D-022 · Cookie de sesión — aprobada
 
@@ -130,10 +130,10 @@ Estado: `aprobada` = confirmada por Sebas; `revisar` = a confirmar.
 - **Opción:** 64 KB para cualquier petición que no sea GET/HEAD/OPTIONS (413 si lo supera según `Content-Length`). Los webhooks (1 MB, §11.2) tendrán su propio límite cuando existan en la Fase 1.
 - **Motivo:** §11.2 exige límites de tamaño de cuerpo; en Fase 0 solo hay formularios pequeños.
 
-### D-026 · La etiqueta CSP de producción no se puede verificar en local — revisar
+### D-026 · CSP de producción — aprobada (con verificación posterior)
 
-- **Opción:** Se activa `security.csp` de Astro (hashes). Astro no la emite en modo desarrollo, y `astro preview` no existe con el adaptador de Netlify; además, en Windows el empaquetado de Netlify exige permisos de enlaces simbólicos. La verificación de la etiqueta `<meta>` se hará en el primer despliegue (Deploy Preview de Netlify) y quedará como casilla de la revisión de seguridad (§11.3). Las cabeceras enviadas por el middleware sí se prueban automáticamente.
-- **Motivo:** Es una limitación de herramientas, no de diseño. Las páginas actuales no cargan JavaScript, por lo que el riesgo de rotura es bajo.
+- **Opción:** Se activa `security.csp` de Astro (hashes, sin `unsafe-inline`). Astro no la emite en desarrollo y `astro preview` no existe con el adaptador de Netlify, así que no se puede comprobar en local. Para no depender de ella: (1) `build.inlineStylesheets: 'never'` hace que el CSS sea siempre un archivo, nunca `<style>` en línea; (2) el middleware envía por cabecera `frame-ancestors`, `base-uri`, `form-action` y `object-src`; (3) `pnpm verify:deploy <https://sitio>` comprueba en el sitio desplegado las cabeceras y que la etiqueta CSP exista, sin `unsafe-inline`. **Debe ejecutarse tras el primer despliegue** y forma parte de la revisión de seguridad (§11.3).
+- **Motivo:** Limitación de herramientas, no de diseño. Las páginas actuales no cargan JavaScript, por lo que el riesgo es bajo, y el verificador convierte la comprobación en un paso repetible.
 
 ### D-027 · Administración de usuarios en Fase 0 — aprobada
 
@@ -145,7 +145,7 @@ Estado: `aprobada` = confirmada por Sebas; `revisar` = a confirmar.
 - **Opción:** `astro build` falla al final en Windows (EPERM al crear enlaces simbólicos) a menos que esté activado el _Modo de desarrollador_ de Windows. En Linux (CI y Netlify) funciona. El desarrollo diario usa `pnpm dev` y no se ve afectado.
 - **Motivo:** Comportamiento conocido del empaquetado del adaptador de Netlify en Windows.
 
-### D-029 · CI: versiones de acciones y seguridad — revisar
+### D-029 · CI: versiones de acciones y seguridad — aprobada
 
-- **Opción:** Las acciones de GitHub se fijan por etiqueta mayor (`@v4`) y Dependabot las actualiza semanalmente. Permisos del flujo: solo lectura. Seguridad en CI: gitleaks con historial completo, `pnpm audit --audit-level=high` y CodeQL en un flujo aparte. El CI **no se pudo ejecutar** desde este equipo; se valida al subir el repositorio.
-- **Motivo:** El SDD (§11.2) pide fijar versiones. Fijar por hash de commit es más estricto, pero no se pueden verificar los hashes sin conexión; se recomienda hacerlo en la Fase 5. `gitleaks-action` es gratuita para repositorios de cuentas personales; si el repositorio pasa a una organización de GitHub requiere una licencia (o se cambia por el binario de gitleaks).
+- **Opción:** Todas las acciones de GitHub están fijadas por **hash de commit** (con la versión en un comentario) y Dependabot propone las actualizaciones semanalmente. Permisos del flujo: solo lectura. Seguridad en CI: gitleaks con historial completo, `pnpm audit --audit-level=high` y CodeQL aparte.
+- **Motivo:** SDD §11.2 (cadena de suministro). `gitleaks-action` es gratuita para repositorios de cuentas personales; si el repositorio pasa a una organización de GitHub requiere licencia (o se cambia por el binario de gitleaks).
