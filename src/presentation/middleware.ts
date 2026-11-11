@@ -4,6 +4,7 @@ import { decideAccess } from '@domain/access/route-access';
 import { getApp, type App } from '@infrastructure/container';
 import { logEvent } from '@shared/log';
 import { findRoute, type RouteDefinition } from './routes';
+import { recordDeniedAttempt } from './security/denied-audit';
 import { notFoundResponse, redirectResponse, tooManyRequestsResponse } from './security/responses';
 import { applySecurityHeaders } from './security/security-headers';
 import { readSessionToken } from './security/session-cookie';
@@ -57,12 +58,9 @@ async function authorize(
       : notFoundResponse(context.url.pathname);
   }
   if (decision === 'hidden') {
-    logEvent('warn', 'authz.hidden', { route: route.pattern, userId: principal?.user.id });
-    await app.audit.record({
-      actorId: principal?.user.id ?? null,
-      action: 'authz.denied',
-      targetType: 'route',
-      targetId: route.pattern,
+    await recordDeniedAttempt(app, {
+      routePattern: route.pattern,
+      userId: principal?.user.id ?? null,
       ip: clientIp(context),
     });
     return notFoundResponse(context.url.pathname);

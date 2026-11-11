@@ -19,7 +19,15 @@ async function initialize(): Promise<App> {
  * invalid environment stops the app before it serves a request (SDD §15).
  */
 export function getApp(): Promise<App> {
-  appPromise ??= initialize();
+  if (!appPromise) {
+    const attempt = initialize();
+    appPromise = attempt;
+    // A failed start (e.g. the database blinked during a cold start) must not be cached:
+    // forget it so the next request retries instead of serving errors until the instance recycles.
+    attempt.catch(() => {
+      if (appPromise === attempt) appPromise = undefined;
+    });
+  }
   return appPromise;
 }
 

@@ -43,6 +43,9 @@ Para detener el servidor, pulsa `Ctrl + C` en la terminal.
   del `.env`. El mensaje dice cuál.
 - **`pnpm build` falla en Windows con "EPERM ... symlink":** activa el _Modo de desarrollador_ de
   Windows (Configuración → Privacidad y seguridad → Para programadores). No afecta a `pnpm dev`.
+- **`pnpm dev` se cae mencionando Deno o "edge functions":** ya no debería pasar. `astro.config.mjs`
+  desactiva la emulación local de Netlify Edge Functions (la app no define ninguna) porque exigía
+  tener Deno instalado. Si vuelve a aparecer, revisa que `edgeFunctions: false` siga en esa línea.
 - **Quieres empezar de cero con la base de datos local:** borra la carpeta `.data` y ejecuta
   `pnpm db:migrate`.
 

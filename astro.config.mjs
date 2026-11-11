@@ -13,7 +13,11 @@ const optional = () => envField.string({ context: 'server', access: 'secret', op
 // https://astro.build/config
 export default defineConfig({
   output: 'server',
-  adapter: netlify(),
+  // The app defines no Netlify Edge Functions, so skip their local emulation: it needs Deno,
+  // which is not installed by default and crashes `astro dev` when missing.
+  adapter: netlify({
+    devFeatures: { environmentVariables: false, images: true, edgeFunctions: false },
+  }),
   // Registers every route from the registry plus the security middleware (D-010).
   integrations: [contentHub()],
   // Sessions live in our own database (SDD §2), not in Netlify Blobs.

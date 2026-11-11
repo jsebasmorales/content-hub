@@ -5,6 +5,7 @@ import { drizzle as drizzlePglite } from 'drizzle-orm/pglite';
 import { drizzle as drizzlePg } from 'drizzle-orm/node-postgres';
 import type { PgDatabase, PgQueryResultHKT } from 'drizzle-orm/pg-core';
 import pg from 'pg';
+import { logEvent } from '@shared/log';
 import * as schema from './schema';
 
 export type Database = PgDatabase<PgQueryResultHKT, typeof schema>;
@@ -59,6 +60,11 @@ function openPostgres(url: string): Promise<DatabaseHandle> {
     idleTimeoutMillis: 10_000,
     connectionTimeoutMillis: 5_000,
     statement_timeout: 15_000,
+  });
+  // Neon closes idle connections. Without this listener the pool's 'error' event is an uncaught
+  // exception that can take the whole function down; the pool discards the bad client itself.
+  pool.on('error', (error) => {
+    logEvent('warn', 'db.pool_error', { message: error.message });
   });
   const db = drizzlePg({ client: pool, schema });
   return Promise.resolve({

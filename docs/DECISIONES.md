@@ -1,7 +1,7 @@
 # Decisiones (mini-ADR)
 
 Registro de decisiones no cubiertas por el SDD (sección 0, punto 4 y sección 3, regla 8).
-Estado: `aprobada` = confirmada por Sebas; `revisar` = a confirmar.
+Estado: `aprobada` = confirmada por Sebas; `revisar` = a confirmar; `pendiente` = aprobada pero bloqueada por un dato externo; `informativo` = no es una decisión, solo deja constancia.
 
 ## Fase 0
 
@@ -34,6 +34,7 @@ Estado: `aprobada` = confirmada por Sebas; `revisar` = a confirmar.
 
 - **Opción:** Drizzle sobre Postgres estándar. Local y pruebas: PGlite (Postgres embebido, sin Docker). Producción: Postgres administrado (Netlify DB / Neon). Se elige por configuración (`DATABASE_URL`); `docker-compose.yml` queda listo para un Postgres en contenedor.
 - **Motivo:** Docker no está instalado en el equipo de desarrollo. Al ser Postgres estándar, migrar de hosting es cambiar la cadena de conexión.
+- **Enmienda (revisión de arquitectura):** PGlite tiene una sola conexión, así que no puede detectar carreras (D-031) ni probar el driver `pg` con TLS. El SDD §13 pedía Postgres real; el CI es Linux y sí puede darlo. **Pendiente:** añadir `services: postgres` al job de CI y repetir `test:integration` contra él (ver D-031).
 
 ### D-007 · Identificadores UUID v7 — aprobada
 
@@ -79,6 +80,7 @@ Estado: `aprobada` = confirmada por Sebas; `revisar` = a confirmar.
 
 - **Opción:** `pg` (node-postgres) con la cadena de conexión _pooled_ de Netlify DB / Neon. Local y pruebas: PGlite. En producción la configuración **rechaza** la base embebida y exige `sslmode=require` (o `verify-*`) salvo en localhost. Pool pequeño (5 conexiones), cierre de inactivas a 10 s, espera de conexión de 5 s y `statement_timeout` de 15 s.
 - **Motivo:** El SDD pide "driver serverless" (§2). `pg` funciona en Netlify Functions con el endpoint con pooler, soporta las transacciones que necesitan las reglas de "siempre un Líder" y es portable a otro hosting o a Docker. Se mantiene la revisión con pruebas de carga en la Fase 5; si hubiera problemas de conexiones, se cambia solo `client.ts` a `@neondatabase/serverless`.
+- **Enmienda (revisión de arquitectura):** el pool registra `pool.on('error')`. Neon cierra conexiones inactivas y, sin ese manejador, el evento es una excepción no capturada que puede tumbar la función. **Hecho.** El rol de BD separado para migrar y operar está en D-030.
 
 ### D-016 · Unicidad de `webhook_event.delivery_id` — aprobada
 
@@ -89,6 +91,7 @@ Estado: `aprobada` = confirmada por Sebas; `revisar` = a confirmar.
 
 - **Opción:** `permission` es un catálogo (`key`) poblado desde el dominio. `audit_log` es de solo inserción mediante trigger en la propia base de datos (rechaza UPDATE, DELETE y TRUNCATE); la retención ≥ 1 año (§11.2) se hará con un rol de mantenimiento en una fase posterior.
 - **Motivo:** §4.3 y §11.2 piden inmutabilidad; hacerla cumplir en la base de datos evita que un error de código la rompa.
+- **Enmienda (revisión de arquitectura):** el trigger solo protege mientras el rol que opera la app no pueda quitarlo. Se exige un rol de ejecución sin permisos DDL ni propiedad de las tablas (D-030).
 
 ### D-018 · Fakes de los puertos — aprobada (regla cumplida)
 
@@ -119,6 +122,7 @@ Estado: `aprobada` = confirmada por Sebas; `revisar` = a confirmar.
 
 - **Opción:** (1) Tabla `rate_limit_bucket` (ventana fija) en Postgres; no figura en §4.3 pero §11.2 exige un contador en BD. Cada ruta declara su límite en el registro (`routes.ts`): login 10/min por IP, inicio OAuth 20/min por IP, administración 30/min por usuario. (2) CSP con la función integrada de Astro (hashes, sin `unsafe-inline`) en una etiqueta `<meta>`, más una cabecera con `frame-ancestors 'none'`, `base-uri`, `form-action` y `object-src`, que `<meta>` no puede expresar. El SDD pide "nonces"; los hashes de Astro logran lo mismo sin `unsafe-inline`. (3) Cache-Control por defecto `private, no-store`.
 - **Motivo:** §11.2 y §2 ("activar la CSP integrada de Astro si la versión la ofrece"). Limitar solo rutas sensibles evita una escritura en BD por cada visita.
+- **Enmienda (revisión de arquitectura):** la ventana fija permite hasta el doble de la tasa en el cruce de dos ventanas; es aceptable para login y administración. Los registros `authz.denied` (D-024) tienen su propio tope: **5 filas de auditoría por usuario (o IP) y ruta cada minuto**. Pasado el tope la respuesta sigue siendo 404 y solo se omite la fila (queda la línea de log). **Hecho** en `security/denied-audit.ts`, con prueba (`tests/integration/denied-audit.test.ts`). Las peticiones anónimas sin IP conocida comparten un solo tope por ruta: el tope protege la tabla y Netlify siempre entrega la dirección del cliente.
 
 ### D-024 · 404 uniforme para todo lo no declarado — aprobada
 
@@ -129,6 +133,7 @@ Estado: `aprobada` = confirmada por Sebas; `revisar` = a confirmar.
 
 - **Opción:** 64 KB para cualquier petición que no sea GET/HEAD/OPTIONS (413 si lo supera según `Content-Length`). Los webhooks (1 MB, §11.2) tendrán su propio límite cuando existan en la Fase 1.
 - **Motivo:** §11.2 exige límites de tamaño de cuerpo; en Fase 0 solo hay formularios pequeños.
+- **Enmienda (revisión de arquitectura):** `Content-Length` lo declara el cliente y un cuerpo por trozos lo evita. `readForm` ahora corta la lectura al llegar a 64 KB, sin confiar en la cabecera. **Hecho**, con prueba.
 
 ### D-026 · CSP de producción — aprobada (con verificación posterior)
 
@@ -149,3 +154,23 @@ Estado: `aprobada` = confirmada por Sebas; `revisar` = a confirmar.
 
 - **Opción:** Todas las acciones de GitHub están fijadas por **hash de commit** (con la versión en un comentario) y Dependabot propone las actualizaciones semanalmente. Permisos del flujo: solo lectura. Seguridad en CI: gitleaks con historial completo, `pnpm audit --audit-level=high` y CodeQL aparte.
 - **Motivo:** SDD §11.2 (cadena de suministro). `gitleaks-action` es gratuita para repositorios de cuentas personales; si el repositorio pasa a una organización de GitHub requiere licencia (o se cambia por el binario de gitleaks).
+
+## Revisión de arquitectura (Fase 0)
+
+### D-030 · Despliegue, migraciones y roles de base de datos — revisar
+
+- **Opción:** (1) Añadir `netlify.toml` con la versión de Node fijada (la misma que el CI) y el comando de build. (2) Las migraciones corren como paso del despliegue, antes de publicar, con `pnpm db:migrate` leyendo `DATABASE_URL_MIGRATE` del entorno (sin depender de un archivo `.env`). (3) Dos roles de BD: **migración** (dueño de las tablas, solo en el paso de despliegue) y **ejecución** (`DATABASE_URL`, solo SELECT/INSERT/UPDATE/DELETE sobre las tablas necesarias, sin DDL ni capacidad de quitar el trigger de `audit_log`). (4) Los _previews_ usan una base distinta y vacía (SDD §11.2).
+- **Motivo:** D-015 dice "se migra en el despliegue" pero nada lo implementa, y hoy un solo rol migra y opera, con lo que el trigger de inmutabilidad (D-017) se puede desactivar. SDD §11.2 pide mínimo privilegio y §14 migraciones automáticas con _rollback_ documentado.
+- **Estado:** sin implementar. Depende de crear la cuenta de Netlify y la BD (pendiente 1 del SDD §17). Debe estar cerrada antes del primer despliegue.
+
+### D-031 · Invariantes de acceso garantizados por la base de datos — revisar
+
+- **Opción:** Las reglas "siempre hay un Líder activo" y "un Líder no se degrada a sí mismo" (§10.2) se aplican dentro de una transacción que bloquea con `SELECT … FOR UPDATE` las filas de Líderes activos antes de contar y escribir. `ChangeUserRole`, `SetUserStatus` y el _bootstrap_ de `SignIn` pasan por un puerto transaccional. El CI repite `test:integration` contra un Postgres real (`services: postgres`) con una prueba que lanza dos degradaciones a la vez.
+- **Motivo:** Hoy se comprueba (`countActiveLeaders`) y luego se escribe, sin bloqueo: dos Líderes que se degraden a la vez dejan el sistema sin Líder. PGlite (una sola conexión) no puede reproducirlo. D-019 permite recuperar el acceso con el correo de _bootstrap_, lo que acota el daño, pero el invariante debe garantizarlo la BD.
+- **Estado:** sin implementar; es el cambio de mayor tamaño de esta revisión (toca el puerto de repositorios y su fake, D-018).
+
+### D-032 · Arranque tolerante a fallos y carreras — aprobada
+
+- **Opción:** (1) `getApp()` no guarda la promesa si el arranque falla: la siguiente petición reintenta. (2) `seedAccessData` crea cada rol y sus permisos por defecto dentro de una transacción con `ON CONFLICT DO NOTHING` sobre `role.name`; si dos arranques en frío coinciden, solo uno escribe los permisos por defecto.
+- **Motivo:** Con `??=` un fallo puntual de la BD en un arranque en frío dejaba la instancia devolviendo errores hasta reciclarse, y dos instancias simultáneas podían chocar con la restricción única de `role.name`. Sigue cumpliendo D-020: los permisos por defecto se escriben solo al crear el rol.
+- **Estado:** **hecho**, con prueba de arranques concurrentes (`tests/integration/seed-and-forms.test.ts`).
