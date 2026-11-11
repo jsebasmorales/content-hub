@@ -40,3 +40,11 @@ Estado: `aprobada` = confirmada por Sebas; `revisar` = a confirmar.
 ### D-009 · Gestor de paquetes — aprobada
 - **Opción:** pnpm, instalado con `npm i -g pnpm` (sin `corepack enable`, que requiere administrador en Windows).
 - **Motivo:** El SDD usa scripts `pnpm`; evita pedir permisos de administrador.
+
+### D-010 · Ubicación de páginas y endpoints — aprobada
+- **Opción:** Astro fija `src/pages` como carpeta de rutas, pero el SDD (§3) pide `presentation/pages` y `presentation/api`. Las rutas viven en `src/presentation/` y se registran en un único registro (`src/presentation/routes.ts`) que una integración local de Astro inyecta con `injectRoute`. `src/pages/` se deja vacío y una prueba falla si aparece algún archivo dentro.
+- **Motivo:** Respeta la estructura del SDD y hace imposible tener una ruta sin permiso declarado: el registro exige el permiso de cada ruta (§11.2, "denegar por defecto").
+
+### D-011 · pnpm y scripts de instalación — aprobada
+- **Opción:** `pnpm-workspace.yaml` autoriza solo `esbuild` para ejecutar scripts de instalación (`allowBuilds`).
+- **Motivo:** pnpm 12 bloquea por defecto los scripts de dependencias (protección de cadena de suministro, §11.2). Se autoriza solo lo imprescindible.
