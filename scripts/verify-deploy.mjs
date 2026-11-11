@@ -25,14 +25,14 @@ check(header('referrer-policy') === 'strict-origin-when-cross-origin', 'Referrer
 check(header('cross-origin-opener-policy') === 'same-origin', 'Cross-Origin-Opener-Policy');
 check(header('cache-control').includes('private'), 'Cache-Control must be private');
 
+// Astro delivers the hash-based script-src/style-src of on-demand pages in the CSP *header*
+// (a <meta> is only used for prerendered pages). Accept either, but one must exist.
 const meta = html.match(/<meta[^>]*http-equiv="content-security-policy"[^>]*content="([^"]*)"/i);
-check(Boolean(meta), 'Astro CSP <meta> tag is missing from the page');
-if (meta?.[1]) {
-  check(meta[1].includes('script-src'), 'CSP meta: script-src directive missing');
-  check(meta[1].includes('style-src'), 'CSP meta: style-src directive missing');
-  check(!meta[1].includes('unsafe-inline'), "CSP meta must not contain 'unsafe-inline'");
-}
-check(!/<style[\s>]/i.test(html) || Boolean(meta), 'Inline <style> without a CSP meta');
+const policy = [header('content-security-policy'), meta?.[1] ?? ''].join('; ');
+check(policy.includes('script-src'), 'CSP: script-src directive missing (header and <meta>)');
+check(policy.includes('style-src'), 'CSP: style-src directive missing (header and <meta>)');
+check(!policy.includes('unsafe-inline'), "CSP must not contain 'unsafe-inline'");
+check(!/<style[\s>]/i.test(html) || policy.includes('style-src'), 'Inline <style> without a CSP');
 
 if (failures.length > 0) {
   console.error(`Deployment check FAILED (${String(failures.length)}):`);
