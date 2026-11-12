@@ -60,11 +60,15 @@ export default defineConfig({
       ATLASSIAN_CLIENT_SECRET: optional(),
       ATLASSIAN_REDIRECT_URI: optional(),
       // --- Jira (Phase 1) ---
-      JIRA_BASE_URL: optional(),
-      JIRA_EMAIL: optional(),
-      JIRA_API_TOKEN: optional(),
-      JIRA_PROJECT_KEY: optional(),
-      JIRA_WEBHOOK_SECRET: optional(),
+      JIRA_BASE_URL: required(),
+      JIRA_EMAIL: required(),
+      JIRA_API_TOKEN: required(),
+      JIRA_PROJECT_KEY: required(),
+      // Custom field ids (defaults live in env-rules.ts; see docs/jira-mapping.md).
+      JIRA_FIELD_SLA_RESPONSE: optional(),
+      JIRA_FIELD_SLA_DONE: optional(),
+      // --- Background sync (D-048) ---
+      SYNC_TRIGGER_SECRET: required({ min: 32 }),
       // --- Crowdin (Phase 4) ---
       CROWDIN_TOKEN: optional(),
       CROWDIN_PROJECT_IDS: optional(),

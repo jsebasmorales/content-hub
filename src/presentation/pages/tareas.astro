@@ -1,0 +1,169 @@
+---
+import { getApp, getJiraApp } from '@infrastructure/container';
+import { MAX_SEARCH_LENGTH, TASKS_PER_PAGE, type FilterOption } from '@domain/jira/task-list';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import SyncPanel from '../components/SyncPanel.astro';
+import TaskTable from '../components/TaskTable.astro';
+import { formatNumber } from '../format-number';
+import { splitForPhone } from '../phone-split';
+import { syncFlashFromQuery } from '../sync-messages';
+import { TASKS_PARAM_NAMES, parseTasksQuery, tasksHref } from '../tasks-query';
+
+const principal = Astro.locals.principal;
+if (!principal) return new Response(null, { status: 404 });
+
+const jira = await getJiraApp();
+// Opening the page refreshes stale data in the background; it never waits for Jira.
+await jira.requestSync.lazy();
+
+const [status, result] = await Promise.all([
+  jira.syncStatus.execute(),
+  jira.listTasks.execute(principal.permissions, parseTasksQuery(Astro.url.searchParams)),
+]);
+if (!result.ok) return new Response(null, { status: 404 });
+const { filter, options, tasks, totalInCache } = result.value;
+
+const csrfToken = (await getApp()).csrf.tokenFor(principal.sessionId);
+const timeZone = principal.user.timeZone;
+
+const fields: {
+  id: string;
+  name: string;
+  label: string;
+  options: readonly FilterOption[];
+  chosen: string | null;
+}[] = [
+  {
+    id: 'f-tipo',
+    name: TASKS_PARAM_NAMES.requestType,
+    label: 'Tipo de tarea',
+    options: options.requestTypes,
+    chosen: filter.requestType,
+  },
+  {
+    id: 'f-estado',
+    name: TASKS_PARAM_NAMES.status,
+    label: 'Estado actual',
+    options: options.statuses,
+    chosen: filter.status,
+  },
+  {
+    id: 'f-solicitante',
+    name: TASKS_PARAM_NAMES.requesterId,
+    label: 'Solicitante',
+    options: options.requesters,
+    chosen: filter.requesterId,
+  },
+  {
+    id: 'f-asignado',
+    name: TASKS_PARAM_NAMES.assigneeId,
+    label: 'Asignado a',
+    options: options.assignees,
+    chosen: filter.assigneeId,
+  },
+];
+const phone = splitForPhone(tasks.items);
+const filtered = filter.text !== null || fields.some((field) => field.chosen !== null);
+const from = tasks.total === 0 ? 0 : (tasks.page - 1) * TASKS_PER_PAGE + 1;
+const to = tasks.total === 0 ? 0 : from + tasks.items.length - 1;
+---
+
+<BaseLayout title="Tareas">
+  <h1>Tareas</h1>
+  <p class="lede">
+    Las solicitudes de Contenido guardadas desde Jira, de la más reciente a la más antigua.
+  </p>
+  <SyncPanel
+    status={status}
+    timeZone={timeZone}
+    canSync={principal.permissions.has('action.sync')}
+    csrfToken={csrfToken}
+    back="/tareas"
+    flash={syncFlashFromQuery(Astro.url.searchParams)}
+  />
+
+  <form class="filters card" method="get" action="/tareas" aria-label="Filtros">
+    <div class="field field-wide">
+      <label for="f-buscar">Buscar por texto o clave</label>
+      <input
+        id="f-buscar"
+        name={TASKS_PARAM_NAMES.text}
+        type="search"
+        maxlength={MAX_SEARCH_LENGTH}
+        value={filter.text ?? ''}
+        placeholder="Por ejemplo: landing, JSMCO-1010, traducción"
+      />
+    </div>
+    {fields.map((field) => (
+      <div class="field">
+        <label for={field.id}>{field.label}</label>
+        <select id={field.id} name={field.name}>
+          <option value="">Todos</option>
+          {field.options.map((option) => (
+            <option value={option.value} selected={option.value === field.chosen}>
+              {option.label} ({formatNumber(option.count)})
+            </option>
+          ))}
+        </select>
+      </div>
+    ))}
+    <div class="filter-actions">
+      <button class="btn" type="submit">
+        Filtrar
+      </button>
+      {filtered && <a href="/tareas">Quitar filtros</a>}
+    </div>
+  </form>
+
+  <p class="section-note" role="status">
+    {tasks.total === 0
+      ? totalInCache === 0
+        ? 'Todavía no hay tareas guardadas. Aparecerán cuando termine la primera actualización desde Jira.'
+        : 'Ninguna tarea cumple esos filtros.'
+      : `Mostrando ${formatNumber(from)}–${formatNumber(to)} de ${formatNumber(tasks.total)} tareas${filtered ? ' (con filtros)' : ''}.`}
+  </p>
+
+  {tasks.items.length > 0 && (
+    <section class="card table-card">
+      <div class="only-wide">
+        <TaskTable rows={tasks.items} ticketUrlOf={jira.ticketUrl} timeZone={timeZone} />
+      </div>
+      <div class="only-narrow">
+        <TaskTable rows={phone.first} ticketUrlOf={jira.ticketUrl} timeZone={timeZone} />
+        {phone.more.length > 0 && (
+          <details class="more-rows">
+            <summary>Ver más ({phone.more.length})</summary>
+            <TaskTable
+              rows={phone.more}
+              ticketUrlOf={jira.ticketUrl}
+              timeZone={timeZone}
+              withHead={false}
+            />
+          </details>
+        )}
+      </div>
+    </section>
+  )}
+
+  {tasks.pageCount > 1 && (
+    <nav class="pager" aria-label="Páginas">
+      {tasks.page > 1 ? (
+        <a href={tasksHref(filter, tasks.page - 1)} rel="prev">
+          ← Anterior
+        </a>
+      ) : (
+        <span class="pager-off">← Anterior</span>
+      )}
+      <span>
+        Página {tasks.page} de {tasks.pageCount}
+      </span>
+      {tasks.page < tasks.pageCount ? (
+        <a href={tasksHref(filter, tasks.page + 1)} rel="next">
+          Siguiente →
+        </a>
+      ) : (
+        <span class="pager-off">Siguiente →</span>
+      )}
+    </nav>
+  )}
+</BaseLayout>

@@ -48,6 +48,51 @@ fiables para pruebas rápidas (D-018).
 | `integration/port-contracts.test.ts`     | Fakes y adaptadores reales se comportan igual                     |
 | `e2e/hide-not-block.spec.ts`             | Un Colaborador no ve ni accede a `/permisos`; flujo de invitación |
 
+## La Fase 1 (Jira y dashboard)
+
+| Archivo (en `unit/` e `integration/`)                                                     | Cubre                                                                                      |
+| ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| `jira-gateway`, `jira-sync`, `jira-request-sync`, `sync-function`, `jira-store-contracts` | El cliente de Jira, el sync incremental, la función en segundo plano y la caché            |
+| `sla-compliance`, `sla-report`, `sla-breaches`, `report-period`, `quarterly`, `quarter`   | Reglas de SLA (D-042), periodos, trimestres en hora de Bogotá, incumplimientos             |
+| `executive-summary`, `summary-report`, `task-list`, `capacity`, `data-quality`            | Cifras de cada página y sus filtros                                                        |
+| `definitions`                                                                             | Cada número del texto de Definiciones coincide con la constante del código                 |
+| `learned`, `time-zone`, `theme-and-return`                                                | Lo aprendido (versiones, solo-añadir), zona horaria por persona, tema y destinos de vuelta |
+| `sample-comparison`                                                                       | La comparación con Jira: elección de la muestra y detección de diferencias                 |
+
+## Comparación con Jira
+
+Las pruebas automáticas demuestran que el código hace lo que dijimos; no demuestran que lo que dijimos
+coincide con lo que Jira tiene. Para eso está `pnpm compare:jira` (solo lectura, no modifica nada):
+
+- **`pnpm compare:jira`** elige una muestra variada de **30 tickets** (cerrados con todo cumplido,
+  con cada tipo de incumplimiento, con relojes en curso, vencidos o en pausa, reabiertos, sin
+  responsable, de tipos retirados, de cada tipo de solicitud y de cada trimestre). Es repetible: la
+  misma base da la misma muestra. Los lee de Jira **en vivo** y los compara con lo guardado en el Hub.
+  Escribe `.data/comparacion-muestra.md`: una hoja con lo que dice el Hub de cada ticket (con enlace
+  a Jira) para contrastarla a ojo. **Ese archivo no se sube** al repositorio porque nombra tickets y
+  personas.
+- **`pnpm compare:jira --all`** hace lo mismo con **todos** los tickets y además **recuenta el
+  cumplimiento de SLA de cada trimestre directamente de las respuestas de Jira**, con código propio y
+  sin usar el del Hub, y lo pone al lado de lo que muestra la página de SLAs.
+- Lo comparado, campo a campo: resumen, estado y su categoría, tipo de solicitud, responsable,
+  solicitante, fecha de creación, fecha de finalización y, de cada ciclo de SLA, inicio, fin, límite,
+  si Jira lo marca incumplido, si está en pausa, si sigue en curso y **cómo cuenta**.
+- Un ticket que cambió en Jira después de la última sincronización se marca "cambió después", no
+  como error: lo que dice es "sincroniza".
+- **El límite de un reloj en pausa no se compara**: Jira lo recalcula cada vez que se lee (es una
+  proyección), el Hub no lo usa (D-042) y dos lecturas con segundos de diferencia dan valores
+  distintos. La primera ejecución lo descubrió: 8 falsos positivos, todos de relojes en pausa.
+- **Cuándo correrlo:** tras cada cambio en las reglas de cálculo y después del primer despliegue (ver
+  el runbook). Sale con error si algo no coincide.
+
+**Resultado (2026-11-12):** 30 de 30 tickets de la muestra coinciden; los **1.046 de 1.046** coinciden;
+y el cumplimiento de SLA de los 6 últimos trimestres (T3 2025 a T4 2026), en las dos métricas, es
+idéntico entre el Hub y el recuento hecho directamente sobre Jira (por ejemplo T4 2026: primera
+respuesta 138 cumplidos y 3 incumplidos, resolución 139 y 10).
+
+**Lo que esto no prueba:** que las reglas de D-042 sean las que el equipo quiere (eso es una decisión,
+no un dato) ni que Jira calcule bien sus relojes. Prueba que el Hub guarda y cuenta lo que Jira dice.
+
 ## Reglas al escribir pruebas
 
 - Un caso de uso nuevo se prueba contra **ambas** variantes de `createTestApp`.
@@ -82,4 +127,5 @@ Todas las acciones están fijadas por hash de commit (D-029).
 
 - Una prueba de integración contra Postgres real (no PGlite) con dos degradaciones simultáneas
   de Líderes. Va con D-031.
-- Lighthouse y publicación de imágenes, que se suman en fases posteriores (D-008).
+- Lighthouse y presupuesto de JavaScript: **hechos** (D-065). `pnpm perf` mide cada página (JS ≤ 30 KB gzip; rendimiento ≥ 90, accesibilidad ≥ 95, buenas prácticas ≥ 90, LCP ≤ 1,5 s, CLS ≤ 0,05) y el job `performance` del CI lo ejecuta. Con `pnpm perf <url>` se puede medir otra instancia.
+- Publicación de imágenes, que se suma en fases posteriores.

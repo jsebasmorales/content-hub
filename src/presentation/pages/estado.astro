@@ -1,0 +1,139 @@
+---
+import { getApp, getJiraApp } from '@infrastructure/container';
+import { RUNS_LISTED } from '@application/use-cases/jira/get-system-status';
+import { NO_FILTER, OPEN_STATUS, UNASSIGNED } from '@domain/jira/task-list';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import KpiCard from '../components/KpiCard.astro';
+import RunTable from '../components/RunTable.astro';
+import SyncPanel from '../components/SyncPanel.astro';
+import { formatMoment, formatMomentPlain, zoneLabel } from '../format-moment';
+import { formatNumber } from '../format-number';
+import { splitForPhone } from '../phone-split';
+import { syncFlashFromQuery } from '../sync-messages';
+import { tasksHref } from '../tasks-query';
+
+const principal = Astro.locals.principal;
+if (!principal) return new Response(null, { status: 404 });
+
+const jira = await getJiraApp();
+// Opening the page refreshes stale data in the background; it never waits for Jira.
+await jira.requestSync.lazy();
+
+const result = await jira.systemStatus.execute(principal.permissions);
+if (!result.ok) return new Response(null, { status: 404 });
+const { status, runs, quality } = result.value;
+
+const csrfToken = (await getApp()).csrf.tokenFor(principal.sessionId);
+const timeZone = principal.user.timeZone;
+const phone = splitForPhone(runs);
+
+function healthText(): string {
+  if (status.running) return 'Actualizando…';
+  if (status.lastAttemptFailed) return '✖ La última falló';
+  if (status.lastUpdateAt === null) return 'Sin datos todavía';
+  return status.stale ? 'Datos de hace más de 15 min' : '✔ Al día';
+}
+
+const unassignedHref = tasksHref({ ...NO_FILTER, assigneeId: UNASSIGNED, status: OPEN_STATUS }, 1);
+---
+
+<BaseLayout title="Estado">
+  <h1>Estado</h1>
+  <p class="lede">
+    Cómo está la conexión con Jira y qué tan fiables son los datos que muestran las demás páginas.
+  </p>
+  <SyncPanel
+    status={status}
+    timeZone={timeZone}
+    canSync={principal.permissions.has('action.sync')}
+    csrfToken={csrfToken}
+    back="/estado"
+    flash={syncFlashFromQuery(Astro.url.searchParams)}
+  />
+
+  <h2 class="section-title">Sincronización</h2>
+  <div class="kpi-grid">
+    <KpiCard
+      label="Estado"
+      value={healthText()}
+      tip="Al día: la última actualización fue correcta y tiene menos de 15 minutos. Si falla, se siguen mostrando los últimos datos buenos y se avisa."
+    />
+    <KpiCard
+      label={`Última actualización correcta (${zoneLabel(timeZone)})`}
+      value={status.lastUpdateAt ? formatMomentPlain(status.lastUpdateAt, timeZone) : 'Nunca'}
+      tip="Cuándo terminó la última sincronización que salió bien. Es la fecha que aparece en todas las páginas."
+    />
+  </div>
+
+  <h2 class="section-title">Calidad del dato</h2>
+  <p class="section-note">
+    Lo que hay guardado hoy y lo que conviene saber antes de fiarse de una cifra.
+    {quality.oldestCreatedAt && quality.newestUpdatedAt && (
+      <>
+        {' '}
+        Hay tickets creados desde el {formatMoment(quality.oldestCreatedAt, timeZone)}; el último
+        cambio que hemos visto en Jira es del {formatMoment(quality.newestUpdatedAt, timeZone)}.
+      </>
+    )}
+  </p>
+  <div class="kpi-grid">
+    <KpiCard
+      label="Tickets guardados"
+      value={formatNumber(quality.tickets)}
+      tip="Todos los tickets del proyecto que el Hub ha leído de Jira, abiertos y cerrados."
+    />
+    <KpiCard
+      label="Abiertos"
+      value={formatNumber(quality.openTickets)}
+      tip="Tickets que todavía no están en Hecho."
+    />
+    <KpiCard
+      label="Abiertos sin responsable"
+      value={formatNumber(quality.openWithoutAssignee)}
+      tip="Tickets abiertos que nadie tiene asignados. No entran en el reparto por persona de Capacidad."
+    />
+    <KpiCard
+      label="Ciclos abiertos en tickets cerrados"
+      value={formatNumber(quality.closedWithOpenClock)}
+      tip="Ciclos de SLA que Jira nunca detuvo aunque el ticket ya está en Hecho (por ejemplo, sin comentario al cliente). Siguen contando en el cumplimiento y los vencidos aparecen marcados en SLAs incumplidos."
+    />
+    <KpiCard
+      label="Ciclos en pausa"
+      value={formatNumber(quality.pausedOnOpenTickets)}
+      tip="Ciclos de tickets abiertos cuyo reloj está detenido en Jira. No cuentan como incumplidos mientras estén en pausa."
+    />
+    <KpiCard
+      label="Tickets de tipos retirados"
+      value={formatNumber(quality.retiredTypeTickets)}
+      tip="Tickets de un tipo de solicitud marcado como obsoleto en Jira. Siguen en los datos y en los totales; solo se ocultan del desglose por tipo."
+    />
+  </div>
+  <p class="section-note">
+    {quality.openWithoutAssignee > 0 && (
+      <>
+        <a href={unassignedHref}>Ver los tickets abiertos sin responsable</a>.{' '}
+      </>
+    )}
+    {quality.closedWithOpenClock > 0 && <a href="/incumplimientos">Ver los incumplimientos</a>}
+  </p>
+
+  <h2 class="section-title">Últimas {RUNS_LISTED} ejecuciones</h2>
+  {runs.length === 0 ? (
+    <p class="empty">Todavía no se ha ejecutado ninguna sincronización.</p>
+  ) : (
+    <section class="card table-card">
+      <div class="only-wide">
+        <RunTable rows={runs} timeZone={timeZone} />
+      </div>
+      <div class="only-narrow">
+        <RunTable rows={phone.first} timeZone={timeZone} />
+        {phone.more.length > 0 && (
+          <details class="more-rows">
+            <summary>Ver más ({phone.more.length})</summary>
+            <RunTable rows={phone.more} timeZone={timeZone} withHead={false} />
+          </details>
+        )}
+      </div>
+    </section>
+  )}
+</BaseLayout>

@@ -47,6 +47,7 @@ export default defineConfig(
       'dist/',
       '.astro/',
       '.netlify/',
+      'netlify/functions/',
       'node_modules/',
       'coverage/',
       'playwright-report/',

@@ -12,6 +12,7 @@ import { GetAccessOverview } from '@application/use-cases/admin/get-access-overv
 import { InviteUser } from '@application/use-cases/admin/invite-user';
 import { SetUserStatus } from '@application/use-cases/admin/set-user-status';
 import { ResolveSession } from '@application/use-cases/resolve-session';
+import { SetTimeZone } from '@application/use-cases/set-time-zone';
 import { SignIn } from '@application/use-cases/sign-in';
 import { SignOut } from '@application/use-cases/sign-out';
 import type { AppEnv } from './config/env-rules';
@@ -61,6 +62,16 @@ export interface Ports {
   readonly authProvider: AuthProvider;
 }
 
+/** What a Leader does in /permisos: all of it needs the same set of ports. */
+function administration(admin: ConstructorParameters<typeof InviteUser>[0]) {
+  return {
+    inviteUser: new InviteUser(admin),
+    changeUserRole: new ChangeUserRole(admin),
+    setUserStatus: new SetUserStatus(admin),
+    getAccessOverview: new GetAccessOverview(admin),
+  };
+}
+
 /** Wires ports to use cases. No Astro code, so tests build the very same app. */
 export function wireApp(ports: Ports, env: ComposeEnv, clock: Clock) {
   const { users, roles, sessions, audit, tokens, unitOfWork } = ports;
@@ -97,10 +108,8 @@ export function wireApp(ports: Ports, env: ComposeEnv, clock: Clock) {
     }),
     resolveSession: new ResolveSession({ sessions, roles, tokens, clock }),
     signOut: new SignOut({ sessions, tokens, audit }),
-    inviteUser: new InviteUser(admin),
-    changeUserRole: new ChangeUserRole(admin),
-    setUserStatus: new SetUserStatus(admin),
-    getAccessOverview: new GetAccessOverview(admin),
+    setTimeZone: new SetTimeZone({ users }),
+    ...administration(admin),
   };
 }
 

@@ -11,7 +11,8 @@ import type {
   UserRepository,
 } from '@application/ports/repositories';
 import { newId } from '@shared/ids';
-import type { InMemoryStore } from './in-memory-store';
+import { newStoredZone, type InMemoryStore } from './in-memory-store';
+import type { SupportedTimeZone } from '@domain/access/time-zone';
 
 export class InMemoryUserRepository implements UserRepository {
   constructor(private readonly store: InMemoryStore) {}
@@ -38,6 +39,7 @@ export class InMemoryUserRepository implements UserRepository {
       name: null,
       status: input.status,
       roleId: input.roleId,
+      timeZone: newStoredZone(),
       lastLoginAt: null,
     };
     this.store.users.set(stored.id, stored);
@@ -57,6 +59,12 @@ export class InMemoryUserRepository implements UserRepository {
   setRole(id: string, roleId: string): Promise<void> {
     const user = this.store.users.get(id);
     if (user) user.roleId = roleId;
+    return Promise.resolve();
+  }
+
+  setTimeZone(id: string, timeZone: SupportedTimeZone): Promise<void> {
+    const user = this.store.users.get(id);
+    if (user) user.timeZone = timeZone;
     return Promise.resolve();
   }
 

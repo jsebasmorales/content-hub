@@ -1,0 +1,106 @@
+---
+interface Item {
+  /** Already worded: "nov", "T3 2026". */
+  label: string;
+  created: number;
+  resolved: number;
+}
+
+interface Props {
+  items: readonly Item[];
+  /** What the chart shows, for screen readers: "Tickets creados y resueltos por mes". */
+  title: string;
+  /** Makes the ids unique when a page has more than one chart. */
+  idPrefix: string;
+  /** Small print under the chart, e.g. "El último mes está en curso." */
+  note?: string | undefined;
+  /** How the second bar is called on this page: "Resueltos" or "Completados". */
+  resolvedLabel?: string;
+}
+
+const { items, title, idPrefix, note, resolvedLabel = 'Resueltos' } = Astro.props;
+
+// Each group keeps this width however many there are; a long series scrolls sideways.
+const GROUP_WIDTH = 96;
+const BAR_WIDTH = 30;
+const BAR_GAP = 6;
+const BASELINE = 190;
+const PLOT_HEIGHT = 160;
+const width = Math.max(600, items.length * GROUP_WIDTH);
+const groupWidth = width / Math.max(1, items.length);
+
+// The tallest bar fills the plot: values are written on the bars, so there is no axis to round for.
+const ceiling = Math.max(1, ...items.flatMap((item) => [item.created, item.resolved]));
+const heightOf = (value: number): number => (value / ceiling) * PLOT_HEIGHT;
+
+const groups = items.map((item, index) => {
+  const left = index * groupWidth + (groupWidth - (BAR_WIDTH * 2 + BAR_GAP)) / 2;
+  return {
+    label: item.label,
+    centre: index * groupWidth + groupWidth / 2,
+    bars: [
+      { kind: 'created', value: item.created, x: left },
+      { kind: 'resolved', value: item.resolved, x: left + BAR_WIDTH + BAR_GAP },
+    ] as const,
+  };
+});
+
+const summary = items
+  .map(
+    (item) =>
+      `${item.label}: ${String(item.created)} creados, ${String(item.resolved)} ${resolvedLabel.toLowerCase()}`,
+  )
+  .join('; ');
+---
+
+<figure class="chart-figure">
+  <div class="chart-scroll" tabindex="0" role="group" aria-label={title}>
+    <svg
+      class="chart chart-fixed"
+      width={width}
+      viewBox={`0 0 ${String(width)} 230`}
+      role="img"
+      aria-labelledby={`${idPrefix}-title ${idPrefix}-desc`}
+    >
+      <title id={`${idPrefix}-title`}>{title}</title>
+      <desc id={`${idPrefix}-desc`}>{summary}</desc>
+      <line class="chart-axis" x1="0" x2={width} y1={BASELINE} y2={BASELINE}></line>
+      {groups.map((group) => (
+        <g>
+          {group.bars.map((bar) => (
+            <g>
+              <rect
+                class={`bar bar-${bar.kind}`}
+                x={bar.x}
+                y={BASELINE - heightOf(bar.value)}
+                width={BAR_WIDTH}
+                height={heightOf(bar.value)}
+                rx="3"
+              ></rect>
+              <text
+                class="chart-value"
+                x={bar.x + BAR_WIDTH / 2}
+                y={BASELINE - heightOf(bar.value) - 6}
+                text-anchor="middle"
+              >
+                {bar.value}
+              </text>
+            </g>
+          ))}
+          <text class="chart-label" x={group.centre} y="214" text-anchor="middle">
+            {group.label}
+          </text>
+        </g>
+      ))}
+    </svg>
+  </div>
+  <figcaption class="chart-legend">
+    <span>
+      <i class="swatch swatch-created"></i> Creados
+    </span>
+    <span>
+      <i class="swatch swatch-resolved"></i> {resolvedLabel}
+    </span>
+    {note && <span class="chart-note">{note}</span>}
+  </figcaption>
+</figure>

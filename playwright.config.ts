@@ -25,6 +25,11 @@ export default defineConfig({
       BOOTSTRAP_LEADER_EMAIL: 'lider@holafly.com',
       PUBLIC_APP_URL: `http://localhost:${String(PORT)}`,
       AUTH_PROVIDER: 'local',
+      JIRA_BASE_URL: 'https://e2e-placeholder.atlassian.net',
+      JIRA_EMAIL: 'e2e@holafly.com',
+      JIRA_API_TOKEN: 'e2e-placeholder-token',
+      JIRA_PROJECT_KEY: 'JSMCO',
+      SYNC_TRIGGER_SECRET: 'e2e-only-sync-secret-e2e-only-sync-secret',
     },
   },
 });

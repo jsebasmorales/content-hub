@@ -18,6 +18,11 @@ export class FakeClock implements Clock {
     return new Date(this.current);
   }
 
+  /** Jumps to an exact moment, for tests that need a fixed starting point. */
+  set(moment: Date): void {
+    this.current = new Date(moment);
+  }
+
   advance(ms: number): void {
     this.current = new Date(this.current.getTime() + ms);
   }

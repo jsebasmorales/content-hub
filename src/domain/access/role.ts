@@ -16,5 +16,7 @@ export function isLeaderRole(role: Role): boolean {
 /** Initial grants for the built-in roles (docs/DECISIONES.md D-001). */
 export const DEFAULT_ROLE_GRANTS: Readonly<Record<string, readonly PermissionKey[]>> = {
   [LEADER_ROLE_NAME]: ASSIGNABLE_PERMISSIONS,
-  [COLLABORATOR_ROLE_NAME]: SECTION_PERMISSIONS,
+  // "Lo aprendido" is the Leader's own page (D-061): collaborators start without it, and a Leader
+  // may grant it to a role later.
+  [COLLABORATOR_ROLE_NAME]: SECTION_PERMISSIONS.filter((key) => key !== 'section.learn'),
 };

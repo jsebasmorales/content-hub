@@ -35,6 +35,7 @@ test('visitors are sent to sign in, and APIs reveal nothing', async ({ page, req
   await expect(page).toHaveURL('/login');
   expect((await request.get('/api/admin/users')).status()).toBe(404);
   expect((await request.post('/api/admin/users')).status()).toBe(404);
+  expect((await request.post('/api/sync')).status()).toBe(404);
 });
 
 test('people who were not invited cannot sign in', async ({ page }) => {
@@ -48,10 +49,80 @@ test('people who were not invited cannot sign in', async ({ page }) => {
   await expect(page.getByRole('alert')).toContainText('No pudimos darte acceso');
 });
 
-test('the Leader sees the administration entry and can invite', async ({ browser }) => {
+test('the Leader sees the administration entry, can ask Jira for an update and can invite', async ({
+  browser,
+}) => {
   const page = await newPage(browser);
   await signIn(page, LEADER);
   await expect(page.getByRole('navigation', { name: 'Principal' })).toContainText('Permisos');
+
+  // Layout: every section lives in the sidebar; the top bar holds only the profile, theme and sign-out.
+  await expect(page.locator('aside.sidebar').getByRole('link', { name: 'Tareas' })).toBeVisible();
+  await expect(page.locator('header.topbar').getByRole('link')).toHaveCount(0);
+  await expect(page.locator('header.topbar')).toContainText(LEADER);
+  await expect(
+    page.locator('header.topbar').getByRole('button', { name: 'Cerrar sesión' }),
+  ).toBeVisible();
+
+  // Status: the Leader reads how the sync is going and how far to trust the data.
+  await expect(page.locator('aside.sidebar').getByRole('link', { name: 'Estado' })).toBeVisible();
+  await page.goto('/estado');
+  await expect(page.getByRole('heading', { name: 'Estado', level: 1 })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Calidad del dato' })).toBeVisible();
+
+  // Time zone: each person sees dates in their own zone; a forged request changes nothing.
+  await expect(page.locator('header.topbar')).toContainText('Hora: Colombia · Bogotá');
+  await page.locator('summary.profile-summary').click();
+  await page.getByLabel('Mostrar las horas en').selectOption({ label: 'España · Madrid' });
+  await page.getByRole('button', { name: 'Guardar', exact: true }).click();
+  await expect(page.locator('header.topbar')).toContainText('Hora: España · Madrid');
+  await page.request.post('/api/time-zone', { form: { _csrf: 'forged', zone: 'Asia/Bangkok' } });
+  await page.goto('/estado');
+  await expect(page.locator('header.topbar')).toContainText('Hora: España · Madrid');
+  await expect(page.getByRole('columnheader', { name: 'Inicio (España · Madrid)' })).toBeVisible();
+
+  // Lo aprendido: the Leader writes, every save is a version, and repeating it adds nothing.
+  await expect(
+    page.locator('aside.sidebar').getByRole('link', { name: 'Lo aprendido' }),
+  ).toBeVisible();
+  await page.goto('/aprendido');
+  await expect(page.getByRole('heading', { name: 'Lo aprendido', level: 1 })).toBeVisible();
+  await page.getByLabel('Conclusiones del trimestre').fill('El tiempo de respuesta mejoró.');
+  await page
+    .getByLabel('Foco del siguiente trimestre')
+    .fill('Reducir los tickets sin responsable.');
+  await page.getByRole('button', { name: 'Guardar nueva versión' }).click();
+  await expect(page.getByRole('status')).toContainText('Guardado');
+  await expect(page.getByLabel('Conclusiones del trimestre')).toHaveValue(
+    'El tiempo de respuesta mejoró.',
+  );
+  await page.getByRole('button', { name: 'Guardar nueva versión' }).click();
+  await expect(page.getByRole('status')).toContainText('No había cambios');
+
+  // Theme: the choice is applied by the server, survives a reload and keeps the page's filters.
+  await page.goto('/tareas?tipo=Edit');
+  await page.getByRole('button', { name: 'Tema oscuro' }).click();
+  await expect(page).toHaveURL('/tareas?tipo=Edit');
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+  await page.reload();
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+  await page.getByRole('button', { name: 'Tema claro' }).click();
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+  await page.getByRole('button', { name: 'Tema del dispositivo' }).click();
+  await expect(page.locator('html')).not.toHaveAttribute('data-theme', /.+/);
+  await page.goto('/');
+
+  // "Resincronizar": answers at once, and a second press within the minute is turned down.
+  await expect(page.getByText('Todavía no hay datos de Jira.')).toBeVisible();
+  await page.getByRole('button', { name: 'Resincronizar con Jira' }).click();
+  await expect(page).toHaveURL(/\/\?sync=(started|running)$/);
+  // Opening the page may already have started a refresh, which the button then reports as running.
+  await expect(page.getByRole('status')).toContainText(
+    /Pedimos la actualización|Ya hay una actualización en curso/,
+  );
+  await page.getByRole('button', { name: 'Resincronizar con Jira' }).click();
+  await expect(page.getByRole('alert').filter({ hasText: 'Espera un minuto' })).toBeVisible();
+
   await inviteCollaborator(page, COLLABORATOR);
   await expect(page.getByRole('cell', { name: COLLABORATOR, exact: true })).toBeVisible();
 });
@@ -82,6 +153,75 @@ test('a collaborator gets no trace of the administration page', async ({ browser
   const api = await page.request.get('/api/admin/users');
   expect(api.status()).toBe(404);
   expect(await api.text()).toBe('');
+
+  // The task list is open to collaborators by default and shows its filters.
+  await expect(nav).toContainText('Tareas');
+  await page.getByRole('link', { name: 'Resumen', exact: true }).click();
+  await expect(page).toHaveURL('/resumen');
+  await expect(page.getByRole('heading', { name: 'Resumen', level: 1, exact: true })).toBeVisible();
+  await expect(page.getByLabel('Tipo de solicitud')).toBeVisible();
+  await page.getByRole('link', { name: 'Tareas' }).click();
+  await expect(page).toHaveURL('/tareas');
+  await expect(page.getByRole('heading', { name: 'Tareas' })).toBeVisible();
+  await expect(page.getByLabel('Tipo de tarea')).toBeVisible();
+  await expect(page.getByLabel('Estado actual')).toBeVisible();
+  await expect(page.getByLabel('Solicitante')).toBeVisible();
+  await expect(page.getByLabel('Asignado a')).toBeVisible();
+  await expect(nav).toContainText('SLAs');
+  await page.getByRole('link', { name: 'SLAs', exact: true }).click();
+  await expect(page).toHaveURL('/sla');
+  await expect(page.getByRole('heading', { name: 'SLAs', exact: true })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'T4 2026' })).toBeVisible();
+  await expect(page.getByLabel('Desde')).toBeVisible();
+  await expect(nav).toContainText('SLAs incumplidos');
+  await page.getByRole('link', { name: 'SLAs incumplidos' }).click();
+  await expect(page).toHaveURL('/incumplimientos');
+  await expect(page.getByRole('heading', { name: 'SLAs incumplidos', level: 1 })).toBeVisible();
+  await expect(page.getByLabel('Métrica')).toBeVisible();
+  await expect(nav).toContainText('Capacidad');
+  await page.getByRole('link', { name: 'Capacidad' }).click();
+  await expect(page).toHaveURL('/capacidad');
+  await expect(page.getByRole('heading', { name: 'Capacidad', level: 1 })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /Cola actual/ })).toBeVisible();
+  await expect(nav).toContainText('Trimestre a trimestre');
+  await page.getByRole('link', { name: 'Trimestre a trimestre' }).click();
+  await expect(page).toHaveURL('/trimestres');
+  await expect(
+    page.getByRole('heading', { name: 'Trimestre a trimestre', level: 1 }),
+  ).toBeVisible();
+  await page.goto('/');
+
+  // 5. "Resincronizar" (Leader only by default): no button, no trace in the source, empty 404.
+  await expect(page.getByRole('button', { name: 'Resincronizar con Jira' })).toHaveCount(0);
+  await expect(nav).not.toContainText('Estado');
+  await expect(nav).not.toContainText('Lo aprendido');
+  const learned = await page.request.get('/aprendido');
+  expect(learned.status()).toBe(404);
+  expect(await learned.text()).toBe(await missing.text());
+  const write = await page.request.post('/api/learned');
+  expect(write.status()).toBe(404);
+  expect(await write.text()).toBe('');
+  // Definitions are for every role, but never link to a page this person cannot open.
+  await page.getByRole('link', { name: 'Definiciones' }).click();
+  await expect(page).toHaveURL('/definiciones');
+  await expect(page.getByRole('heading', { name: 'Definiciones', level: 1 })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'Fecha de corte y calidad del dato' }),
+  ).toBeVisible();
+  expect(await page.content()).not.toContain('href="/estado"');
+  await page.goto('/');
+  const status = await page.request.get('/estado');
+  expect(status.status()).toBe(404);
+  expect(await status.text()).toBe(await missing.text());
+  for (const trace of ['Resincronizar', '/api/sync', 'action.sync', '/estado', '/aprendido']) {
+    expect(source, `page source leaks "${trace}"`).not.toContain(trace);
+  }
+  // Even a crafted address shows the collaborator nothing about the button.
+  await page.goto('/?sync=started');
+  await expect(page.getByText('Pedimos la actualización')).toHaveCount(0);
+  const sync = await page.request.post('/api/sync');
+  expect(sync.status()).toBe(404);
+  expect(await sync.text()).toBe('');
 });
 
 test('responses carry the mandatory security headers', async ({ browser }) => {

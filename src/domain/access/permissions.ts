@@ -15,7 +15,7 @@ export const SECTION_IDS = [
 
 export type SectionId = (typeof SECTION_IDS)[number];
 export type SectionPermission = `section.${SectionId}`;
-export type ActionPermission = 'action.sync' | 'action.ecoedit';
+export type ActionPermission = 'action.sync' | 'action.ecoedit' | 'action.learnedit';
 export type AdminPermission = 'admin.roles';
 export type PermissionKey = SectionPermission | ActionPermission | AdminPermission;
 
@@ -28,6 +28,7 @@ export const PERMISSION_CATALOG: readonly PermissionKey[] = [
   ...SECTION_PERMISSIONS,
   'action.sync',
   'action.ecoedit',
+  'action.learnedit',
   'admin.roles',
 ];
 

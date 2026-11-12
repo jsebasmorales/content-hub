@@ -1,6 +1,6 @@
 # CI pipeline (SDD §13): install → lint → astro check → dependency-cruiser → unit →
-# integration → build → e2e → security. Lighthouse and image publishing join in later phases
-# (docs/DECISIONES.md D-008).
+# integration → build → e2e → performance (Lighthouse + JS budget) → security. Image publishing
+# joins in a later phase (docs/DECISIONES.md D-008, D-065).
 name: CI
 
 on:
@@ -24,6 +24,11 @@ env:
   BOOTSTRAP_LEADER_EMAIL: lider@holafly.com
   PUBLIC_APP_URL: http://localhost:4321
   AUTH_PROVIDER: local
+  JIRA_BASE_URL: https://ci-placeholder.atlassian.net
+  JIRA_EMAIL: ci@holafly.com
+  JIRA_API_TOKEN: ci-placeholder-token
+  JIRA_PROJECT_KEY: JSMCO
+  SYNC_TRIGGER_SECRET: ci-only-sync-secret-ci-only-sync-secret
 
 jobs:
   quality:
@@ -120,6 +125,43 @@ jobs:
           path: |
             test-results/
             playwright-report/
+          retention-days: 7
+
+  performance:
+    name: Performance (Lighthouse and JS budget)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: quality
+    # SDD §12 / D-008: every page must stay inside the JS budget (30 KB gzip) and keep Lighthouse
+    # scores, LCP and CLS within the limits in scripts/perf-check.mjs. Runs on the same embedded
+    # database as the e2e tests, so pages are measured in their empty state.
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Install browser
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Start the app
+        run: |
+          pnpm exec astro dev --port 4321 > app.log 2>&1 &
+          for i in $(seq 1 60); do
+            curl -sf http://localhost:4321/login > /dev/null && exit 0
+            sleep 2
+          done
+          cat app.log
+          exit 1
+      - name: Lighthouse and JS budget
+        run: pnpm perf
+      - name: Keep the app log when it fails
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: performance-app-log
+          path: app.log
           retention-days: 7
 
   security:

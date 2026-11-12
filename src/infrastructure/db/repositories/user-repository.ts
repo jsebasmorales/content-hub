@@ -1,5 +1,6 @@
 import { and, eq, sql } from 'drizzle-orm';
 import { LEADER_ROLE_NAME } from '@domain/access/role';
+import { resolveTimeZone, type SupportedTimeZone } from '@domain/access/time-zone';
 import type { User } from '@domain/access/user';
 import type { NewUser, UserRepository } from '@application/ports/repositories';
 import { isUuid } from '@shared/ids';
@@ -11,6 +12,7 @@ const userColumns = {
   email: appUser.email,
   name: appUser.name,
   status: appUser.status,
+  timeZone: appUser.timeZone,
   roleId: appUser.roleId,
   roleName: role.name,
   roleIsSystem: role.isSystem,
@@ -21,6 +23,7 @@ interface UserRow {
   email: string;
   name: string | null;
   status: User['status'];
+  timeZone: string;
   roleId: string;
   roleName: string;
   roleIsSystem: boolean;
@@ -33,6 +36,8 @@ const toUser = (row: UserRow): User => ({
   status: row.status,
   roleId: row.roleId,
   role: { name: row.roleName, isSystem: row.roleIsSystem },
+  // A zone that is no longer on the list falls back to the default instead of breaking the page.
+  timeZone: resolveTimeZone(row.timeZone),
 });
 
 export class DbUserRepository implements UserRepository {
@@ -82,6 +87,10 @@ export class DbUserRepository implements UserRepository {
 
   async setRole(id: string, roleId: string): Promise<void> {
     await this.db.update(appUser).set({ roleId }).where(eq(appUser.id, id));
+  }
+
+  async setTimeZone(id: string, timeZone: SupportedTimeZone): Promise<void> {
+    await this.db.update(appUser).set({ timeZone }).where(eq(appUser.id, id));
   }
 
   async setStatus(id: string, status: User['status']): Promise<void> {

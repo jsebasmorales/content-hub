@@ -1,0 +1,54 @@
+---
+import type { SupportedTimeZone } from '@domain/access/time-zone';
+import type { OngoingCycle } from '@domain/jira/sla-report';
+import { describeLimit, formatMomentPlain, zoneLabel } from '../format-moment';
+import { METRIC_LABEL } from '../sla-labels';
+import TicketLink from './TicketLink.astro';
+
+interface Props {
+  rows: readonly OngoingCycle[];
+  ticketUrlOf: (key: string) => string | null;
+  timeZone: SupportedTimeZone;
+  now: Date;
+  /** False for a continuation of a table that already showed its heading. */
+  withHead?: boolean;
+}
+
+const { rows, ticketUrlOf, timeZone, now, withHead = true } = Astro.props;
+---
+
+<table class="data-table">
+  {withHead && (
+    <thead>
+      <tr>
+        <th scope="col">Ticket</th>
+        <th scope="col">Resumen</th>
+        <th scope="col">Métrica</th>
+        <th scope="col">Asignado a</th>
+        <th scope="col">Límite ({zoneLabel(timeZone)})</th>
+        <th scope="col">Estado</th>
+      </tr>
+    </thead>
+  )}
+  <tbody>
+    {rows.map((cycle) => (
+      <tr>
+        <th scope="row" data-label="Ticket" class="task-key">
+          <TicketLink ticketKey={cycle.ticketKey} url={ticketUrlOf(cycle.ticketKey)} />
+        </th>
+        <td data-label="Resumen">{cycle.summary}</td>
+        <td data-label="Métrica">{METRIC_LABEL[cycle.metric]}</td>
+        <td data-label="Asignado a">{cycle.assigneeName ?? 'Sin asignar'}</td>
+        <td data-label="Límite">
+          {cycle.breachAt ? formatMomentPlain(cycle.breachAt, timeZone) : '—'}
+        </td>
+        <td data-label="Estado">
+          <span class={cycle.breached ? 'verdict verdict-bad' : 'verdict'}>
+            {cycle.breached ? '✖ ' : ''}
+            {describeLimit(cycle.breachAt, now)}
+          </span>
+        </td>
+      </tr>
+    ))}
+  </tbody>
+</table>

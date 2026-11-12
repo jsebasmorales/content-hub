@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import pg from 'pg';
 import { composeApp, type App, type ComposeEnv } from '@infrastructure/compose';
-import { openDatabase } from '@infrastructure/db/client';
+import { openDatabase, type Database } from '@infrastructure/db/client';
 import { seedAccessData } from '@infrastructure/db/seed';
 import { composeFakeApp } from '@infrastructure/fakes/compose-fakes';
 import { FakeClock } from '@infrastructure/fakes/in-memory-services';
@@ -25,8 +25,13 @@ export const TEST_ENV: ComposeEnv = {
 export const APP_KINDS = ['postgres', 'in-memory fakes'] as const;
 export type AppKind = (typeof APP_KINDS)[number];
 
+/** True when the "postgres" kind runs on a real server (CI) and not on the embedded PGlite. */
+export const ON_REAL_POSTGRES = process.env['TEST_DATABASE_URL'] !== undefined;
+
 export interface TestApp {
   readonly app: App;
+  /** The database, when the app runs on Postgres; null for the in-memory fakes. */
+  readonly db: Database | null;
   readonly clock: FakeClock;
   readonly close: () => Promise<void>;
 }
@@ -34,7 +39,12 @@ export interface TestApp {
 export async function createTestApp(kind: AppKind): Promise<TestApp> {
   const clock = new FakeClock();
   if (kind === 'in-memory fakes') {
-    return { app: composeFakeApp(TEST_ENV, clock).app, clock, close: () => Promise.resolve() };
+    return {
+      app: composeFakeApp(TEST_ENV, clock).app,
+      db: null,
+      clock,
+      close: () => Promise.resolve(),
+    };
   }
   const scratch = await createScratchDatabase();
   const handle = await openDatabase(scratch.url);
@@ -42,6 +52,7 @@ export async function createTestApp(kind: AppKind): Promise<TestApp> {
   await seedAccessData(handle.db);
   return {
     app: composeApp(handle.db, TEST_ENV, clock),
+    db: handle.db,
     clock,
     close: async () => {
       await handle.close();
@@ -50,13 +61,13 @@ export async function createTestApp(kind: AppKind): Promise<TestApp> {
   };
 }
 
-interface ScratchDatabase {
+export interface ScratchDatabase {
   readonly url: string;
   readonly drop: () => Promise<void>;
 }
 
 /** An empty database: PGlite in memory, or a fresh database on the TEST_DATABASE_URL server. */
-async function createScratchDatabase(): Promise<ScratchDatabase> {
+export async function createScratchDatabase(): Promise<ScratchDatabase> {
   const adminUrl = process.env['TEST_DATABASE_URL'];
   if (!adminUrl) return { url: 'pglite:memory', drop: () => Promise.resolve() };
 

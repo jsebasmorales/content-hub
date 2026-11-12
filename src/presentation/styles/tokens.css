@@ -1,8 +1,12 @@
 /*
  * Holafly design tokens: the single place for colors (SDD §18).
- * Values come from the approved mockup. Dark theme follows the system setting.
+ * Values come from the approved mockup. The theme is chosen in this order:
+ *   1. the person's own choice, written by the server as data-theme="light" or "dark";
+ *   2. otherwise the device setting (prefers-color-scheme).
  */
 :root {
+  color-scheme: light;
+
   --page: #f9f9f7;
   --surface: #fcfcfb;
   --ink: #0b0b0b;
@@ -32,8 +36,31 @@
   --font: system-ui, -apple-system, 'Segoe UI', sans-serif;
 }
 
+/* The dark values, written once and applied by both routes below. */
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  --page: #0d0d0d;
+  --surface: #1a1a19;
+  --ink: #f0efec;
+  --ink-2: #c3c2b7;
+  --muted: #a3a29b;
+  --grid: #2c2c2a;
+  --border: rgb(255 255 255 / 10%);
+  --wash: #262624;
+
+  --brand-wash: #3a1d22;
+  --violet: #9085e9;
+  --good-text: #4cc34c;
+  --bad-text: #ff8f8f;
+  --bad-wash: #3a1f1f;
+  --good-wash: #1b2f1f;
+}
+
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme='light']) {
+    color-scheme: dark;
+
     --page: #0d0d0d;
     --surface: #1a1a19;
     --ink: #f0efec;

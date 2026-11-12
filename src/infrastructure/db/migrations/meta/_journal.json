@@ -22,6 +22,34 @@
       "when": 1794424062401,
       "tag": "0002_rate_limit",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1794483961687,
+      "tag": "0003_jira_cache",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1794484615243,
+      "tag": "0004_people_names",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1794502578521,
+      "tag": "0005_learned_entry",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1794504642773,
+      "tag": "0006_learned_leader_only",
+      "breakpoints": true
     }
   ]
 }

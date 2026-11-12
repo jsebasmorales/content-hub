@@ -1,0 +1,51 @@
+---
+import type { SyncStatus } from '@application/use-cases/jira/get-sync-status';
+import type { SupportedTimeZone } from '@domain/access/time-zone';
+import type { Flash } from '../admin-messages';
+import { formatMoment } from '../format-moment';
+
+interface Props {
+  status: SyncStatus;
+  timeZone: SupportedTimeZone;
+  /** The person may press the button. When false, nothing about it is rendered. */
+  canSync: boolean;
+  csrfToken: string;
+  /** Page to come back to after pressing the button. */
+  back: string;
+  flash: Flash | null;
+}
+
+const { status, timeZone, canSync, csrfToken, back, flash } = Astro.props;
+---
+
+<section class="sync-panel" aria-label="Estado de los datos">
+  <p class="sync-line">
+    {status.lastUpdateAt
+      ? `Última actualización: ${formatMoment(status.lastUpdateAt, timeZone)}`
+      : 'Todavía no hay datos de Jira.'}
+    {status.running && <span class="badge">Actualizando…</span>}
+  </p>
+
+  {status.lastAttemptFailed && (
+    <p class="notice notice-error" role="alert">
+      El último intento de actualizar falló. Estás viendo los datos de la última vez que funcionó.
+      {canSync && status.lastError && <span class="sync-detail">Detalle: {status.lastError}</span>}
+    </p>
+  )}
+
+  {canSync && flash && (
+    <p class={`notice notice-${flash.kind}`} role={flash.kind === 'error' ? 'alert' : 'status'}>
+      {flash.text}
+    </p>
+  )}
+
+  {canSync && (
+    <form method="post" action="/api/sync">
+      <input type="hidden" name="_csrf" value={csrfToken} />
+      <input type="hidden" name="back" value={back} />
+      <button class="btn btn-quiet" type="submit">
+        Resincronizar con Jira
+      </button>
+    </form>
+  )}
+</section>

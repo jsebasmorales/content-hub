@@ -1,4 +1,5 @@
 import type { Role } from './role';
+import type { SupportedTimeZone } from './time-zone';
 
 export const USER_STATUSES = ['invitado', 'activo', 'desactivado'] as const;
 export type UserStatus = (typeof USER_STATUSES)[number];
@@ -11,6 +12,8 @@ export interface User {
   readonly status: UserStatus;
   readonly roleId: string;
   readonly role: Role;
+  /** Zone used to show dates to this person (D-043). Grouping always uses Bogotá. */
+  readonly timeZone: SupportedTimeZone;
 }
 
 /** Only invited or active users can sign in; deactivated ones are locked out (SDD §10.2). */

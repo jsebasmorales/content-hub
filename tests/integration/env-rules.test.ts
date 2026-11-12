@@ -8,6 +8,11 @@ const valid = {
   BOOTSTRAP_LEADER_EMAIL: 'lider@holafly.com',
   PUBLIC_APP_URL: 'http://localhost:4321',
   AUTH_PROVIDER: 'local',
+  JIRA_BASE_URL: 'https://example.atlassian.net',
+  JIRA_EMAIL: 'bot@holafly.com',
+  JIRA_API_TOKEN: 'token-value',
+  JIRA_PROJECT_KEY: 'JSMCO',
+  SYNC_TRIGGER_SECRET: 's'.repeat(32),
 };
 const dev = { isProduction: false };
 const prod = { isProduction: true };
@@ -33,7 +38,7 @@ describe('parseEnv', () => {
   });
 
   it('treats empty values as not set', () => {
-    expect(problemsOf({ ...valid, JIRA_EMAIL: '' })).toEqual([]);
+    expect(problemsOf({ ...valid, CROWDIN_TOKEN: '' })).toEqual([]);
     expect(problemsOf({ ...valid, SESSION_SECRET: '' }).length).toBeGreaterThan(0);
   });
 
@@ -89,8 +94,46 @@ describe('parseEnv', () => {
     });
   });
 
+  describe('Jira (required since Phase 1)', () => {
+    it.each([
+      'http://example.atlassian.net',
+      'https://example.com',
+      'https://example.atlassian.net.evil.com',
+      'https://example.atlassian.net/jira',
+      'https://example.atlassian.net/?x=1',
+      'not a url',
+    ])('rejects JIRA_BASE_URL %s', (JIRA_BASE_URL) => {
+      expect(problemsOf({ ...valid, JIRA_BASE_URL }).join()).toContain('JIRA_BASE_URL');
+    });
+
+    it.each(['jsmco', 'J', 'JSM-CO', 'TOOLONGKEY123'])('rejects JIRA_PROJECT_KEY %s', (key) => {
+      expect(problemsOf({ ...valid, JIRA_PROJECT_KEY: key }).join()).toContain('JIRA_PROJECT_KEY');
+    });
+
+    it('rejects a malformed service account email', () => {
+      expect(problemsOf({ ...valid, JIRA_EMAIL: 'not-an-email' }).join()).toContain('JIRA_EMAIL');
+    });
+
+    it('defaults the SLA field ids and validates overrides', () => {
+      const parsed = parseEnv(valid, dev);
+      expect(parsed.JIRA_FIELD_SLA_RESPONSE).toBe('customfield_10062');
+      expect(parsed.JIRA_FIELD_SLA_DONE).toBe('customfield_10152');
+      expect(
+        parseEnv({ ...valid, JIRA_FIELD_SLA_DONE: 'customfield_1' }, dev).JIRA_FIELD_SLA_DONE,
+      ).toBe('customfield_1');
+      expect(problemsOf({ ...valid, JIRA_FIELD_SLA_DONE: 'summary' }).join()).toContain(
+        'JIRA_FIELD_SLA_DONE',
+      );
+    });
+  });
+
   it('never includes secret values in error messages', () => {
     const problems = problemsOf({ ...valid, SESSION_SECRET: 'super-secret-short' });
     expect(problems.join()).not.toContain('super-secret-short');
+  });
+
+  it('does not leak the Jira token in error messages', () => {
+    const problems = problemsOf({ ...valid, JIRA_BASE_URL: 'http://x.example.com' });
+    expect(problems.join()).not.toContain('token-value');
   });
 });

@@ -1,4 +1,5 @@
 import { DEFAULT_ROLE_GRANTS } from '@domain/access/role';
+import { DEFAULT_TIME_ZONE, type SupportedTimeZone } from '@domain/access/time-zone';
 import type { User, UserStatus } from '@domain/access/user';
 import type { RoleRecord } from '@application/ports/repositories';
 import { newId } from '@shared/ids';
@@ -9,8 +10,11 @@ export interface StoredUser {
   name: string | null;
   status: UserStatus;
   roleId: string;
+  timeZone: SupportedTimeZone;
   lastLoginAt: Date | null;
 }
+
+export const newStoredZone = (): SupportedTimeZone => DEFAULT_TIME_ZONE;
 
 export interface StoredSession {
   tokenHash: string;
@@ -45,6 +49,7 @@ export class InMemoryStore {
       status: stored.status,
       roleId: stored.roleId,
       role: { name: role.name, isSystem: role.isSystem },
+      timeZone: stored.timeZone,
     };
   }
 }

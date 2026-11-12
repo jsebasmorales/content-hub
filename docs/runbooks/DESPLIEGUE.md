@@ -22,16 +22,18 @@ Para quién es: quien despliega. Variables: [VARIABLES_DE_ENTORNO.md](../VARIABL
 
 Configúralas en **Site configuration → Environment variables**, no en un archivo:
 
-| Variable                                            | Valor en producción                                               |
-| --------------------------------------------------- | ----------------------------------------------------------------- |
-| `DATABASE_URL`                                      | Rol de **ejecución**, pooled, con `sslmode=require`               |
-| `SESSION_SECRET`                                    | Nuevo, aleatorio, 32+ caracteres (distinto al de desarrollo)      |
-| `ALLOWED_EMAIL_DOMAIN`                              | `holafly.com`                                                     |
-| `BOOTSTRAP_LEADER_EMAIL`                            | Correo del primer Líder                                           |
-| `PUBLIC_APP_URL`                                    | `https://TU-DOMINIO` (https activa la cookie `__Host-`)           |
-| `AUTH_PROVIDER`                                     | `atlassian` (`local` hace que la app no arranque)                 |
-| `ATLASSIAN_CLIENT_ID` / `_SECRET` / `_REDIRECT_URI` | De la app de **producción**                                       |
-| `DATABASE_URL_MIGRATE`                              | **[pendiente]** Rol de migración, solo para el paso de despliegue |
+| Variable                                                               | Valor en producción                                                                                 |
+| ---------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| `DATABASE_URL`                                                         | Rol de **ejecución**, pooled, con `sslmode=require`                                                 |
+| `SESSION_SECRET`                                                       | Nuevo, aleatorio, 32+ caracteres (distinto al de desarrollo)                                        |
+| `ALLOWED_EMAIL_DOMAIN`                                                 | `holafly.com`                                                                                       |
+| `BOOTSTRAP_LEADER_EMAIL`                                               | Correo del primer Líder                                                                             |
+| `PUBLIC_APP_URL`                                                       | `https://TU-DOMINIO` (https activa la cookie `__Host-`)                                             |
+| `AUTH_PROVIDER`                                                        | `atlassian` (`local` hace que la app no arranque)                                                   |
+| `ATLASSIAN_CLIENT_ID` / `_SECRET` / `_REDIRECT_URI`                    | De la app de **producción**                                                                         |
+| `JIRA_BASE_URL` / `JIRA_EMAIL` / `JIRA_API_TOKEN` / `JIRA_PROJECT_KEY` | Cuenta de servicio de solo lectura. **Sin ellas la app no arranca** (Fase 1)                        |
+| `SYNC_TRIGGER_SECRET`                                                  | Nuevo, aleatorio, 48+ caracteres, distinto de todos los demás (D-048). **Sin él la app no arranca** |
+| `DATABASE_URL_MIGRATE`                                                 | **[pendiente]** Rol de migración, solo para el paso de despliegue                                   |
 
 Los _previews_ de Netlify deben usar **otra base de datos vacía**, nunca la de producción.
 
@@ -68,16 +70,53 @@ migrar. La app se conecta con un rol sin DDL (`app_runtime`):
 5. **Invitar al equipo** desde **Permisos** ([USUARIOS_Y_ACCESO.md](USUARIOS_Y_ACCESO.md)).
 6. **Comprobar** que un Colaborador no ve **Permisos** y que `/permisos` le responde 404.
 
+## El sync de Jira en segundo plano (D-048)
+
+`pnpm build` empaqueta primero la función `netlify/functions/sync-jira-background.mjs` (con
+`pnpm build:functions`) y luego construye la app. La función necesita, en el **mismo sitio de Netlify**,
+`DATABASE_URL`, las variables `JIRA_*` y `SYNC_TRIGGER_SECRET`; Netlify las entrega a las funciones sin
+configuración extra, siempre que el ámbito de cada variable incluya **Functions**.
+
+**Tras el primer despliegue con esta versión:**
+
+1. Aplica las migraciones `0003_jira_cache`, `0004_people_names`, `0005_learned_entry` y `0006_learned_leader_only` a la base de producción (paso 1 de **Pasos**).
+   La `0006` hace dos cosas necesarias en una base que **ya existe**: quita "Lo aprendido" al rol Colaborador
+   (el valor por defecto solo vale al crear un rol, y el de producción se creó con todas las secciones) y quita
+   a `app_runtime` los privilegios de modificar `learned_entry`. **Compruébalo:** entra con un Colaborador
+   y confirma que no ve "Lo aprendido" en el menú y que `/aprendido` le da "no encontrada".
+2. En **Logs → Functions** debe aparecer `sync-jira-background`. Si no aparece, revisa que `pnpm build` haya
+   corrido `build:functions` (el registro de la compilación dice `Built netlify/functions/...`).
+3. Comprueba que nadie ajeno puede lanzarla:
+   ```bash
+   curl -i -X POST https://TU-DOMINIO/.netlify/functions/sync-jira-background
+   ```
+   Netlify responde `202` a cualquier llamada a una función en segundo plano (no revela nada); lo que
+   importa es que **no cambie ningún dato**: en el registro de la función debe aparecer
+   `sync.function_rejected` y ningún `sync.function_finished`.
+4. Lanza el primer sync completo desde tu máquina, apuntando a la base de producción, con un `.env`
+   temporal: `pnpm sync:jira --full` (después bórralo). Tarda unos 20 segundos.
+5. **Comprobar que producción coincide con Jira:** antes de borrar el `.env` temporal del paso anterior, corre `pnpm compare:jira --all`. Debe terminar con "1046 match" (el número cambia con el tiempo) y las líneas de SLA con ✔. Si algo no coincide, no enseñes las cifras: avisa. Borra el `.env` temporal.
+6. **Rotar el secreto:** cambia `SYNC_TRIGGER_SECRET` en Netlify y vuelve a desplegar. No hay sesiones ni
+   datos que invalidar; mientras se despliega, un sync lanzado con el valor viejo recibe 404.
+
+### Activar el sync programado (opcional, desactivado)
+
+El archivo `src/infrastructure/netlify/sync-jira-scheduled.ts` queda listo pero **no se empaqueta**: D-035
+decidió no usar cron al inicio por los créditos de Netlify. Para activarlo: añade la entrada a la lista
+`FUNCTIONS` de `scripts/build-functions.mjs` con `name: 'sync-jira-scheduled'` y
+`schedule: '*/30 * * * *'`, regístralo en D-035 y mide los créditos la primera semana.
+
 ## Si algo sale mal
 
-| Síntoma                                         | Causa probable                                  | Acción                                                             |
-| ----------------------------------------------- | ----------------------------------------------- | ------------------------------------------------------------------ |
-| Error 500 al abrir cualquier página             | Variable faltante o inválida                    | Los registros de la función dicen cuál; corrígela y redespliega    |
-| La app no arranca y menciona `local` o `pglite` | Variable de desarrollo en producción            | `AUTH_PROVIDER=atlassian` y una `DATABASE_URL` Postgres con TLS    |
-| `redirect_uri is not registered`                | Callback URL distinta a la registrada           | Igualar `ATLASSIAN_REDIRECT_URI` con la consola, letra por letra   |
-| `verify:deploy` falla en la etiqueta CSP        | La CSP de Astro no se emitió                    | Revisar `security.csp` en `astro.config.mjs` y el build            |
-| Respuestas lentas tras un rato sin tráfico      | Arranque en frío de la función y de la conexión | Esperado; si persiste, revisar el pooler y los límites de conexión |
-| Errores de conexión intermitentes               | Conexiones inactivas cerradas por Neon          | El pool ya lo maneja (D-015); revisa que uses la URL _pooled_      |
+| Síntoma                                         | Causa probable                                     | Acción                                                                                            |
+| ----------------------------------------------- | -------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| Error 500 al abrir cualquier página             | Variable faltante o inválida                       | Los registros de la función dicen cuál; corrígela y redespliega                                   |
+| La app no arranca y menciona `local` o `pglite` | Variable de desarrollo en producción               | `AUTH_PROVIDER=atlassian` y una `DATABASE_URL` Postgres con TLS                                   |
+| `redirect_uri is not registered`                | Callback URL distinta a la registrada              | Igualar `ATLASSIAN_REDIRECT_URI` con la consola, letra por letra                                  |
+| `verify:deploy` falla en la etiqueta CSP        | La CSP de Astro no se emitió                       | Revisar `security.csp` en `astro.config.mjs` y el build                                           |
+| Respuestas lentas tras un rato sin tráfico      | Arranque en frío de la función y de la conexión    | Esperado; si persiste, revisar el pooler y los límites de conexión                                |
+| El botón o la visita no actualizan los datos    | La función en segundo plano no se desplegó o falló | Revisa **Logs → Functions** (`sync-jira-background`) y `/estado`; `pnpm sync:jira` lo hace a mano |
+| Errores de conexión intermitentes               | Conexiones inactivas cerradas por Neon             | El pool ya lo maneja (D-015); revisa que uses la URL _pooled_                                     |
 
 ## Revertir
 

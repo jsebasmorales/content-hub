@@ -1,0 +1,2078 @@
+{
+  "issues": [
+    {
+      "id": "10000",
+      "key": "JSMCO-900",
+      "fields": {
+        "summary": "Anonymized ticket 1",
+        "status": {
+          "description": "",
+          "name": "Pending",
+          "id": "12092",
+          "statusCategory": {
+            "id": 4,
+            "key": "indeterminate",
+            "colorName": "yellow",
+            "name": "In Progress"
+          }
+        },
+        "issuetype": {
+          "id": "11941",
+          "description": "We adapt and localize marketing content from English into target languages to fit the brand voice and cultural context. 🔴Finalized EN copy as our source text is strictly REQUIRED. ⚠️Requests without it cannot be processed⚠️",
+          "name": "Translate Marketing Materials",
+          "subtask": false,
+          "avatarId": 10309,
+          "entityId": "2cefff5a-2009-48da-a8b9-c3d71b907303",
+          "hierarchyLevel": 0
+        },
+        "priority": {
+          "name": "Medium",
+          "id": "3"
+        },
+        "assignee": {
+          "accountId": "acc-fixture-1",
+          "displayName": "Person A",
+          "accountType": "atlassian"
+        },
+        "reporter": {
+          "accountId": "acc-fixture-2",
+          "displayName": "Person B",
+          "accountType": "atlassian"
+        },
+        "created": "2026-11-11T14:48:01.482+0100",
+        "updated": "2026-11-11T23:33:56.949+0100",
+        "resolutiondate": null,
+        "customfield_10062": {
+          "id": "57",
+          "name": "Time to first response",
+          "completedCycles": [
+            {
+              "startTime": {
+                "iso8601": "2026-11-11T08:48:01-0500",
+                "jira": "2026-11-11T14:48:01.482+0100",
+                "friendly": "Today 08:11",
+                "epochMillis": 1794404881482
+              },
+              "stopTime": {
+                "iso8601": "2026-11-11T08:48:05-0500",
+                "jira": "2026-11-11T14:48:05.395+0100",
+                "friendly": "Today 08:11",
+                "epochMillis": 1794404885395
+              },
+              "breachTime": {
+                "iso8601": "2026-11-13T08:48:05-0500",
+                "jira": "2026-11-13T14:48:05.395+0100",
+                "friendly": "13/Nov/26 08:11",
+                "epochMillis": 1794577685395
+              },
+              "breached": false,
+              "goalDuration": {
+                "millis": 57600000,
+                "friendly": "16h"
+              },
+              "elapsedTime": {
+                "millis": 0,
+                "friendly": "0m"
+              },
+              "remainingTime": {
+                "millis": 57600000,
+                "friendly": "16h"
+              }
+            }
+          ],
+          "slaDisplayFormat": "NEW_SLA_FORMAT"
+        },
+        "customfield_10152": {
+          "id": "56",
+          "name": "Time to done",
+          "completedCycles": [],
+          "ongoingCycle": {
+            "startTime": {
+              "iso8601": "2026-11-11T08:48:04-0500",
+              "jira": "2026-11-11T14:48:04.493+0100",
+              "friendly": "Today 08:11",
+              "epochMillis": 1794404884493
+            },
+            "breachTime": {
+              "iso8601": "2026-12-09T08:48:04-0500",
+              "jira": "2026-12-09T14:48:04.493+0100",
+              "friendly": "09/Dec/26 08:12",
+              "epochMillis": 1796824084493
+            },
+            "breached": false,
+            "paused": false,
+            "withinCalendarHours": false,
+            "goalDuration": {
+              "millis": 576000000,
+              "friendly": "160h"
+            },
+            "elapsedTime": {
+              "millis": 7915507,
+              "friendly": "2h 11m"
+            },
+            "remainingTime": {
+              "millis": 568084493,
+              "friendly": "157h 48m"
+            }
+          },
+          "slaDisplayFormat": "NEW_SLA_FORMAT"
+        }
+      },
+      "changelog": {
+        "startAt": 0,
+        "maxResults": 100,
+        "total": 7,
+        "histories": [
+          {
+            "id": "1",
+            "created": "2026-11-11T16:36:05.021+0100",
+            "items": [
+              {
+                "field": "Attachment",
+                "fromString": null,
+                "toString": null
+              }
+            ]
+          },
+          {
+            "id": "2",
+            "created": "2026-11-11T15:50:21.353+0100",
+            "items": [
+              {
+                "field": "Checklist Completed",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "Checklist Text",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "Checklist Progress %",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "Checklist Progress",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "Checklist Text (view-only)",
+                "fromString": null,
+                "toString": null
+              }
+            ]
+          },
+          {
+            "id": "3",
+            "created": "2026-11-11T15:49:56.945+0100",
+            "items": [
+              {
+                "field": "Request participants",
+                "fromString": null,
+                "toString": null
+              }
+            ]
+          },
+          {
+            "id": "4",
+            "created": "2026-11-11T14:53:43.364+0100",
+            "items": [
+              {
+                "field": "Attachment",
+                "fromString": null,
+                "toString": null
+              }
+            ]
+          },
+          {
+            "id": "5",
+            "created": "2026-11-11T14:48:04.883+0100",
+            "items": [
+              {
+                "field": "Start date",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "End Date",
+                "fromString": null,
+                "toString": null
+              }
+            ]
+          },
+          {
+            "id": "6",
+            "created": "2026-11-11T14:48:04.493+0100",
+            "items": [
+              {
+                "field": "status",
+                "fromString": "To Do",
+                "toString": "Pending"
+              }
+            ]
+          },
+          {
+            "id": "7",
+            "created": "2026-11-11T14:48:04.232+0100",
+            "items": [
+              {
+                "field": "assignee",
+                "fromString": null,
+                "toString": null
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "10001",
+      "key": "JSMCO-901",
+      "fields": {
+        "summary": "Anonymized ticket 2",
+        "status": {
+          "description": "",
+          "name": "Done",
+          "id": "12090",
+          "statusCategory": {
+            "id": 3,
+            "key": "done",
+            "colorName": "green",
+            "name": "Done"
+          }
+        },
+        "issuetype": {
+          "id": "11941",
+          "description": "We adapt and localize marketing content from English into target languages to fit the brand voice and cultural context. 🔴Finalized EN copy as our source text is strictly REQUIRED. ⚠️Requests without it cannot be processed⚠️",
+          "name": "Translate Marketing Materials",
+          "subtask": false,
+          "avatarId": 10309,
+          "entityId": "2cefff5a-2009-48da-a8b9-c3d71b907303",
+          "hierarchyLevel": 0
+        },
+        "priority": {
+          "name": "Medium",
+          "id": "3"
+        },
+        "assignee": {
+          "accountId": "acc-fixture-3",
+          "displayName": "Person C",
+          "accountType": "atlassian"
+        },
+        "reporter": {
+          "accountId": "acc-fixture-4",
+          "displayName": "Person D",
+          "accountType": "atlassian"
+        },
+        "created": "2026-11-10T21:35:58.087+0100",
+        "updated": "2026-11-11T22:52:32.067+0100",
+        "resolutiondate": null,
+        "customfield_10062": {
+          "id": "57",
+          "name": "Time to first response",
+          "completedCycles": [
+            {
+              "startTime": {
+                "iso8601": "2026-11-10T15:35:58-0500",
+                "jira": "2026-11-10T21:35:58.087+0100",
+                "friendly": "Yesterday 15:11",
+                "epochMillis": 1794342958087
+              },
+              "stopTime": {
+                "iso8601": "2026-11-10T15:36:01-0500",
+                "jira": "2026-11-10T21:36:01.014+0100",
+                "friendly": "Yesterday 15:11",
+                "epochMillis": 1794342961014
+              },
+              "breachTime": {
+                "iso8601": "2026-11-12T11:00:00-0500",
+                "jira": "2026-11-12T17:00:00.000+0100",
+                "friendly": "12/Nov/26 11:11",
+                "epochMillis": 1794499200000
+              },
+              "breached": false,
+              "goalDuration": {
+                "millis": 57600000,
+                "friendly": "16h"
+              },
+              "elapsedTime": {
+                "millis": 0,
+                "friendly": "0m"
+              },
+              "remainingTime": {
+                "millis": 57600000,
+                "friendly": "16h"
+              }
+            }
+          ],
+          "slaDisplayFormat": "NEW_SLA_FORMAT"
+        },
+        "customfield_10152": {
+          "id": "56",
+          "name": "Time to done",
+          "completedCycles": [
+            {
+              "startTime": {
+                "iso8601": "2026-11-10T15:36:00-0500",
+                "jira": "2026-11-10T21:36:00.150+0100",
+                "friendly": "Yesterday 15:11",
+                "epochMillis": 1794342960150
+              },
+              "stopTime": {
+                "iso8601": "2026-11-11T16:52:32-0500",
+                "jira": "2026-11-11T22:52:32.068+0100",
+                "friendly": "Today 16:11",
+                "epochMillis": 1794433952068
+              },
+              "breachTime": {
+                "iso8601": "2026-12-08T11:00:00-0500",
+                "jira": "2026-12-08T17:00:00.000+0100",
+                "friendly": "08/Dec/26 11:12",
+                "epochMillis": 1796745600000
+              },
+              "breached": false,
+              "goalDuration": {
+                "millis": 576000000,
+                "friendly": "160h"
+              },
+              "elapsedTime": {
+                "millis": 28800000,
+                "friendly": "8h"
+              },
+              "remainingTime": {
+                "millis": 547200000,
+                "friendly": "152h"
+              }
+            }
+          ],
+          "slaDisplayFormat": "NEW_SLA_FORMAT"
+        }
+      },
+      "changelog": {
+        "startAt": 0,
+        "maxResults": 100,
+        "total": 11,
+        "histories": [
+          {
+            "id": "1",
+            "created": "2026-11-11T22:52:32.067+0100",
+            "items": [
+              {
+                "field": "status",
+                "fromString": "Pending",
+                "toString": "Done"
+              }
+            ]
+          },
+          {
+            "id": "2",
+            "created": "2026-11-11T13:03:57.862+0100",
+            "items": [
+              {
+                "field": "assignee",
+                "fromString": null,
+                "toString": null
+              }
+            ]
+          },
+          {
+            "id": "3",
+            "created": "2026-11-11T10:59:22.045+0100",
+            "items": [
+              {
+                "field": "Checklist Completed",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "Checklist Text",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "Checklist Progress %",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "Checklist Progress",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "Checklist Text (view-only)",
+                "fromString": null,
+                "toString": null
+              }
+            ]
+          },
+          {
+            "id": "4",
+            "created": "2026-11-11T10:04:55.654+0100",
+            "items": [
+              {
+                "field": "Comment",
+                "fromString": null,
+                "toString": null
+              }
+            ]
+          },
+          {
+            "id": "5",
+            "created": "2026-11-10T23:30:19.904+0100",
+            "items": [
+              {
+                "field": "Attachment",
+                "fromString": null,
+                "toString": null
+              }
+            ]
+          },
+          {
+            "id": "6",
+            "created": "2026-11-10T23:25:55.526+0100",
+            "items": [
+              {
+                "field": "Request participants",
+                "fromString": null,
+                "toString": null
+              }
+            ]
+          },
+          {
+            "id": "7",
+            "created": "2026-11-10T23:25:47.150+0100",
+            "items": [
+              {
+                "field": "Checklist Completed",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "Checklist Text",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "Checklist Progress %",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "Checklist Progress",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "Checklist Text (view-only)",
+                "fromString": null,
+                "toString": null
+              }
+            ]
+          },
+          {
+            "id": "8",
+            "created": "2026-11-10T22:15:21.793+0100",
+            "items": [
+              {
+                "field": "Attachment",
+                "fromString": null,
+                "toString": null
+              }
+            ]
+          },
+          {
+            "id": "9",
+            "created": "2026-11-10T21:36:00.626+0100",
+            "items": [
+              {
+                "field": "Start date",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "End Date",
+                "fromString": null,
+                "toString": null
+              }
+            ]
+          },
+          {
+            "id": "10",
+            "created": "2026-11-10T21:36:00.149+0100",
+            "items": [
+              {
+                "field": "status",
+                "fromString": "To Do",
+                "toString": "Pending"
+              }
+            ]
+          },
+          {
+            "id": "11",
+            "created": "2026-11-10T21:35:59.989+0100",
+            "items": [
+              {
+                "field": "assignee",
+                "fromString": null,
+                "toString": null
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "10002",
+      "key": "JSMCO-902",
+      "fields": {
+        "summary": "Anonymized ticket 3",
+        "status": {
+          "description": "",
+          "name": "Pending",
+          "id": "12092",
+          "statusCategory": {
+            "id": 4,
+            "key": "indeterminate",
+            "colorName": "yellow",
+            "name": "In Progress"
+          }
+        },
+        "issuetype": {
+          "id": "11940",
+          "description": "Updates to existing content to reflect changes in specifications, legal information, or other business requirements.",
+          "name": "Edit or Change Content (Characteristics, Content)",
+          "subtask": false,
+          "avatarId": 10306,
+          "entityId": "2bdaeef0-f3b4-4d98-a3ef-a4466eefeb28",
+          "hierarchyLevel": 0
+        },
+        "priority": {
+          "name": "Medium",
+          "id": "3"
+        },
+        "assignee": {
+          "accountId": "acc-fixture-5",
+          "displayName": "Person E",
+          "accountType": "atlassian"
+        },
+        "reporter": {
+          "accountId": "acc-fixture-6",
+          "displayName": "Person F",
+          "accountType": "atlassian"
+        },
+        "created": "2026-10-01T19:49:27.970+0200",
+        "updated": "2026-11-11T22:39:28.137+0100",
+        "resolutiondate": null,
+        "customfield_10062": {
+          "id": "57",
+          "name": "Time to first response",
+          "completedCycles": [
+            {
+              "startTime": {
+                "iso8601": "2026-10-01T12:49:27-0500",
+                "jira": "2026-10-01T19:49:27.970+0200",
+                "friendly": "01/Oct/26 12:10",
+                "epochMillis": 1790876967970
+              },
+              "stopTime": {
+                "iso8601": "2026-10-02T00:29:40-0500",
+                "jira": "2026-10-02T07:29:40.811+0200",
+                "friendly": "02/Oct/26 00:10",
+                "epochMillis": 1790918980811
+              },
+              "breachTime": {
+                "iso8601": "2026-10-05T10:00:00-0500",
+                "jira": "2026-10-05T17:00:00.000+0200",
+                "friendly": "05/Oct/26 10:10",
+                "epochMillis": 1791212400000
+              },
+              "breached": false,
+              "goalDuration": {
+                "millis": 57600000,
+                "friendly": "16h"
+              },
+              "elapsedTime": {
+                "millis": 0,
+                "friendly": "0m"
+              },
+              "remainingTime": {
+                "millis": 57600000,
+                "friendly": "16h"
+              }
+            }
+          ],
+          "slaDisplayFormat": "NEW_SLA_FORMAT"
+        },
+        "customfield_10152": {
+          "id": "56",
+          "name": "Time to done",
+          "completedCycles": [
+            {
+              "startTime": {
+                "iso8601": "2026-10-02T00:27:03-0500",
+                "jira": "2026-10-02T07:27:03.300+0200",
+                "friendly": "02/Oct/26 00:10",
+                "epochMillis": 1790918823300
+              },
+              "stopTime": {
+                "iso8601": "2026-10-12T05:08:31-0500",
+                "jira": "2026-10-12T12:08:31.627+0200",
+                "friendly": "12/Oct/26 05:10",
+                "epochMillis": 1791799711627
+              },
+              "breachTime": {
+                "iso8601": "2026-10-29T11:00:00-0500",
+                "jira": "2026-10-29T17:00:00.000+0100",
+                "friendly": "29/Oct/26 11:10",
+                "epochMillis": 1793289600000
+              },
+              "breached": false,
+              "goalDuration": {
+                "millis": 576000000,
+                "friendly": "160h"
+              },
+              "elapsedTime": {
+                "millis": 184111627,
+                "friendly": "51h 8m"
+              },
+              "remainingTime": {
+                "millis": 391888373,
+                "friendly": "108h 51m"
+              }
+            }
+          ],
+          "ongoingCycle": {
+            "startTime": {
+              "iso8601": "2026-10-12T05:50:38-0500",
+              "jira": "2026-10-12T12:50:38.175+0200",
+              "friendly": "12/Oct/26 05:10",
+              "epochMillis": 1791802238175
+            },
+            "breachTime": {
+              "iso8601": "2026-11-09T06:50:38-0500",
+              "jira": "2026-11-09T12:50:38.175+0100",
+              "friendly": "Monday 06:11",
+              "epochMillis": 1794225038175
+            },
+            "breached": true,
+            "paused": false,
+            "withinCalendarHours": false,
+            "goalDuration": {
+              "millis": 576000000,
+              "friendly": "160h"
+            },
+            "elapsedTime": {
+              "millis": 648561825,
+              "friendly": "180h 9m"
+            },
+            "remainingTime": {
+              "millis": -72561825,
+              "friendly": "-20h 9m"
+            }
+          },
+          "slaDisplayFormat": "NEW_SLA_FORMAT"
+        }
+      },
+      "changelog": {
+        "startAt": 0,
+        "maxResults": 100,
+        "total": 40,
+        "histories": [
+          {
+            "id": "1",
+            "created": "2026-11-11T22:39:28.137+0100",
+            "items": [
+              {
+                "field": "Checklist Completed",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "Checklist Text",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "Checklist Progress %",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "Checklist Progress",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "Checklist Text (view-only)",
+                "fromString": null,
+                "toString": null
+              }
+            ]
+          },
+          {
+            "id": "2",
+            "created": "2026-11-10T14:11:10.457+0100",
+            "items": [
+              {
+                "field": "Checklist Completed",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "Checklist Text",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "Checklist Progress %",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "Checklist Progress",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "Checklist Text (view-only)",
+                "fromString": null,
+                "toString": null
+              }
+            ]
+          },
+          {
+            "id": "3",
+            "created": "2026-11-10T00:04:33.114+0100",
+            "items": [
+              {
+                "field": "Comment",
+                "fromString": null,
+                "toString": null
+              }
+            ]
+          },
+          {
+            "id": "4",
+            "created": "2026-11-10T00:02:17.166+0100",
+            "items": [
+              {
+                "field": "Checklist Completed",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "Checklist Text",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "Checklist Progress %",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "Checklist Progress",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "Checklist Text (view-only)",
+                "fromString": null,
+                "toString": null
+              }
+            ]
+          },
+          {
+            "id": "5",
+            "created": "2026-11-09T07:22:21.157+0100",
+            "items": [
+              {
+                "field": "timespent",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "WorklogId",
+                "fromString": null,
+                "toString": null
+              }
+            ]
+          },
+          {
+            "id": "6",
+            "created": "2026-11-09T07:21:59.129+0100",
+            "items": [
+              {
+                "field": "Checklist Text",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "Checklist Progress %",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "Checklist Progress",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "Checklist Text (view-only)",
+                "fromString": null,
+                "toString": null
+              }
+            ]
+          },
+          {
+            "id": "7",
+            "created": "2026-11-05T06:09:48.996+0100",
+            "items": [
+              {
+                "field": "timespent",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "WorklogId",
+                "fromString": null,
+                "toString": null
+              }
+            ]
+          },
+          {
+            "id": "8",
+            "created": "2026-11-05T06:06:48.474+0100",
+            "items": [
+              {
+                "field": "Checklist Text",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "Checklist Progress %",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "Checklist Progress",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "Checklist Text (view-only)",
+                "fromString": null,
+                "toString": null
+              }
+            ]
+          },
+          {
+            "id": "9",
+            "created": "2026-11-05T05:42:49.680+0100",
+            "items": [
+              {
+                "field": "Checklist Text",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "Checklist Progress %",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "Checklist Progress",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "Checklist Text (view-only)",
+                "fromString": null,
+                "toString": null
+              }
+            ]
+          },
+          {
+            "id": "10",
+            "created": "2026-11-05T05:41:35.802+0100",
+            "items": [
+              {
+                "field": "Checklist Text",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "Checklist Progress %",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "Checklist Progress",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "Checklist Text (view-only)",
+                "fromString": null,
+                "toString": null
+              }
+            ]
+          },
+          {
+            "id": "11",
+            "created": "2026-11-04T05:47:29.240+0100",
+            "items": [
+              {
+                "field": "timespent",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "WorklogId",
+                "fromString": null,
+                "toString": null
+              }
+            ]
+          },
+          {
+            "id": "12",
+            "created": "2026-11-03T09:51:04.315+0100",
+            "items": [
+              {
+                "field": "Checklist Text",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "Checklist Progress %",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "Checklist Progress",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "Checklist Text (view-only)",
+                "fromString": null,
+                "toString": null
+              }
+            ]
+          },
+          {
+            "id": "13",
+            "created": "2026-11-03T07:08:22.253+0100",
+            "items": [
+              {
+                "field": "Checklist Text",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "Checklist Progress %",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "Checklist Progress",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "Checklist Text (view-only)",
+                "fromString": null,
+                "toString": null
+              }
+            ]
+          },
+          {
+            "id": "14",
+            "created": "2026-11-03T06:57:00.009+0100",
+            "items": [
+              {
+                "field": "Checklist Text",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "Checklist Progress %",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "Checklist Progress",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "Checklist Text (view-only)",
+                "fromString": null,
+                "toString": null
+              }
+            ]
+          },
+          {
+            "id": "15",
+            "created": "2026-11-02T03:53:51.675+0100",
+            "items": [
+              {
+                "field": "status",
+                "fromString": "In progress",
+                "toString": "Pending"
+              }
+            ]
+          },
+          {
+            "id": "16",
+            "created": "2026-10-30T08:43:59.595+0100",
+            "items": [
+              {
+                "field": "Checklist Text",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "Checklist Progress %",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "Checklist Progress",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "Checklist Text (view-only)",
+                "fromString": null,
+                "toString": null
+              }
+            ]
+          },
+          {
+            "id": "17",
+            "created": "2026-10-30T08:35:32.705+0100",
+            "items": [
+              {
+                "field": "timespent",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "WorklogId",
+                "fromString": null,
+                "toString": null
+              }
+            ]
+          },
+          {
+            "id": "18",
+            "created": "2026-10-30T08:35:02.282+0100",
+            "items": [
+              {
+                "field": "Checklist Text",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "Checklist Progress %",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "Checklist Progress",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "Checklist Text (view-only)",
+                "fromString": null,
+                "toString": null
+              }
+            ]
+          },
+          {
+            "id": "19",
+            "created": "2026-10-30T08:03:51.362+0100",
+            "items": [
+              {
+                "field": "Checklist Text",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "Checklist Progress %",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "Checklist Progress",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "Checklist Text (view-only)",
+                "fromString": null,
+                "toString": null
+              }
+            ]
+          },
+          {
+            "id": "20",
+            "created": "2026-10-30T07:45:32.359+0100",
+            "items": [
+              {
+                "field": "Checklist Text",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "Checklist Progress %",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "Checklist Progress",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "Checklist Text (view-only)",
+                "fromString": null,
+                "toString": null
+              }
+            ]
+          },
+          {
+            "id": "21",
+            "created": "2026-10-30T04:45:06.848+0100",
+            "items": [
+              {
+                "field": "Checklist Text",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "Checklist Progress %",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "Checklist Progress",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "Checklist Text (view-only)",
+                "fromString": null,
+                "toString": null
+              }
+            ]
+          },
+          {
+            "id": "22",
+            "created": "2026-10-28T08:32:28.890+0100",
+            "items": [
+              {
+                "field": "Checklist Text",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "Checklist Progress %",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "Checklist Progress",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "Checklist Text (view-only)",
+                "fromString": null,
+                "toString": null
+              }
+            ]
+          },
+          {
+            "id": "23",
+            "created": "2026-10-28T08:27:49.289+0100",
+            "items": [
+              {
+                "field": "Checklist Text",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "Checklist Progress %",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "Checklist Progress",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "Checklist Text (view-only)",
+                "fromString": null,
+                "toString": null
+              }
+            ]
+          },
+          {
+            "id": "24",
+            "created": "2026-10-28T06:36:28.788+0100",
+            "items": [
+              {
+                "field": "Checklist Text",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "Checklist Progress %",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "Checklist Progress",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "Checklist Text (view-only)",
+                "fromString": null,
+                "toString": null
+              }
+            ]
+          },
+          {
+            "id": "25",
+            "created": "2026-10-28T06:36:05.434+0100",
+            "items": [
+              {
+                "field": "status",
+                "fromString": "Pending",
+                "toString": "In progress"
+              }
+            ]
+          },
+          {
+            "id": "26",
+            "created": "2026-10-28T06:06:35.936+0100",
+            "items": [
+              {
+                "field": "Checklist Text",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "Checklist Progress %",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "Checklist Progress",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "Checklist Text (view-only)",
+                "fromString": null,
+                "toString": null
+              }
+            ]
+          },
+          {
+            "id": "27",
+            "created": "2026-10-28T06:04:46.386+0100",
+            "items": [
+              {
+                "field": "Checklist Text",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "Checklist Progress",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "Checklist Text (view-only)",
+                "fromString": null,
+                "toString": null
+              }
+            ]
+          },
+          {
+            "id": "28",
+            "created": "2026-10-28T06:04:44.751+0100",
+            "items": [
+              {
+                "field": "Checklist Text",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "Checklist Progress",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "Checklist Text (view-only)",
+                "fromString": null,
+                "toString": null
+              }
+            ]
+          },
+          {
+            "id": "29",
+            "created": "2026-10-28T06:04:43.638+0100",
+            "items": [
+              {
+                "field": "Checklist Text",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "Checklist Progress",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "Checklist Text (view-only)",
+                "fromString": null,
+                "toString": null
+              }
+            ]
+          },
+          {
+            "id": "30",
+            "created": "2026-10-28T06:04:39.600+0100",
+            "items": [
+              {
+                "field": "Checklist Text",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "Checklist Progress",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "Checklist Text (view-only)",
+                "fromString": null,
+                "toString": null
+              }
+            ]
+          },
+          {
+            "id": "31",
+            "created": "2026-10-28T06:04:31.489+0100",
+            "items": [
+              {
+                "field": "Checklist Text",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "Checklist Progress",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "Checklist Text (view-only)",
+                "fromString": null,
+                "toString": null
+              }
+            ]
+          },
+          {
+            "id": "32",
+            "created": "2026-10-28T06:04:19.226+0100",
+            "items": [
+              {
+                "field": "Checklist Text",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "Checklist Progress",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "Checklist Text (view-only)",
+                "fromString": null,
+                "toString": null
+              }
+            ]
+          },
+          {
+            "id": "33",
+            "created": "2026-10-28T06:04:17.361+0100",
+            "items": [
+              {
+                "field": "Checklist Text",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "Checklist Progress",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "Checklist Text (view-only)",
+                "fromString": null,
+                "toString": null
+              }
+            ]
+          },
+          {
+            "id": "34",
+            "created": "2026-10-28T06:04:06.418+0100",
+            "items": [
+              {
+                "field": "Checklist Text",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "Checklist Progress",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "Checklist Text (view-only)",
+                "fromString": null,
+                "toString": null
+              }
+            ]
+          },
+          {
+            "id": "35",
+            "created": "2026-10-28T06:04:04.061+0100",
+            "items": [
+              {
+                "field": "Checklist Text",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "Checklist Text (view-only)",
+                "fromString": null,
+                "toString": null
+              }
+            ]
+          },
+          {
+            "id": "36",
+            "created": "2026-10-28T06:03:55.216+0100",
+            "items": [
+              {
+                "field": "Checklist Text",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "Checklist Progress",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "Checklist Text (view-only)",
+                "fromString": null,
+                "toString": null
+              }
+            ]
+          },
+          {
+            "id": "37",
+            "created": "2026-10-28T06:02:58.225+0100",
+            "items": [
+              {
+                "field": "Checklist Completed",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "Checklist Text",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "Checklist Progress %",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "Checklist Progress",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "Checklist Text (view-only)",
+                "fromString": null,
+                "toString": null
+              }
+            ]
+          },
+          {
+            "id": "38",
+            "created": "2026-10-27T14:23:51.507+0100",
+            "items": [
+              {
+                "field": "Link",
+                "fromString": null,
+                "toString": null
+              }
+            ]
+          },
+          {
+            "id": "39",
+            "created": "2026-10-27T14:23:15.703+0100",
+            "items": [
+              {
+                "field": "Link",
+                "fromString": null,
+                "toString": null
+              }
+            ]
+          },
+          {
+            "id": "40",
+            "created": "2026-10-27T14:18:16.186+0100",
+            "items": [
+              {
+                "field": "status",
+                "fromString": "In progress",
+                "toString": "Pending"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "10003",
+      "key": "JSMCO-903",
+      "fields": {
+        "summary": "Anonymized ticket 4",
+        "status": {
+          "description": "",
+          "name": "Pending",
+          "id": "12092",
+          "statusCategory": {
+            "id": 4,
+            "key": "indeterminate",
+            "colorName": "yellow",
+            "name": "In Progress"
+          }
+        },
+        "issuetype": {
+          "id": "11941",
+          "description": "We adapt and localize marketing content from English into target languages to fit the brand voice and cultural context. 🔴Finalized EN copy as our source text is strictly REQUIRED. ⚠️Requests without it cannot be processed⚠️",
+          "name": "Translate Marketing Materials",
+          "subtask": false,
+          "avatarId": 10309,
+          "entityId": "2cefff5a-2009-48da-a8b9-c3d71b907303",
+          "hierarchyLevel": 0
+        },
+        "priority": {
+          "name": "Medium",
+          "id": "3"
+        },
+        "assignee": {
+          "accountId": "acc-fixture-1",
+          "displayName": "Person A",
+          "accountType": "atlassian"
+        },
+        "reporter": {
+          "accountId": "acc-fixture-7",
+          "displayName": "Person G",
+          "accountType": "atlassian"
+        },
+        "created": "2026-11-11T19:15:56.930+0100",
+        "updated": "2026-11-11T22:26:17.439+0100",
+        "resolutiondate": null,
+        "customfield_10062": {
+          "id": "57",
+          "name": "Time to first response",
+          "completedCycles": [
+            {
+              "startTime": {
+                "iso8601": "2026-11-11T13:15:56-0500",
+                "jira": "2026-11-11T19:15:56.930+0100",
+                "friendly": "Today 13:11",
+                "epochMillis": 1794420956930
+              },
+              "stopTime": {
+                "iso8601": "2026-11-11T13:15:59-0500",
+                "jira": "2026-11-11T19:15:59.495+0100",
+                "friendly": "Today 13:11",
+                "epochMillis": 1794420959495
+              },
+              "breachTime": {
+                "iso8601": "2026-11-13T11:00:00-0500",
+                "jira": "2026-11-13T17:00:00.000+0100",
+                "friendly": "13/Nov/26 11:11",
+                "epochMillis": 1794585600000
+              },
+              "breached": false,
+              "goalDuration": {
+                "millis": 57600000,
+                "friendly": "16h"
+              },
+              "elapsedTime": {
+                "millis": 0,
+                "friendly": "0m"
+              },
+              "remainingTime": {
+                "millis": 57600000,
+                "friendly": "16h"
+              }
+            }
+          ],
+          "slaDisplayFormat": "NEW_SLA_FORMAT"
+        },
+        "customfield_10152": {
+          "id": "56",
+          "name": "Time to done",
+          "completedCycles": [],
+          "ongoingCycle": {
+            "startTime": {
+              "iso8601": "2026-11-11T13:15:58-0500",
+              "jira": "2026-11-11T19:15:58.717+0100",
+              "friendly": "Today 13:11",
+              "epochMillis": 1794420958717
+            },
+            "breachTime": {
+              "iso8601": "2026-12-09T11:00:00-0500",
+              "jira": "2026-12-09T17:00:00.000+0100",
+              "friendly": "09/Dec/26 11:12",
+              "epochMillis": 1796832000000
+            },
+            "breached": false,
+            "paused": false,
+            "withinCalendarHours": false,
+            "goalDuration": {
+              "millis": 576000000,
+              "friendly": "160h"
+            },
+            "elapsedTime": {
+              "millis": 0,
+              "friendly": "0m"
+            },
+            "remainingTime": {
+              "millis": 576000000,
+              "friendly": "160h"
+            }
+          },
+          "slaDisplayFormat": "NEW_SLA_FORMAT"
+        }
+      },
+      "changelog": {
+        "startAt": 0,
+        "maxResults": 100,
+        "total": 11,
+        "histories": [
+          {
+            "id": "1",
+            "created": "2026-11-11T22:26:17.439+0100",
+            "items": [
+              {
+                "field": "Checklist Text",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "Checklist Progress",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "Checklist Text (view-only)",
+                "fromString": null,
+                "toString": null
+              }
+            ]
+          },
+          {
+            "id": "2",
+            "created": "2026-11-11T22:25:59.818+0100",
+            "items": [
+              {
+                "field": "Checklist Text",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "Checklist Progress",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "Checklist Text (view-only)",
+                "fromString": null,
+                "toString": null
+              }
+            ]
+          },
+          {
+            "id": "3",
+            "created": "2026-11-11T22:25:39.790+0100",
+            "items": [
+              {
+                "field": "Checklist Text",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "Checklist Progress",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "Checklist Text (view-only)",
+                "fromString": null,
+                "toString": null
+              }
+            ]
+          },
+          {
+            "id": "4",
+            "created": "2026-11-11T22:25:12.156+0100",
+            "items": [
+              {
+                "field": "Checklist Text",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "Checklist Progress",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "Checklist Text (view-only)",
+                "fromString": null,
+                "toString": null
+              }
+            ]
+          },
+          {
+            "id": "5",
+            "created": "2026-11-11T22:25:05.534+0100",
+            "items": [
+              {
+                "field": "Checklist Text",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "Checklist Progress",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "Checklist Text (view-only)",
+                "fromString": null,
+                "toString": null
+              }
+            ]
+          },
+          {
+            "id": "6",
+            "created": "2026-11-11T22:24:57.085+0100",
+            "items": [
+              {
+                "field": "Checklist Text",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "Checklist Progress",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "Checklist Text (view-only)",
+                "fromString": null,
+                "toString": null
+              }
+            ]
+          },
+          {
+            "id": "7",
+            "created": "2026-11-11T22:24:49.366+0100",
+            "items": [
+              {
+                "field": "Checklist Completed",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "Checklist Text",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "Checklist Progress %",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "Checklist Progress",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "Checklist Text (view-only)",
+                "fromString": null,
+                "toString": null
+              }
+            ]
+          },
+          {
+            "id": "8",
+            "created": "2026-11-11T22:24:17.168+0100",
+            "items": [
+              {
+                "field": "Request participants",
+                "fromString": null,
+                "toString": null
+              }
+            ]
+          },
+          {
+            "id": "9",
+            "created": "2026-11-11T19:15:58.997+0100",
+            "items": [
+              {
+                "field": "Start date",
+                "fromString": null,
+                "toString": null
+              },
+              {
+                "field": "End Date",
+                "fromString": null,
+                "toString": null
+              }
+            ]
+          },
+          {
+            "id": "10",
+            "created": "2026-11-11T19:15:58.717+0100",
+            "items": [
+              {
+                "field": "status",
+                "fromString": "To Do",
+                "toString": "Pending"
+              }
+            ]
+          },
+          {
+            "id": "11",
+            "created": "2026-11-11T19:15:58.532+0100",
+            "items": [
+              {
+                "field": "assignee",
+                "fromString": null,
+                "toString": null
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "10004",
+      "key": "JSMCO-904",
+      "fields": {
+        "summary": "Anonymized ticket 5",
+        "status": {
+          "description": "",
+          "name": "PENDING DEPLOY",
+          "id": "12196",
+          "statusCategory": {
+            "id": 4,
+            "key": "indeterminate",
+            "colorName": "yellow",
+            "name": "In Progress"
+          }
+        },
+        "issuetype": {
+          "id": "11939",
+          "description": "Content creation or refinement for in-app flows, new features, and user interactions.",
+          "name": "UX Writing for Features",
+          "subtask": false,
+          "avatarId": 10694,
+          "entityId": "e81148b8-8810-4059-8845-bf20a7d14b20",
+          "hierarchyLevel": 0
+        },
+        "priority": {
+          "name": "Medium",
+          "id": "3"
+        },
+        "assignee": {
+          "accountId": "acc-fixture-8",
+          "displayName": "Person H",
+          "accountType": "atlassian"
+        },
+        "reporter": {
+          "accountId": "acc-fixture-9",
+          "displayName": "Person I",
+          "accountType": "atlassian"
+        },
+        "created": "2026-11-11T18:24:22.801+0100",
+        "updated": "2026-11-11T22:10:50.256+0100",
+        "resolutiondate": null,
+        "customfield_10062": {
+          "id": "57",
+          "name": "Time to first response",
+          "completedCycles": [
+            {
+              "startTime": {
+                "iso8601": "2026-11-11T12:24:22-0500",
+                "jira": "2026-11-11T18:24:22.801+0100",
+                "friendly": "Today 12:11",
+                "epochMillis": 1794417862801
+              },
+              "stopTime": {
+                "iso8601": "2026-11-11T14:41:28-0500",
+                "jira": "2026-11-11T20:41:28.861+0100",
+                "friendly": "Today 14:11",
+                "epochMillis": 1794426088861
+              },
+              "breachTime": {
+                "iso8601": "2026-11-13T11:00:00-0500",
+                "jira": "2026-11-13T17:00:00.000+0100",
+                "friendly": "13/Nov/26 11:11",
+                "epochMillis": 1794585600000
+              },
+              "breached": false,
+              "goalDuration": {
+                "millis": 57600000,
+                "friendly": "16h"
+              },
+              "elapsedTime": {
+                "millis": 0,
+                "friendly": "0m"
+              },
+              "remainingTime": {
+                "millis": 57600000,
+                "friendly": "16h"
+              }
+            }
+          ],
+          "slaDisplayFormat": "NEW_SLA_FORMAT"
+        },
+        "customfield_10152": {
+          "id": "56",
+          "name": "Time to done",
+          "completedCycles": [],
+          "ongoingCycle": {
+            "startTime": {
+              "iso8601": "2026-11-11T14:42:05-0500",
+              "jira": "2026-11-11T20:42:05.024+0100",
+              "friendly": "Today 14:11",
+              "epochMillis": 1794426125024
+            },
+            "breachTime": {
+              "iso8601": "2026-12-09T11:00:00-0500",
+              "jira": "2026-12-09T17:00:00.000+0100",
+              "friendly": "09/Dec/26 11:12",
+              "epochMillis": 1796832000000
+            },
+            "breached": false,
+            "paused": true,
+            "withinCalendarHours": false,
+            "goalDuration": {
+              "millis": 576000000,
+              "friendly": "160h"
+            },
+            "elapsedTime": {
+              "millis": 0,
+              "friendly": "0m"
+            },
+            "remainingTime": {
+              "millis": 576000000,
+              "friendly": "160h"
+            }
+          },
+          "slaDisplayFormat": "NEW_SLA_FORMAT"
+        }
+      },
+      "changelog": {
+        "startAt": 0,
+        "maxResults": 100,
+        "total": 5,
+        "histories": [
+          {
+            "id": "1",
+            "created": "2026-11-11T21:18:04.715+0100",
+            "items": [
+              {
+                "field": "status",
+                "fromString": "In progress",
+                "toString": "PENDING DEPLOY"
+              }
+            ]
+          },
+          {
+            "id": "2",
+            "created": "2026-11-11T20:43:14.911+0100",
+            "items": [
+              {
+                "field": "description",
+                "fromString": null,
+                "toString": null
+              }
+            ]
+          },
+          {
+            "id": "3",
+            "created": "2026-11-11T20:42:05.024+0100",
+            "items": [
+              {
+                "field": "status",
+                "fromString": "To Do",
+                "toString": "In progress"
+              }
+            ]
+          },
+          {
+            "id": "4",
+            "created": "2026-11-11T20:40:59.328+0100",
+            "items": [
+              {
+                "field": "assignee",
+                "fromString": null,
+                "toString": null
+              }
+            ]
+          },
+          {
+            "id": "5",
+            "created": "2026-11-11T18:29:01.477+0100",
+            "items": [
+              {
+                "field": "duedate",
+                "fromString": null,
+                "toString": null
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "nextPageToken": null
+}

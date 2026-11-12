@@ -49,13 +49,38 @@ node -e "console.log(require('crypto').randomBytes(48).toString('base64url'))"
 
 Local y producción usan **apps distintas** (cada una con su Callback URL).
 
+## Jira (requeridas desde la Fase 1)
+
+| Variable           | Qué es                          | Reglas                                                                   |
+| ------------------ | ------------------------------- | ------------------------------------------------------------------------ |
+| `JIRA_BASE_URL`    | Dirección de tu Jira            | `https://<sitio>.atlassian.net`, sin ruta ni barra final                 |
+| `JIRA_EMAIL`       | Correo de la cuenta de servicio | Correo válido                                                            |
+| `JIRA_API_TOKEN`   | Token de API de esa cuenta      | Se crea en id.atlassian.com → Seguridad → Tokens de API. Uno por entorno |
+| `JIRA_PROJECT_KEY` | Clave del proyecto              | Mayúsculas, por ejemplo `JSMCO` (no el nombre `JSM--CONTENT`)            |
+
+Opcionales, con el valor de este tenant por defecto (`docs/jira-mapping.md`): `JIRA_FIELD_SLA_RESPONSE`
+(`customfield_10062`, Time to first response) y `JIRA_FIELD_SLA_DONE` (`customfield_10152`, Time to done).
+Solo hay que definirlas si cambia el id de esos campos en Jira.
+
+La app **no arranca** si falta alguna de las cuatro obligatorias. Antes de desplegar esta versión,
+defínelas también en Netlify (producción y, con una cuenta de prueba, en los previews).
+
+## Sync en segundo plano (requerida desde la Fase 1)
+
+| Variable              | Qué es                                                        | Reglas                                                                                            |
+| --------------------- | ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| `SYNC_TRIGGER_SECRET` | Secreto que comparten la app y la función que sincroniza Jira | 32 caracteres o más, aleatorios, distinto de `SESSION_SECRET`. Quien no lo presente recibe un 404 |
+
+La función corre fuera de Astro y lee su configuración del entorno de Netlify. Para generarlo, el mismo
+comando de `SESSION_SECRET`. Rotarlo no invalida sesiones ni datos (ver el runbook de despliegue).
+
 ## Opcionales: se vuelven requeridas en su fase
 
-| Fase | Variables                                                                                  |
-| ---- | ------------------------------------------------------------------------------------------ |
-| 1    | `JIRA_BASE_URL`, `JIRA_EMAIL`, `JIRA_API_TOKEN`, `JIRA_PROJECT_KEY`, `JIRA_WEBHOOK_SECRET` |
-| 2–3  | `BLOB_READ_WRITE_TOKEN`, `INGEST_API_TOKEN`                                                |
-| 4    | `CROWDIN_TOKEN`, `CROWDIN_PROJECT_IDS` (por ejemplo `19,55`), `CROWDIN_WEBHOOK_SECRET`     |
+| Fase | Variables                                                                              |
+| ---- | -------------------------------------------------------------------------------------- |
+| 1    | _(Jira ya es requerida, ver arriba)_                                                   |
+| 2–3  | `BLOB_READ_WRITE_TOKEN`, `INGEST_API_TOKEN`                                            |
+| 4    | `CROWDIN_TOKEN`, `CROWDIN_PROJECT_IDS` (por ejemplo `19,55`), `CROWDIN_WEBHOOK_SECRET` |
 
 Hoy se aceptan vacías (D-005). Asigna un secreto distinto a cada una.
 

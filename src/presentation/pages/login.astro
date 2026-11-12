@@ -1,10 +1,12 @@
 ---
 import { getApp } from '@infrastructure/container';
+import { readTheme } from '../theme';
 import '../styles/tokens.css';
 import '../styles/base.css';
 
 if (Astro.locals.principal) return Astro.redirect('/', 303);
 
+const theme = readTheme(Astro.cookies);
 const app = await getApp();
 const usesRedirect = app.authProvider.kind === 'redirect';
 // One generic message for every kind of refusal, so the page never reveals who is invited.
@@ -12,7 +14,7 @@ const failed = Astro.url.searchParams.has('error');
 ---
 
 <!doctype html>
-<html lang="es">
+<html lang="es" data-theme={theme === 'system' ? undefined : theme}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />

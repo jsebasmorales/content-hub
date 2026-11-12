@@ -8,3 +8,4 @@ playwright-report
 test-results
 src/infrastructure/db/migrations
 docs/reference
+netlify/functions

@@ -1,0 +1,122 @@
+---
+import type { SlaCompliance } from '@domain/jira/sla-compliance';
+import { SLA_TARGET_PERCENT } from '@domain/jira/sla-compliance';
+import { formatPercent } from '../format-number';
+import { METRIC_LABEL } from '../sla-labels';
+
+interface Item {
+  /** Already worded: "nov 26", "T3 2026". */
+  label: string;
+  compliance: SlaCompliance;
+}
+
+interface Props {
+  items: readonly Item[];
+  /** What the chart shows, for screen readers. */
+  title: string;
+  /** Makes the ids unique when a page has more than one chart. */
+  idPrefix: string;
+}
+
+const { items, title, idPrefix } = Astro.props;
+
+// Each month keeps this width however many there are; a long period scrolls sideways.
+const GROUP_WIDTH = 64;
+const BAR_WIDTH = 26;
+const BAR_GAP = 4;
+const BASELINE = 190;
+const PLOT_HEIGHT = 150;
+const width = Math.max(600, items.length * GROUP_WIDTH);
+const groupWidth = width / Math.max(1, items.length);
+const heightOf = (percent: number): number => (percent / 100) * PLOT_HEIGHT;
+const goalY = BASELINE - heightOf(SLA_TARGET_PERCENT);
+
+const groups = items.map((entry, index) => {
+  const left = index * groupWidth + (groupWidth - (BAR_WIDTH * 2 + BAR_GAP)) / 2;
+  const [first, done] = entry.compliance.metrics;
+  return {
+    label: entry.label,
+    centre: index * groupWidth + groupWidth / 2,
+    bars: [
+      { kind: 'first', percent: first?.ratePercent ?? null, x: left },
+      { kind: 'done', percent: done?.ratePercent ?? null, x: left + BAR_WIDTH + BAR_GAP },
+    ] as const,
+  };
+});
+
+const summary = items
+  .map((entry) => {
+    const [first, done] = entry.compliance.metrics;
+    return `${entry.label}: ${METRIC_LABEL.first_response} ${formatPercent(first?.ratePercent ?? null)}, ${METRIC_LABEL.done} ${formatPercent(done?.ratePercent ?? null)}`;
+  })
+  .join('; ');
+---
+
+<figure class="chart-figure">
+  <div class="chart-scroll" tabindex="0" role="group" aria-label={title}>
+    <svg
+      class="chart chart-fixed"
+      width={width}
+      viewBox={`0 0 ${String(width)} 230`}
+      role="img"
+      aria-labelledby={`${idPrefix}-title ${idPrefix}-desc`}
+    >
+      <title id={`${idPrefix}-title`}>{title}, frente a la meta del {SLA_TARGET_PERCENT} %</title>
+      <desc id={`${idPrefix}-desc`}>{summary}</desc>
+      <line class="chart-axis" x1="0" x2={width} y1={BASELINE} y2={BASELINE}></line>
+      <line class="chart-goal" x1="0" x2={width} y1={goalY} y2={goalY}></line>
+      {groups.map((group) => (
+        <g>
+          {group.bars.map((bar) =>
+            bar.percent === null ? (
+              <text
+                class="chart-label"
+                x={bar.x + BAR_WIDTH / 2}
+                y={BASELINE - 6}
+                text-anchor="middle"
+              >
+                –
+              </text>
+            ) : (
+              <g>
+                <rect
+                  class={`bar bar-${bar.kind}`}
+                  x={bar.x}
+                  y={BASELINE - heightOf(bar.percent)}
+                  width={BAR_WIDTH}
+                  height={heightOf(bar.percent)}
+                  rx="3"
+                ></rect>
+                <text
+                  class="chart-value"
+                  x={bar.x + BAR_WIDTH / 2}
+                  y={BASELINE - heightOf(bar.percent) - 6}
+                  text-anchor="middle"
+                >
+                  {Math.round(bar.percent)}
+                </text>
+              </g>
+            ),
+          )}
+          <text class="chart-label" x={group.centre} y="214" text-anchor="middle">
+            {group.label}
+          </text>
+        </g>
+      ))}
+    </svg>
+  </div>
+  <figcaption class="chart-legend">
+    <span>
+      <i class="swatch swatch-first"></i> {METRIC_LABEL.first_response}
+    </span>
+    <span>
+      <i class="swatch swatch-done"></i> {METRIC_LABEL.done}
+    </span>
+    <span>
+      <i class="swatch swatch-goal"></i> Meta {SLA_TARGET_PERCENT} %
+    </span>
+    <span class="chart-note">
+      Cada barra es el porcentaje que cumple la meta (— = sin ciclos medidos).
+    </span>
+  </figcaption>
+</figure>

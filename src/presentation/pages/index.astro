@@ -1,18 +1,130 @@
 ---
+import { getApp, getJiraApp } from '@infrastructure/container';
+import { quarterLabel } from '@domain/jira/quarter';
 import BaseLayout from '../layouts/BaseLayout.astro';
+import KpiCard from '../components/KpiCard.astro';
+import VolumeChart from '../components/VolumeChart.astro';
+import RequestTypeBars from '../components/RequestTypeBars.astro';
+import SlaMeter from '../components/SlaMeter.astro';
+import SyncPanel from '../components/SyncPanel.astro';
+import { describeChange, formatNumber, monthShortName } from '../format-number';
+import { METRIC_LABEL, METRIC_TIP } from '../sla-labels';
+import { syncFlashFromQuery } from '../sync-messages';
 
 const principal = Astro.locals.principal;
-const displayName = principal?.user.name ?? principal?.user.email ?? '';
+if (!principal) return new Response(null, { status: 404 });
+
+const jira = await getJiraApp();
+// Opening the dashboard refreshes stale data in the background; the page never waits for Jira.
+await jira.requestSync.lazy();
+
+const [status, result] = await Promise.all([
+  jira.syncStatus.execute(),
+  jira.executiveSummary.execute(principal.permissions),
+]);
+if (!result.ok) return new Response(null, { status: 404 });
+const summary = result.value;
+
+const csrfToken = (await getApp()).csrf.tokenFor(principal.sessionId);
+const canSync = principal.permissions.has('action.sync');
+const displayName = principal.user.name ?? principal.user.email;
+
+const now = quarterLabel(summary.quarter);
+const before = quarterLabel(summary.previousQuarter);
+// Volumes are compared with the same stretch of the previous quarter, and the page says so.
+const sameStretch = `${before} (mismos ${String(summary.elapsedDays)} días)`;
+const goalText = {
+  true: 'Las dos métricas de SLA cumplen la meta del trimestre.',
+  false: 'Alguna métrica de SLA no llega a la meta del trimestre.',
+  null: 'Todavía no hay datos suficientes para valorar la meta de SLA.',
+} as const;
 ---
 
 <BaseLayout title="Resumen ejecutivo">
   <h1>Resumen ejecutivo</h1>
-  <p class="lede">Hola, {displayName}. Bienvenido al Content Hub de Holafly.</p>
+  <p class="lede">
+    Hola, {displayName}. Trabajo de Contenido en {now}, frente a {before}.
+  </p>
+  <SyncPanel
+    status={status}
+    timeZone={principal.user.timeZone}
+    canSync={canSync}
+    csrfToken={csrfToken}
+    back="/"
+    flash={syncFlashFromQuery(Astro.url.searchParams)}
+  />
+
+  <h2 class="section-title">Cumplimiento de SLA en {now}</h2>
+  <p class="section-note">{goalText[String(summary.sla.goalMet) as 'true' | 'false' | 'null']}</p>
+  <div class="kpi-grid">
+    {summary.sla.metrics.map((metric) => (
+      <SlaMeter
+        metric={metric}
+        label={METRIC_LABEL[metric.metric]}
+        tip={METRIC_TIP[metric.metric]}
+      />
+    ))}
+  </div>
+  <p class="section-note">
+    <a href="/sla">Ver el detalle de SLAs</a>
+  </p>
+
+  <h2 class="section-title">Actividad en {now}</h2>
+  <p class="section-note">
+    Se compara con el mismo tramo del trimestre anterior: los primeros {summary.elapsedDays} días de{' '}
+    {before}.
+  </p>
+  <div class="kpi-grid">
+    <KpiCard
+      label="Tickets creados"
+      value={formatNumber(summary.created.current ?? 0)}
+      change={describeChange(summary.created.current, summary.created.previous, sameStretch)}
+      tip="Solicitudes nuevas recibidas en el trimestre, según la fecha de creación en hora de Bogotá."
+    />
+    <KpiCard
+      label="Tickets resueltos"
+      value={formatNumber(summary.resolved.current ?? 0)}
+      change={describeChange(summary.resolved.current, summary.resolved.previous, sameStretch)}
+      tip="Solicitudes que pasaron a Hecho dentro del trimestre, sin importar cuándo se crearon."
+    />
+    <KpiCard
+      label="Abiertos hoy"
+      value={formatNumber(summary.openNow)}
+      tip="Solicitudes que todavía no están en Hecho, sea cual sea su antigüedad."
+    />
+    <KpiCard
+      label="Tiempo típico de resolución"
+      value={
+        summary.resolutionDays.current === null
+          ? 'Sin datos'
+          : `${formatNumber(summary.resolutionDays.current)} días`
+      }
+      change={describeChange(
+        summary.resolutionDays.current,
+        summary.resolutionDays.previous,
+        sameStretch,
+        ' días',
+      )}
+      tip="Mediana de días naturales entre crear y resolver, de las solicitudes resueltas en el trimestre. Se usa la mediana para que unas pocas solicitudes muy antiguas no distorsionen la cifra."
+    />
+  </div>
+
+  <h2 class="section-title">Creados y resueltos, últimos 6 meses</h2>
   <section class="card">
-    <h2>Estamos construyendo los cimientos</h2>
-    <p>
-      Aquí aparecerá el resumen del trabajo de Contenido cuando se conecte Jira. Por ahora puedes
-      comprobar que tu acceso y tu menú funcionan.
-    </p>
+    <VolumeChart
+      items={summary.months.map((m) => ({
+        label: monthShortName(m.month.year, m.month.month),
+        created: m.created,
+        resolved: m.resolved,
+      }))}
+      title="Tickets creados y resueltos por mes"
+      idPrefix="monthly"
+      note="El último mes está en curso."
+    />
+  </section>
+
+  <h2 class="section-title">Qué se pidió en {now}</h2>
+  <section class="card">
+    <RequestTypeBars items={summary.requestTypes} />
   </section>
 </BaseLayout>
