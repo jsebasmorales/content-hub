@@ -1,0 +1,135 @@
+---
+import { getApp, getJiraApp } from '@infrastructure/container';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import KpiCard from '../components/KpiCard.astro';
+import SyncPanel from '../components/SyncPanel.astro';
+import { buildDefinitionGroups, visibleLinks } from '../definitions';
+import { formatMoment } from '../format-moment';
+import { formatNumber } from '../format-number';
+import { syncFlashFromQuery } from '../sync-messages';
+
+const principal = Astro.locals.principal;
+if (!principal) return new Response(null, { status: 404 });
+
+const jira = await getJiraApp();
+// Opening the page refreshes stale data in the background; it never waits for Jira.
+await jira.requestSync.lazy();
+
+const result = await jira.definitions.execute(principal.permissions);
+if (!result.ok) return new Response(null, { status: 404 });
+const { status, quality } = result.value;
+
+const csrfToken = (await getApp()).csrf.tokenFor(principal.sessionId);
+const timeZone = principal.user.timeZone;
+const groups = buildDefinitionGroups();
+---
+
+<BaseLayout title="Definiciones">
+  <h1>Definiciones</h1>
+  <p class="lede">
+    Qué significa cada cifra del Hub y cómo se calcula, para que nadie tenga que discutir qué quiere
+    decir "% completadas" o "SLA cumplido".
+  </p>
+  <SyncPanel
+    status={status}
+    timeZone={timeZone}
+    canSync={principal.permissions.has('action.sync')}
+    csrfToken={csrfToken}
+    back="/definiciones"
+    flash={syncFlashFromQuery(Astro.url.searchParams)}
+  />
+
+  <h2 class="section-title" id="corte">
+    Fecha de corte y calidad del dato
+  </h2>
+  <p class="section-note">
+    {status.lastUpdateAt
+      ? `Las cifras de todas las páginas están calculadas con los datos de Jira del ${formatMoment(status.lastUpdateAt, timeZone)}.`
+      : 'Todavía no hay datos de Jira: las cifras aparecerán cuando termine la primera actualización.'}{' '}
+    Esto es lo que hay guardado hoy:
+  </p>
+  <div class="kpi-grid">
+    <KpiCard
+      label="Tickets guardados"
+      value={formatNumber(quality.tickets)}
+      tip="Todos los tickets del proyecto que el Hub ha leído de Jira, abiertos y cerrados."
+    />
+    <KpiCard
+      label="Abiertos"
+      value={formatNumber(quality.openTickets)}
+      tip="Tickets que todavía no están en Hecho."
+    />
+    <KpiCard
+      label="Abiertos sin responsable"
+      value={formatNumber(quality.openWithoutAssignee)}
+      tip="Tickets abiertos que nadie tiene asignados. No entran en el reparto por persona de Capacidad."
+    />
+    <KpiCard
+      label="Ciclos abiertos en tickets cerrados"
+      value={formatNumber(quality.closedWithOpenClock)}
+      tip="Relojes de SLA que Jira nunca detuvo aunque el ticket ya está en Hecho. Siguen contando en el cumplimiento."
+    />
+    <KpiCard
+      label="Ciclos en pausa"
+      value={formatNumber(quality.pausedOnOpenTickets)}
+      tip="Relojes de SLA detenidos en Jira en tickets abiertos. No cuentan como incumplidos mientras estén en pausa."
+    />
+    <KpiCard
+      label="Tickets de tipos retirados"
+      value={formatNumber(quality.retiredTypeTickets)}
+      tip="Tickets de un tipo de solicitud marcado como obsoleto en Jira. Siguen en los totales."
+    />
+  </div>
+
+  <nav class="toc card" id="indice" aria-label="Contenido de esta página">
+    <h2 class="toc-title">En esta página</h2>
+    <ul class="plain-list">
+      {groups.map((group) => (
+        <li>
+          <a href={`#${group.id}`}>{group.title}</a>
+        </li>
+      ))}
+    </ul>
+  </nav>
+
+  {groups.map((group) => (
+    <section aria-labelledby={group.id}>
+      <h2 class="section-title" id={group.id}>
+        {group.title}
+      </h2>
+      <p class="section-note">{group.intro}</p>
+      <dl class="definitions">
+        {group.items.map((item) => {
+          const links = visibleLinks(item.seenIn, principal.permissions);
+          return (
+            <div class="definition card" id={item.id}>
+              <dt>{item.term}</dt>
+              <dd>
+                <p>{item.meaning}</p>
+                {item.how && (
+                  <p class="definition-how">
+                    <strong>Cómo se calcula:</strong> {item.how}
+                  </p>
+                )}
+                {links.length > 0 && (
+                  <p class="definition-seen">
+                    Dónde se ve:{' '}
+                    {links.map((link, index) => (
+                      <>
+                        {index > 0 && ', '}
+                        <a href={link.href}>{link.label}</a>
+                      </>
+                    ))}
+                  </p>
+                )}
+              </dd>
+            </div>
+          );
+        })}
+      </dl>
+      <p class="back-link">
+        <a href="#indice">↑ Volver al índice</a>
+      </p>
+    </section>
+  ))}
+</BaseLayout>

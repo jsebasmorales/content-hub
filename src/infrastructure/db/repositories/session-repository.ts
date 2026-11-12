@@ -1,4 +1,5 @@
 import { eq } from 'drizzle-orm';
+import { resolveTimeZone } from '@domain/access/time-zone';
 import type {
   NewSession,
   SessionRepository,
@@ -32,6 +33,7 @@ export class DbSessionRepository implements SessionRepository {
         email: appUser.email,
         name: appUser.name,
         status: appUser.status,
+        timeZone: appUser.timeZone,
         roleId: appUser.roleId,
         roleName: role.name,
         roleIsSystem: role.isSystem,
@@ -53,6 +55,7 @@ export class DbSessionRepository implements SessionRepository {
         status: row.status,
         roleId: row.roleId,
         role: { name: row.roleName, isSystem: row.roleIsSystem },
+        timeZone: resolveTimeZone(row.timeZone),
       },
     };
   }

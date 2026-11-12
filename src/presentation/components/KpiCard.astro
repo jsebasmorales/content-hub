@@ -1,0 +1,23 @@
+---
+import InfoTip from './InfoTip.astro';
+
+interface Props {
+  label: string;
+  /** Already formatted: "12", "11,5 días". */
+  value: string;
+  /** How it moved, already worded ("▲ +2 frente a T3 2026"). */
+  change?: string | undefined;
+  tip: string;
+}
+
+const { label, value, change, tip } = Astro.props;
+---
+
+<article class="kpi">
+  <h3 class="kpi-label">
+    {label}
+    <InfoTip text={tip} label={label} />
+  </h3>
+  <p class="kpi-value">{value}</p>
+  {change && <p class="kpi-change">{change}</p>}
+</article>

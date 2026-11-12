@@ -53,6 +53,13 @@ try {
   );
   // audit_log is append-only (D-017): defense in depth on top of the trigger.
   await owner.query(`revoke update, delete, truncate on audit_log from ${ROLE}`);
+  // learned_entry keeps every version of the Leader's text (D-061): same defense in depth. Migration
+  // 0006 does this too; here it covers a role created after that migration. The table only exists once
+  // the migrations have run, so the script no longer fails when it is run before them.
+  const learned = await owner.query("select to_regclass('public.learned_entry') as found");
+  if (learned.rows[0]?.found) {
+    await owner.query(`revoke update, delete, truncate on learned_entry from ${ROLE}`);
+  }
 
   const runtime = new URL(ownerUrl);
   runtime.username = ROLE;

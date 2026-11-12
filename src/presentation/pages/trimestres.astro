@@ -1,0 +1,98 @@
+---
+import { getApp, getJiraApp } from '@infrastructure/container';
+import { quarterLabel } from '@domain/jira/quarter';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import ComplianceChart from '../components/ComplianceChart.astro';
+import QuarterTable from '../components/QuarterTable.astro';
+import SyncPanel from '../components/SyncPanel.astro';
+import VolumeChart from '../components/VolumeChart.astro';
+import { syncFlashFromQuery } from '../sync-messages';
+
+const principal = Astro.locals.principal;
+if (!principal) return new Response(null, { status: 404 });
+
+const jira = await getJiraApp();
+// Opening the page refreshes stale data in the background; it never waits for Jira.
+await jira.requestSync.lazy();
+
+const [status, result] = await Promise.all([
+  jira.syncStatus.execute(),
+  jira.quarterly.execute(principal.permissions),
+]);
+if (!result.ok) return new Response(null, { status: 404 });
+const { quarters } = result.value;
+
+const csrfToken = (await getApp()).csrf.tokenFor(principal.sessionId);
+const timeZone = principal.user.timeZone;
+
+/** "T3 26": short enough to sit under a bar. */
+const shortLabel = (quarter: { year: number; quarter: number }): string =>
+  `T${String(quarter.quarter)} ${String(quarter.year).slice(2)}`;
+const current = quarters.find((entry) => entry.inProgress);
+const newestFirst = [...quarters].reverse();
+---
+
+<BaseLayout title="Trimestre a trimestre">
+  <h1>Trimestre a trimestre</h1>
+  <p class="lede">
+    Las mismas cifras para cada uno de los últimos trimestres, para ver hacia dónde va el equipo.
+  </p>
+  <SyncPanel
+    status={status}
+    timeZone={timeZone}
+    canSync={principal.permissions.has('action.sync')}
+    csrfToken={csrfToken}
+    back="/trimestres"
+    flash={syncFlashFromQuery(Astro.url.searchParams)}
+  />
+
+  {quarters.length === 0 ? (
+    <p class="empty">
+      Todavía no hay datos de Jira. Aparecerán cuando termine la primera actualización.
+    </p>
+  ) : (
+    <>
+      {current && (
+        <p class="section-note">
+          {quarterLabel(current.quarter)} está en curso ({current.elapsedDays} días): sus cifras son
+          parciales y no deben compararse con las de un trimestre terminado.
+        </p>
+      )}
+
+      <h2 class="section-title">Cumplimiento de SLA por trimestre</h2>
+      <section class="card">
+        <ComplianceChart
+          items={quarters.map((entry) => ({
+            label: `${shortLabel(entry.quarter)}${entry.inProgress ? '*' : ''}`,
+            compliance: entry.sla,
+          }))}
+          title="Cumplimiento de SLA por trimestre"
+          idPrefix="sla-quarterly"
+        />
+      </section>
+
+      <h2 class="section-title">Creados y resueltos por trimestre</h2>
+      <section class="card">
+        <VolumeChart
+          items={quarters.map((entry) => ({
+            label: `${shortLabel(entry.quarter)}${entry.inProgress ? '*' : ''}`,
+            created: entry.created,
+            resolved: entry.resolved,
+          }))}
+          title="Tickets creados y resueltos por trimestre"
+          idPrefix="volume-quarterly"
+          note="* Trimestre en curso: cifra parcial."
+        />
+      </section>
+
+      <h2 class="section-title">Las cifras</h2>
+      <p class="section-note">
+        El tiempo típico es la mediana de días entre crear y resolver. Cada métrica de SLA debe
+        llegar al 90 % por separado para cumplir la meta.
+      </p>
+      <section class="card table-card">
+        <QuarterTable rows={newestFirst} />
+      </section>
+    </>
+  )}
+</BaseLayout>

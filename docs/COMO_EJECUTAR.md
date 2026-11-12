@@ -11,7 +11,7 @@ Esta guía es para uso diario. No necesitas saber programar.
 4. Abre `.env` y rellena solo estas dos líneas:
    - `SESSION_SECRET=` → pega aquí un texto largo y aleatorio. Para generarlo, ejecuta en la terminal:
      `node -e "console.log(require('crypto').randomBytes(48).toString('base64url'))"`
-   - `BOOTSTRAP_LEADER_EMAIL=` → tu correo: `sebastian.morales@holafly.com`
+   - `BOOTSTRAP_LEADER_EMAIL=` → tu correo: `tu.nombre@holafly.com`
 5. Prepara la base de datos local: `pnpm db:migrate`
 
 El archivo `.env` es solo tuyo: nunca se sube a GitHub.
@@ -28,14 +28,34 @@ Para detener el servidor, pulsa `Ctrl + C` en la terminal.
 
 ## Comandos útiles
 
-| Comando                 | Qué hace                                               |
-| ----------------------- | ------------------------------------------------------ |
-| `pnpm lint`             | Revisa la calidad del código                           |
-| `pnpm check`            | Revisa los tipos                                       |
-| `pnpm arch`             | Comprueba que las capas no se mezclen                  |
-| `pnpm test:unit`        | Pruebas rápidas de las reglas                          |
-| `pnpm test:integration` | Pruebas con base de datos                              |
-| `pnpm e2e`              | Pruebas con un navegador real (abre y cierra uno solo) |
+| Comando                    | Qué hace                                                                                          |
+| -------------------------- | ------------------------------------------------------------------------------------------------- |
+| `pnpm lint`                | Revisa la calidad del código                                                                      |
+| `pnpm check`               | Revisa los tipos                                                                                  |
+| `pnpm arch`                | Comprueba que las capas no se mezclen                                                             |
+| `pnpm test:unit`           | Pruebas rápidas de las reglas                                                                     |
+| `pnpm test:integration`    | Pruebas con base de datos                                                                         |
+| `pnpm e2e`                 | Pruebas con un navegador real (abre y cierra uno solo)                                            |
+| `pnpm perf`                | Lighthouse y tope de JavaScript en cada página (hay que tener la app corriendo en el puerto 4321) |
+| `pnpm probe:jira`          | Comprueba tu conexión con Jira (solo lee)                                                         |
+| `pnpm sync:jira`           | Trae a la base de datos lo que cambió en Jira                                                     |
+| `pnpm sync:jira --full`    | Lee todo el proyecto y quita lo borrado en Jira                                                   |
+| `pnpm sync:jira --dry-run` | Muestra qué haría, sin escribir nada                                                              |
+| `pnpm compare:jira`        | Compara 30 tickets variados con Jira y escribe una hoja para revisar                              |
+| `pnpm compare:jira --all`  | Compara todos los tickets y recuenta el SLA de cada trimestre                                     |
+| `pnpm build:functions`     | Empaqueta la función en segundo plano (lo hace `pnpm build` solo)                                 |
+
+`pnpm sync:jira` escribe en la base de datos de tu `.env`. En local es la base embebida (`pglite:`);
+antes de usarlo la primera vez ejecuta `pnpm db:migrate`. Una carga completa de los 1.046 tickets
+tarda unos 20 segundos.
+
+`pnpm compare:jira` solo **lee** (Jira y tu base) y deja la hoja en `.data/comparacion-muestra.md`, que
+no se sube al repositorio porque nombra tickets y personas. Para qué sirve y cómo leerlo: [PRUEBAS.md](PRUEBAS.md).
+Si un ticket se desvía, el runbook de [re-sincronización completa](runbooks/RESINCRONIZACION.md) explica
+qué hacer.
+
+**Cierra `pnpm dev` antes de `pnpm sync:jira` o `pnpm compare:jira`**: usan la misma base embebida y no
+conviene abrirla desde dos procesos a la vez.
 
 ## Si algo falla
 

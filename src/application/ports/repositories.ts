@@ -1,5 +1,6 @@
 import type { PermissionGrant } from '@domain/access/permission-set';
 import type { Role } from '@domain/access/role';
+import type { SupportedTimeZone } from '@domain/access/time-zone';
 import type { User, UserStatus } from '@domain/access/user';
 
 export interface RoleRecord extends Role {
@@ -22,6 +23,7 @@ export interface UserRepository {
   markLoggedIn(id: string, name: string | null, at: Date): Promise<void>;
   setRole(id: string, roleId: string): Promise<void>;
   setStatus(id: string, status: UserStatus): Promise<void>;
+  setTimeZone(id: string, timeZone: SupportedTimeZone): Promise<void>;
   countActiveLeaders(): Promise<number>;
 }
 

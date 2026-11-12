@@ -1,6 +1,9 @@
 ---
 import { getApp } from '@infrastructure/container';
+import AppSidebar from '../components/AppSidebar.astro';
+import TopBar from '../components/TopBar.astro';
 import { buildMenu } from '../navigation';
+import { readTheme } from '../theme';
 import '../styles/tokens.css';
 import '../styles/base.css';
 
@@ -13,10 +16,13 @@ const principal = Astro.locals.principal;
 const menu = principal ? buildMenu(principal.permissions) : [];
 const csrfToken = principal ? (await getApp()).csrf.tokenFor(principal.sessionId) : '';
 const pathname = Astro.url.pathname;
+const theme = readTheme(Astro.cookies);
+// The person's own choice, when they made one; otherwise the stylesheet follows the device.
+const dataTheme = theme === 'system' ? undefined : theme;
 ---
 
 <!doctype html>
-<html lang="es">
+<html lang="es" data-theme={dataTheme}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -25,33 +31,25 @@ const pathname = Astro.url.pathname;
     <title>{title} · Content Hub</title>
   </head>
   <body>
-    <div class="shell">
-      {principal && (
-        <header class="topbar">
-          <a class="brand" href="/">
-            Content Hub
-          </a>
-          <nav class="menu" aria-label="Principal">
-            {menu.map((item) => (
-              <a href={item.href} aria-current={item.href === pathname ? 'page' : undefined}>
-                {item.label}
-              </a>
-            ))}
-          </nav>
-          <div class="account">
-            <span>{principal.user.email}</span>
-            <form method="post" action="/api/auth/logout">
-              <input type="hidden" name="_csrf" value={csrfToken} />
-              <button class="btn btn-quiet" type="submit">
-                Cerrar sesión
-              </button>
-            </form>
-          </div>
-        </header>
-      )}
+    {principal ? (
+      <div class="app">
+        <AppSidebar menu={menu} current={pathname} />
+        <div class="main-col">
+          <TopBar
+            principal={principal}
+            csrfToken={csrfToken}
+            theme={theme}
+            back={`${pathname}${Astro.url.search}`}
+          />
+          <main class="content">
+            <slot />
+          </main>
+        </div>
+      </div>
+    ) : (
       <main class="content">
         <slot />
       </main>
-    </div>
+    )}
   </body>
 </html>

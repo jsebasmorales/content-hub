@@ -1,0 +1,44 @@
+---
+import type { Balance, PersonLoad } from '@domain/jira/capacity';
+import { formatNumber } from '../format-number';
+
+interface Props {
+  people: readonly PersonLoad[];
+  average: number;
+}
+
+const { people, average } = Astro.props;
+
+// Words and a symbol say where each person stands, so it never depends on color alone.
+const BALANCE_TEXT: Readonly<Record<Balance, string>> = {
+  above: '▲ Por encima del promedio',
+  balanced: '● En equilibrio',
+  below: '▼ Por debajo del promedio',
+};
+
+const scale = Math.max(1, average, ...people.map((person) => person.load));
+const averageAt = (average / scale) * 100;
+---
+
+<ul class="bar-list load-list">
+  {people.map((person) => (
+    <li class="bar-row">
+      <span class="bar-name">
+        {person.name}
+        <span class={`balance balance-${person.balance}`}>{BALANCE_TEXT[person.balance]}</span>
+      </span>
+      <svg class="bar-track" viewBox="0 0 100 8" preserveAspectRatio="none" aria-hidden="true">
+        <rect
+          class={`bar bar-load-${person.balance}`}
+          x="0"
+          y="0"
+          width={(person.load / scale) * 100}
+          height="8"
+          rx="2"
+        ></rect>
+        <line class="load-average" x1={averageAt} x2={averageAt} y1="0" y2="8"></line>
+      </svg>
+      <span class="bar-count">{formatNumber(person.load)}</span>
+    </li>
+  ))}
+</ul>

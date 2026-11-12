@@ -1,0 +1,51 @@
+---
+import type { SupportedTimeZone } from '@domain/access/time-zone';
+import type { Ticket } from '@domain/jira/ticket';
+import { formatDay } from '../format-moment';
+import TicketLink from './TicketLink.astro';
+
+interface Props {
+  rows: readonly Ticket[];
+  ticketUrlOf: (key: string) => string | null;
+  timeZone: SupportedTimeZone;
+  /** False for a continuation of a table that already showed its heading. */
+  withHead?: boolean;
+}
+
+const { rows, ticketUrlOf, timeZone, withHead = true } = Astro.props;
+---
+
+<table class="task-table">
+  {withHead && (
+    <thead>
+      <tr>
+        <th scope="col">Clave</th>
+        <th scope="col">Resumen</th>
+        <th scope="col">Tipo</th>
+        <th scope="col">Estado</th>
+        <th scope="col">Solicitante</th>
+        <th scope="col">Asignado a</th>
+        <th scope="col">Creada</th>
+        <th scope="col">Actualizada</th>
+      </tr>
+    </thead>
+  )}
+  <tbody>
+    {rows.map((task) => (
+      <tr>
+        <th scope="row" data-label="Clave" class="task-key">
+          <TicketLink ticketKey={task.key} url={ticketUrlOf(task.key)} />
+        </th>
+        <td data-label="Resumen">{task.summary}</td>
+        <td data-label="Tipo">{task.requestType}</td>
+        <td data-label="Estado">
+          <span class={`badge badge-${task.statusCategory}`}>{task.status}</span>
+        </td>
+        <td data-label="Solicitante">{task.requesterName ?? '—'}</td>
+        <td data-label="Asignado a">{task.assigneeName ?? 'Sin asignar'}</td>
+        <td data-label="Creada">{formatDay(task.createdAt, timeZone)}</td>
+        <td data-label="Actualizada">{formatDay(task.updatedAt, timeZone)}</td>
+      </tr>
+    ))}
+  </tbody>
+</table>

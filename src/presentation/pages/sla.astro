@@ -1,0 +1,173 @@
+---
+import { getApp, getJiraApp } from '@infrastructure/container';
+import { quarterLabel } from '@domain/jira/quarter';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import ComplianceChart from '../components/ComplianceChart.astro';
+import ComplianceTable from '../components/ComplianceTable.astro';
+import OngoingTable from '../components/OngoingTable.astro';
+import PeriodPicker from '../components/PeriodPicker.astro';
+import SlaMeter from '../components/SlaMeter.astro';
+import SyncPanel from '../components/SyncPanel.astro';
+import { formatCalendarDay } from '../format-moment';
+import { formatNumber, monthShortName } from '../format-number';
+import { METRIC_LABEL, METRIC_TIP } from '../sla-labels';
+import { splitForPhone } from '../phone-split';
+import { parseSlaQuery } from '../sla-query';
+import { syncFlashFromQuery } from '../sync-messages';
+
+const ONGOING_SHOWN = 30;
+
+const principal = Astro.locals.principal;
+if (!principal) return new Response(null, { status: 404 });
+
+const jira = await getJiraApp();
+// Opening the page refreshes stale data in the background; it never waits for Jira.
+await jira.requestSync.lazy();
+
+const [status, result] = await Promise.all([
+  jira.syncStatus.execute(),
+  jira.slaReport.execute(principal.permissions, parseSlaQuery(Astro.url.searchParams)),
+]);
+if (!result.ok) return new Response(null, { status: 404 });
+const { now, resolved, report, quarters } = result.value;
+const { period } = resolved;
+
+const csrfToken = (await getApp()).csrf.tokenFor(principal.sessionId);
+const timeZone = principal.user.timeZone;
+
+const periodLabel =
+  period.kind === 'quarter'
+    ? quarterLabel(period.quarter)
+    : `${formatCalendarDay(period.from)} – ${formatCalendarDay(period.to)}`;
+const goalText = {
+  true: 'Las dos métricas cumplen la meta en este periodo.',
+  false: 'Alguna métrica no llega a la meta en este periodo.',
+  null: 'No hay ciclos medidos en este periodo.',
+} as const;
+const monthRows = report.byMonth.map((entry) => ({
+  label: `${monthShortName(entry.month.year, entry.month.month)} ${String(entry.month.year)}`,
+  compliance: entry.compliance,
+}));
+const typeRows = report.byRequestType.map((row) => ({
+  label: row.requestType,
+  compliance: row.compliance,
+}));
+const ongoing = report.ongoing.slice(0, ONGOING_SHOWN);
+// On a phone only the most urgent show at first; the rest wait behind "Ver más".
+const { first: firstRows, more: moreRows } = splitForPhone(ongoing);
+---
+
+<BaseLayout title="SLAs">
+  <h1>SLAs</h1>
+  <p class="lede">
+    Cumplimiento de cada métrica contra la meta del 90 %, calculado por Jira y contado por el Hub.
+  </p>
+  <SyncPanel
+    status={status}
+    timeZone={timeZone}
+    canSync={principal.permissions.has('action.sync')}
+    csrfToken={csrfToken}
+    back="/sla"
+    flash={syncFlashFromQuery(Astro.url.searchParams)}
+  />
+
+  <PeriodPicker quarters={quarters} period={period} ignored={resolved.ignored} />
+
+  <h2 class="section-title">Cumplimiento en {periodLabel}</h2>
+  <p class="section-note">
+    {goalText[String(report.overall.goalMet) as 'true' | 'false' | 'null']}
+  </p>
+  <div class="kpi-grid">
+    {report.overall.metrics.map((metric) => (
+      <SlaMeter
+        metric={metric}
+        label={METRIC_LABEL[metric.metric]}
+        tip={METRIC_TIP[metric.metric]}
+      />
+    ))}
+  </div>
+
+  <h2 class="section-title">Mes a mes</h2>
+  <section class="card">
+    {monthRows.length === 0 ? (
+      <p class="empty">No hay ciclos medidos en este periodo.</p>
+    ) : (
+      <>
+        <ComplianceChart
+          items={report.byMonth.map((entry) => ({
+            label: `${monthShortName(entry.month.year, entry.month.month)} ${String(entry.month.year).slice(2)}`,
+            compliance: entry.compliance,
+          }))}
+          title="Cumplimiento de SLA por mes"
+          idPrefix="sla-monthly"
+        />
+        <details class="more">
+          <summary>Ver los números de cada mes</summary>
+          <ComplianceTable firstColumn="Mes" rows={monthRows} />
+        </details>
+      </>
+    )}
+  </section>
+
+  <h2 class="section-title">Por tipo de solicitud</h2>
+  <p class="section-note">
+    De más a menos ciclos medidos. Un tipo con pocos ciclos puede cambiar mucho con un solo
+    incumplimiento.
+  </p>
+  <section class="card">
+    <ComplianceTable firstColumn="Tipo de solicitud" rows={typeRows} />
+  </section>
+
+  <h2 class="section-title">Ciclos en curso ahora</h2>
+  <p class="section-note">
+    Relojes que siguen corriendo en tickets abiertos, del que vence antes al que vence después, sin
+    importar el periodo elegido. Los vencidos ya cuentan como incumplidos.
+    {report.pausedCount > 0 &&
+      ` ${formatNumber(report.pausedCount)} ciclos en pausa no se muestran: su reloj está detenido.`}
+    {report.closedWithOpenClockCount > 0 && (
+      <>
+        {' '}
+        Otros {formatNumber(report.closedWithOpenClockCount)} ciclos siguen abiertos en tickets ya
+        cerrados: Jira no los detuvo (por ejemplo, porque nunca hubo un comentario al cliente) y no
+        se pueden accionar, así que no se listan aquí. Siguen contando en el cumplimiento y los que
+        ya están vencidos aparecen, marcados, en <a href="/incumplimientos">SLAs incumplidos</a>.
+      </>
+    )}
+  </p>
+  <section class="card table-card">
+    {ongoing.length === 0 ? (
+      <p class="empty">No hay ciclos corriendo ahora mismo en tickets abiertos.</p>
+    ) : (
+      <>
+        <div class="only-wide">
+          <OngoingTable rows={ongoing} ticketUrlOf={jira.ticketUrl} timeZone={timeZone} now={now} />
+        </div>
+        <div class="only-narrow">
+          <OngoingTable
+            rows={firstRows}
+            ticketUrlOf={jira.ticketUrl}
+            timeZone={timeZone}
+            now={now}
+          />
+          {moreRows.length > 0 && (
+            <details class="more-rows">
+              <summary>Ver más ({moreRows.length})</summary>
+              <OngoingTable
+                rows={moreRows}
+                ticketUrlOf={jira.ticketUrl}
+                timeZone={timeZone}
+                now={now}
+                withHead={false}
+              />
+            </details>
+          )}
+        </div>
+      </>
+    )}
+    {report.ongoing.length > ONGOING_SHOWN && (
+      <p class="section-note">
+        Se muestran los {ONGOING_SHOWN} más urgentes de {formatNumber(report.ongoing.length)}.
+      </p>
+    )}
+  </section>
+</BaseLayout>

@@ -1,0 +1,24 @@
+---
+import type { MenuItem } from '../navigation';
+
+interface Props {
+  menu: readonly MenuItem[];
+  /** Path of the page being shown, to mark its entry. */
+  current: string;
+}
+
+const { menu, current } = Astro.props;
+---
+
+<aside class="sidebar">
+  <a class="brand" href="/">
+    Content Hub
+  </a>
+  <nav class="menu" aria-label="Principal">
+    {menu.map((item) => (
+      <a href={item.href} aria-current={item.href === current ? 'page' : undefined}>
+        {item.label}
+      </a>
+    ))}
+  </nav>
+</aside>

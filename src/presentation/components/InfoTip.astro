@@ -1,0 +1,15 @@
+---
+interface Props {
+  /** What the figure means, in plain words. */
+  text: string;
+  /** Names the figure for screen readers: "Qué significa Creados". */
+  label: string;
+}
+
+const { text, label } = Astro.props;
+---
+
+<details class="info-tip">
+  <summary aria-label={`Qué significa ${label}`}>ⓘ</summary>
+  <p>{text}</p>
+</details>

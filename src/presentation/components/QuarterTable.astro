@@ -1,0 +1,82 @@
+---
+import { SLA_METRICS } from '@domain/jira/sla';
+import { SLA_TARGET_PERCENT } from '@domain/jira/sla-compliance';
+import { quarterLabel } from '@domain/jira/quarter';
+import type { QuarterStats } from '@domain/jira/quarterly';
+import { formatNumber, formatPercent } from '../format-number';
+import { METRIC_LABEL } from '../sla-labels';
+
+interface Props {
+  /** Newest first. */
+  rows: readonly QuarterStats[];
+}
+
+const { rows } = Astro.props;
+
+/** Mark and class for one verdict: words and a symbol, never color alone. */
+function verdict(meets: boolean | null): { mark: string; cls: string; text: string } {
+  if (meets === null) return { mark: '', cls: 'verdict', text: 'Sin datos' };
+  return meets
+    ? { mark: '✔ ', cls: 'verdict verdict-ok', text: 'Cumple' }
+    : { mark: '✖ ', cls: 'verdict verdict-bad', text: 'No cumple' };
+}
+---
+
+<div class="table-scroll">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th scope="col">Trimestre</th>
+        <th scope="col">Creados</th>
+        <th scope="col">Resueltos</th>
+        <th scope="col">Tiempo típico (días)</th>
+        {SLA_METRICS.map((metric) => (
+          <th scope="col">
+            {METRIC_LABEL[metric]} (meta {SLA_TARGET_PERCENT} %)
+          </th>
+        ))}
+        <th scope="col">Meta de SLA</th>
+      </tr>
+    </thead>
+    <tbody>
+      {rows.map((row) => {
+        const goal = verdict(row.sla.goalMet);
+        return (
+          <tr>
+            <th scope="row" data-label="Trimestre">
+              {quarterLabel(row.quarter)}
+              {row.inProgress && <span class="cell-note">En curso: {row.elapsedDays} días</span>}
+            </th>
+            <td data-label="Creados">{formatNumber(row.created)}</td>
+            <td data-label="Resueltos">{formatNumber(row.resolved)}</td>
+            <td data-label="Tiempo típico (días)">
+              {row.resolutionDays === null ? '—' : formatNumber(row.resolutionDays)}
+            </td>
+            {row.sla.metrics.map((metric) => {
+              const result = verdict(metric.meetsTarget);
+              return (
+                <td data-label={METRIC_LABEL[metric.metric]}>
+                  <span class={result.cls}>
+                    {result.mark}
+                    {formatPercent(metric.ratePercent)}
+                  </span>
+                  {metric.total > 0 && (
+                    <span class="cell-note">
+                      {formatNumber(metric.met)} de {formatNumber(metric.total)}
+                    </span>
+                  )}
+                </td>
+              );
+            })}
+            <td data-label="Meta de SLA">
+              <span class={goal.cls}>
+                {goal.mark}
+                {goal.text}
+              </span>
+            </td>
+          </tr>
+        );
+      })}
+    </tbody>
+  </table>
+</div>

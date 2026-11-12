@@ -52,10 +52,10 @@ Configurar la app de Atlassian: [COMO_EJECUTAR.md](COMO_EJECUTAR.md), sección "
 | Tipo      | Claves                                                                                                 |
 | --------- | ------------------------------------------------------------------------------------------------------ |
 | Secciones | `section.exec`, `summary`, `eco`, `work`, `sla`, `breach`, `goals`, `capacity`, `qoq`, `learn`, `defs` |
-| Acciones  | `action.sync`, `action.ecoedit`                                                                        |
+| Acciones  | `action.sync`, `action.ecoedit`, `action.learnedit`                                                    |
 | Admin     | `admin.roles` (solo Líder; no se puede conceder a otro rol)                                            |
 
-Valores por defecto: el Líder tiene todo lo asignable; el Colaborador, las secciones (D-001).
+Valores por defecto: el Líder tiene todo lo asignable; el Colaborador, las secciones **salvo `section.learn`**: "Lo aprendido" es la página del Líder y escribir en ella pide además `action.learnedit` (D-001, D-061). Los valores por defecto se escriben **una sola vez, al crear el rol**, así que una base de datos que ya existía se corrige con la migración `0006_learned_leader_only`.
 
 ### Reglas de administración
 
@@ -74,6 +74,17 @@ Valores por defecto: el Líder tiene todo lo asignable; el Colaborador, las secc
 Lo que un perfil no puede ver **no aparece en el menú** y responde **404**, igual que una página que
 no existe. Nunca 403: así no se revela qué rutas existen (SDD §10.3, D-024). Los intentos de una
 persona con sesión se registran como `authz.denied`.
+
+## Lo que escribe una persona
+
+| Qué                       | Dónde se guarda                                       | Permiso                                            | Protección                                                                                                                                                                    |
+| ------------------------- | ----------------------------------------------------- | -------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| "Lo aprendido" (D-061)    | Tabla `learned_entry`                                 | Ver: `section.learn`; escribir: `action.learnedit` | Solo inserción: un trigger y la falta de privilegios del rol de ejecución rechazan UPDATE, DELETE y TRUNCATE. Se muestra siempre como texto, nunca como HTML. Token anti-CSRF |
+| Zona horaria (D-062)      | `app_user.time_zone`, una de las 6 zonas de la lista  | Tener sesión (solo la propia cuenta)               | Se rechaza cualquier zona fuera de la lista; token anti-CSRF; si la guardada deja de existir, se usa Bogotá                                                                   |
+| Tema claro/oscuro (D-053) | Cookie `hub_theme` del navegador (`httpOnly`, un año) | Tener sesión                                       | Valor de una lista cerrada; token anti-CSRF; la dirección de vuelta solo puede ser una página registrada                                                                      |
+
+La zona horaria cambia cómo se **muestran** las horas, nunca las cifras: los meses y los trimestres
+se agrupan siempre en hora de Bogotá.
 
 ## Sesiones
 
@@ -124,6 +135,8 @@ La CSP de scripts y estilos la genera Astro con hashes (sin `unsafe-inline`) en 
 | `user.invited`                          | Invitación                                                                                           |
 | `user.role_changed`                     | Cambio de rol, con rol anterior y nuevo                                                              |
 | `user.deactivated` / `user.reactivated` | Baja o reactivación                                                                                  |
+| `sync.manual_requested`                 | Se pulsa "Resincronizar con Jira" (quién y si se pudo lanzar)                                        |
+| `learned.saved`                         | El Líder guarda una versión de "Lo aprendido" (quién, trimestre y longitud; **no** el texto)         |
 
 Cada fila guarda quién (`actor_id`), qué, sobre quién, estado antes y después, IP y fecha.
 

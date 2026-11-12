@@ -1,0 +1,185 @@
+---
+import { getApp, getLearnedApp } from '@infrastructure/container';
+import { quarterLabel } from '@domain/jira/quarter';
+import { quarterParam } from '@domain/jira/report-period';
+import { LEARNED_FIELD_MAX } from '@domain/learned/learned';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { formatMoment } from '../format-moment';
+import { learnedFlashFromQuery } from '../learned-messages';
+import { PHONE_ROWS } from '../phone-split';
+
+const principal = Astro.locals.principal;
+if (!principal) return new Response(null, { status: 404 });
+
+const learned = await getLearnedApp();
+const result = await learned.getLearned.execute(
+  principal.permissions,
+  Astro.url.searchParams.get('trimestre'),
+);
+if (!result.ok) return new Response(null, { status: 404 });
+const page = result.value;
+
+const csrfToken = (await getApp()).csrf.tokenFor(principal.sessionId);
+const timeZone = principal.user.timeZone;
+const canEdit = principal.permissions.has('action.learnedit');
+const flash = learnedFlashFromQuery(Astro.url.searchParams);
+const current = quarterParam(page.quarter);
+const label = quarterLabel(page.quarter);
+
+const boxes = [
+  {
+    id: 'conclusions',
+    title: 'Conclusiones del trimestre',
+    help: 'Qué aprendimos: lo que los números no dicen por sí solos.',
+    value: page.latest?.conclusions ?? '',
+  },
+  {
+    id: 'nextFocus',
+    title: 'Foco del siguiente trimestre',
+    help: 'Las prioridades en las que se concentra el equipo (el "foco del Q").',
+    value: page.latest?.nextFocus ?? '',
+  },
+  {
+    id: 'notes',
+    title: 'Notas',
+    help: 'Cualquier otra cosa que convenga recordar.',
+    value: page.latest?.notes ?? '',
+  },
+] as const;
+
+const olderVersions = page.history.slice(1);
+const shownVersions = olderVersions.slice(0, PHONE_ROWS);
+const moreVersions = olderVersions.slice(PHONE_ROWS);
+---
+
+<BaseLayout title="Lo aprendido">
+  <h1>Lo aprendido</h1>
+  <p class="lede">
+    Las conclusiones de cada trimestre y el foco del siguiente: la interpretación humana de lo que
+    dicen los números. Lo escribe el Líder.
+  </p>
+
+  {flash && (
+    <p class={`notice notice-${flash.kind}`} role={flash.kind === 'error' ? 'alert' : 'status'}>
+      {flash.text}
+    </p>
+  )}
+  {page.ignoredQuarter && (
+    <p class="notice notice-error" role="alert">
+      No pudimos usar el trimestre pedido, así que se muestra el actual.
+    </p>
+  )}
+
+  <nav class="quick-quarters" aria-label="Trimestres">
+    {page.quarters.map((entry) => {
+      const param = quarterParam(entry.quarter);
+      return (
+        <a
+          class={`chip ${param === current ? 'chip-on' : ''}`}
+          href={`/aprendido?trimestre=${param}`}
+          aria-current={param === current ? 'page' : undefined}
+        >
+          {quarterLabel(entry.quarter)}
+          {entry.written && (
+            <span class="chip-mark" title="Tiene texto guardado">
+              {' '}
+              ✎
+            </span>
+          )}
+        </a>
+      );
+    })}
+  </nav>
+  <p class="section-note">✎ marca los trimestres que ya tienen texto guardado.</p>
+
+  <h2 class="section-title">{label}</h2>
+  <p class="section-note">
+    {page.latest
+      ? `Última versión: ${formatMoment(page.latest.createdAt, timeZone)}, por ${page.latest.authorName}.`
+      : 'Todavía no hay nada escrito para este trimestre.'}
+  </p>
+
+  {canEdit ? (
+    <form class="card learned-form" method="post" action="/api/learned">
+      <input type="hidden" name="_csrf" value={csrfToken} />
+      <input type="hidden" name="trimestre" value={current} />
+      {boxes.map((box) => (
+        <div class="field">
+          <label for={`l-${box.id}`}>{box.title}</label>
+          <p class="field-help" id={`l-${box.id}-help`}>
+            {box.help}
+          </p>
+          <textarea
+            id={`l-${box.id}`}
+            name={box.id}
+            rows="7"
+            maxlength={LEARNED_FIELD_MAX}
+            aria-describedby={`l-${box.id}-help`}
+          >{box.value}</textarea>
+        </div>
+      ))}
+      <button class="btn" type="submit">
+        Guardar nueva versión
+      </button>
+      <p class="section-note">
+        Cada guardado crea una versión nueva con tu nombre y la fecha. Las anteriores se conservan y
+        se pueden ver abajo.
+      </p>
+    </form>
+  ) : (
+    <section class="card">
+      {boxes.map((box) => (
+        <div class="learned-read">
+          <h3>{box.title}</h3>
+          <p class="learned-text">{box.value === '' ? 'Sin texto.' : box.value}</p>
+        </div>
+      ))}
+    </section>
+  )}
+
+  {olderVersions.length > 0 && (
+    <>
+      <h2 class="section-title">Versiones anteriores</h2>
+      <p class="section-note">
+        De la más reciente a la más antigua. La que ves arriba es la última.
+      </p>
+      <section class="card">
+        {shownVersions.map((version) => (
+          <details class="more">
+            <summary>
+              {formatMoment(version.createdAt, timeZone)} · {version.authorName}
+            </summary>
+            {boxes.map((box) => (
+              <div class="learned-read">
+                <h3>{box.title}</h3>
+                <p class="learned-text">
+                  {version[box.id] === '' ? 'Sin texto.' : version[box.id]}
+                </p>
+              </div>
+            ))}
+          </details>
+        ))}
+        {moreVersions.length > 0 && (
+          <details class="more-rows">
+            <summary>Ver más ({moreVersions.length})</summary>
+            {moreVersions.map((version) => (
+              <details class="more">
+                <summary>
+                  {formatMoment(version.createdAt, timeZone)} · {version.authorName}
+                </summary>
+                {boxes.map((box) => (
+                  <div class="learned-read">
+                    <h3>{box.title}</h3>
+                    <p class="learned-text">
+                      {version[box.id] === '' ? 'Sin texto.' : version[box.id]}
+                    </p>
+                  </div>
+                ))}
+              </details>
+            ))}
+          </details>
+        )}
+      </section>
+    </>
+  )}
+</BaseLayout>

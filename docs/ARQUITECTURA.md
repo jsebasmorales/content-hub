@@ -5,8 +5,8 @@ Para quién es: quien va a programar en el proyecto. Si solo quieres ejecutarlo,
 [SDD_Content_Hub.md](SDD_Content_Hub.md); las decisiones con su motivo, en
 [DECISIONES.md](DECISIONES.md) (se citan aquí como D-0NN).
 
-Estado: Fase 0 (acceso, roles, seguridad base y CI). Jira, Ecosystem y Crowdin no existen aún;
-sus carpetas están vacías a propósito.
+Estado: Fase 1 (Jira y dashboard) sobre la base de la Fase 0 (acceso, roles, seguridad y CI). Ecosystem
+y Crowdin no existen aún; sus carpetas están vacías a propósito.
 
 ## Capas
 
@@ -84,16 +84,22 @@ Los casos de uso de administración vuelven a comprobar `admin.roles` aunque la 
 Cada puerto vive en `src/application/ports` y tiene un adaptador real y un **fake en memoria**
 (`src/infrastructure/fakes`). Una prueba de contrato exige que ambos se comporten igual (D-018).
 
-| Puerto              | Adaptador real                                         | Fake                        |
-| ------------------- | ------------------------------------------------------ | --------------------------- |
-| `UserRepository`    | `db/repositories/user-repository.ts`                   | `InMemoryUserRepository`    |
-| `RoleRepository`    | `db/repositories/role-repository.ts`                   | en `in-memory-repositories` |
-| `SessionRepository` | `db/repositories/session-repository.ts`                | en `in-memory-repositories` |
-| `AuditLog`          | `db/repositories/audit-log.ts`                         | en `in-memory-services`     |
-| `RateLimiter`       | `db/repositories/rate-limiter.ts`                      | en `in-memory-services`     |
-| `TokenService`      | `auth/token-service.ts`                                | en `in-memory-services`     |
-| `Clock`             | `SystemClock`                                          | `FakeClock`                 |
-| `AuthProvider`      | `auth/local-provider.ts`, `auth/atlassian-provider.ts` | proveedores fake            |
+| Puerto              | Adaptador real                                                                  | Fake                        |
+| ------------------- | ------------------------------------------------------------------------------- | --------------------------- |
+| `UserRepository`    | `db/repositories/user-repository.ts`                                            | `InMemoryUserRepository`    |
+| `RoleRepository`    | `db/repositories/role-repository.ts`                                            | en `in-memory-repositories` |
+| `SessionRepository` | `db/repositories/session-repository.ts`                                         | en `in-memory-repositories` |
+| `AuditLog`          | `db/repositories/audit-log.ts`                                                  | en `in-memory-services`     |
+| `RateLimiter`       | `db/repositories/rate-limiter.ts`                                               | en `in-memory-services`     |
+| `TokenService`      | `auth/token-service.ts`                                                         | en `in-memory-services`     |
+| `Clock`             | `SystemClock`                                                                   | `FakeClock`                 |
+| `AuthProvider`      | `auth/local-provider.ts`, `auth/atlassian-provider.ts`                          | proveedores fake            |
+| `JiraGateway`       | `jira/jira-gateway.ts` (solo lee, reintentos y límite de salida)                | `FakeJiraGateway`           |
+| `IssueRepository`   | `db/repositories/issue-repository.ts`                                           | `InMemoryIssueRepository`   |
+| `SyncRunRepository` | `db/repositories/sync-run-repository.ts`                                        | `InMemorySyncRunRepository` |
+| `SyncLock`          | `db/repositories/sync-lock.ts` (candado con caducidad)                          | `InMemorySyncLock`          |
+| `SyncLauncher`      | `netlify/http-sync-launcher.ts`, `inline-sync-launcher.ts` (solo en desarrollo) | `FakeSyncLauncher`          |
+| `LearnedRepository` | `db/repositories/learned-repository.ts`                                         | `InMemoryLearnedRepository` |
 
 `AuthProvider` tiene dos formas: **directo** (`local`: se escribe el correo, solo desarrollo) y
 **redirección** (`atlassian`: OAuth 2.0 con `state` y PKCE).
@@ -108,21 +114,52 @@ Los casos de uso se arman en un solo sitio (D-013):
   la semilla y guarda la instancia. Si el arranque falla, **no** guarda la promesa: la siguiente
   petición reintenta (D-032).
 
+## Jira y el dashboard (Fase 1)
+
+Jira es la fuente de verdad y el Hub guarda una **copia de solo lectura** (D-034: sin webhooks).
+
+```
+Jira ──► JiraGateway ──► RunJiraSync ──► tablas jira_* ──► casos de uso (Get…) ──► páginas
+              ▲               │                                   ▲
+   función en segundo plano   └─ sync_run, sync_lock              dominio puro: SLA, periodos,
+   (Netlify) o CLI                                                capacidad, resúmenes
+```
+
+- **Cómo se pide un sync** (D-035): al abrir una página con datos de más de 15 minutos (como máximo
+  uno cada 5), o con el botón de un Líder. Ninguno espera a Jira: lanzan la función
+  `sync-jira-background` (D-048), protegida por `SYNC_TRIGGER_SECRET`, que responde 202 al instante.
+  Si **lanzar** falla se anota como ejecución fallida (visible en `/estado`) y rige el mismo límite de 5
+  minutos.
+- **Dominio** (`src/domain/jira`): funciones puras sin base de datos ni red: `sla`, `sla-compliance`,
+  `sla-report`, `sla-breaches`, `report-period`, `quarter`, `quarterly`, `capacity`,
+  `summary-report`, `executive-summary`, `task-list`, `data-quality`. Cada regla tiene su prueba.
+- **Casos de uso** (`src/application/use-cases/jira`): uno por página (`GetSlaReport`,
+  `GetCapacity`…). Cada uno **vuelve a comprobar el permiso** de su sección además de la ruta.
+- **"Lo aprendido"** es lo único que escribe una persona en esta fase: `src/domain/learned`,
+  `src/application/use-cases/learned` y la tabla `learned_entry` (solo inserción).
+- **Comprobar contra Jira:** `pnpm compare:jira [--all]` ([PRUEBAS.md](PRUEBAS.md), D-063).
+
 ## Modelo de datos
 
 Esquema en [schema.ts](../src/infrastructure/db/schema.ts); migraciones en
 `src/infrastructure/db/migrations`.
 
-| Tabla               | Para qué                                                                                |
-| ------------------- | --------------------------------------------------------------------------------------- |
-| `role`              | Roles como datos (Líder y Colaborador son de sistema)                                   |
-| `permission`        | Catálogo fijo de claves de permiso, poblado desde el dominio                            |
-| `role_permission`   | Qué permisos tiene cada rol (`granted`)                                                 |
-| `app_user`          | Persona invitada: correo en minúsculas, rol, estado (`invitado`/`activo`/`desactivado`) |
-| `session`           | Sesión opaca; el `id` es el hash SHA-256 de la cookie                                   |
-| `audit_log`         | Auditoría de solo inserción (un trigger rechaza UPDATE, DELETE y TRUNCATE)              |
-| `webhook_event`     | Para Jira y Crowdin (Fases 1 y 4). Índice único `(source, delivery_id)`                 |
-| `rate_limit_bucket` | Contadores de ventana fija compartidos entre instancias                                 |
+| Tabla                    | Para qué                                                                                  |
+| ------------------------ | ----------------------------------------------------------------------------------------- |
+| `role`                   | Roles como datos (Líder y Colaborador son de sistema)                                     |
+| `permission`             | Catálogo fijo de claves de permiso, poblado desde el dominio                              |
+| `role_permission`        | Qué permisos tiene cada rol (`granted`)                                                   |
+| `app_user`               | Persona invitada: correo en minúsculas, rol, estado (`invitado`/`activo`/`desactivado`)   |
+| `session`                | Sesión opaca; el `id` es el hash SHA-256 de la cookie                                     |
+| `audit_log`              | Auditoría de solo inserción (un trigger rechaza UPDATE, DELETE y TRUNCATE)                |
+| `webhook_event`          | Para Crowdin (Fase 4). Jira no usa webhooks (D-034). Índice único `(source, delivery_id)` |
+| `rate_limit_bucket`      | Contadores de ventana fija compartidos entre instancias                                   |
+| `jira_issue`             | Copia de cada ticket de Jira (solo nombres de personas, nunca correos, D-045)             |
+| `jira_status_transition` | Historial de estados de cada ticket                                                       |
+| `jira_sla_cycle`         | Cada ciclo de SLA de cada ticket, tal como lo calcula Jira                                |
+| `sync_run`               | Una fila por ejecución del sync (cuándo, cómo empezó, resultado, tickets, error)          |
+| `sync_lock`              | Candado con caducidad: solo un sync a la vez entre todas las instancias                   |
+| `learned_entry`          | Versiones de "Lo aprendido"; solo inserción (trigger y privilegios, D-061)                |
 
 Identificadores UUID v7 (D-007). Todas las fechas en UTC.
 

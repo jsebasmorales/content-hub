@@ -1,0 +1,66 @@
+---
+import type { SupportedTimeZone } from '@domain/access/time-zone';
+import type { SyncRun } from '@application/ports/sync';
+import { formatDuration, formatMomentPlain, zoneLabel } from '../format-moment';
+import { formatNumber } from '../format-number';
+
+interface Props {
+  rows: readonly SyncRun[];
+  timeZone: SupportedTimeZone;
+  /** False for a continuation of a table that already showed its heading. */
+  withHead?: boolean;
+}
+
+const { rows, timeZone, withHead = true } = Astro.props;
+
+const KIND_LABEL = {
+  manual: 'Botón "Resincronizar"',
+  lazy: 'Al abrir una página',
+  scheduled: 'Programada',
+} as const;
+
+function outcome(run: SyncRun): { text: string; cls: string } {
+  if (run.status === 'running') return { text: 'En curso', cls: 'verdict' };
+  return run.status === 'succeeded'
+    ? { text: '✔ Correcta', cls: 'verdict verdict-ok' }
+    : { text: '✖ Falló', cls: 'verdict verdict-bad' };
+}
+---
+
+<table class="data-table">
+  {withHead && (
+    <thead>
+      <tr>
+        <th scope="col">Inicio ({zoneLabel(timeZone)})</th>
+        <th scope="col">Cómo empezó</th>
+        <th scope="col">Duración</th>
+        <th scope="col">Resultado</th>
+        <th scope="col">Tickets leídos</th>
+        <th scope="col">Detalle</th>
+      </tr>
+    </thead>
+  )}
+  <tbody>
+    {rows.map((run) => {
+      const result = outcome(run);
+      return (
+        <tr>
+          <th scope="row" data-label="Inicio">
+            {formatMomentPlain(run.startedAt, timeZone)}
+          </th>
+          <td data-label="Cómo empezó">{KIND_LABEL[run.kind]}</td>
+          <td data-label="Duración">
+            {run.finishedAt
+              ? formatDuration(run.finishedAt.getTime() - run.startedAt.getTime())
+              : '—'}
+          </td>
+          <td data-label="Resultado">
+            <span class={result.cls}>{result.text}</span>
+          </td>
+          <td data-label="Tickets leídos">{formatNumber(run.items)}</td>
+          <td data-label="Detalle">{run.error ?? '—'}</td>
+        </tr>
+      );
+    })}
+  </tbody>
+</table>

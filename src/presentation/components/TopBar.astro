@@ -1,0 +1,63 @@
+---
+import type { Principal } from '@application/use-cases/resolve-session';
+import { SUPPORTED_TIME_ZONES } from '@domain/access/time-zone';
+import { zoneLabel } from '../format-moment';
+import type { ThemeChoice } from '../theme';
+import ThemeToggle from './ThemeToggle.astro';
+
+interface Props {
+  principal: Principal;
+  csrfToken: string;
+  theme: ThemeChoice;
+  /** Page to come back to after changing the theme or the zone. */
+  back: string;
+}
+
+const { principal, csrfToken, theme, back } = Astro.props;
+const name = principal.user.name ?? principal.user.email;
+const initial = name.trim().charAt(0).toUpperCase() || '?';
+const zone = principal.user.timeZone;
+---
+
+<header class="topbar">
+  <details class="profile">
+    <summary class="profile-summary">
+      <span class="avatar" aria-hidden="true">
+        {initial}
+      </span>
+      <span class="profile-text">
+        <span class="profile-name">{name}</span>
+        <span class="profile-meta">
+          {principal.user.email} · {principal.user.role.name}
+        </span>
+        <span class="profile-meta">Hora: {zoneLabel(zone)}</span>
+      </span>
+    </summary>
+    <form class="profile-panel card" method="post" action="/api/time-zone">
+      <input type="hidden" name="_csrf" value={csrfToken} />
+      <input type="hidden" name="back" value={back} />
+      <label for="profile-zone">Mostrar las horas en</label>
+      <select id="profile-zone" name="zone">
+        {SUPPORTED_TIME_ZONES.map((option) => (
+          <option value={option.id} selected={option.id === zone}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+      <p class="profile-note">
+        Solo cambia cómo ves las horas. Los trimestres y los meses se agrupan siempre en hora de
+        Bogotá, así todo el equipo ve las mismas cifras.
+      </p>
+      <button class="btn" type="submit">
+        Guardar
+      </button>
+    </form>
+  </details>
+  <ThemeToggle current={theme} csrfToken={csrfToken} back={back} />
+  <form method="post" action="/api/auth/logout">
+    <input type="hidden" name="_csrf" value={csrfToken} />
+    <button class="btn btn-quiet" type="submit">
+      Cerrar sesión
+    </button>
+  </form>
+</header>

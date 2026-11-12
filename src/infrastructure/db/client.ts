@@ -1,7 +1,5 @@
 import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
-import { PGlite } from '@electric-sql/pglite';
-import { drizzle as drizzlePglite } from 'drizzle-orm/pglite';
 import { drizzle as drizzlePg } from 'drizzle-orm/node-postgres';
 import type { PgDatabase, PgQueryResultHKT } from 'drizzle-orm/pg-core';
 import pg from 'pg';
@@ -38,6 +36,10 @@ export async function openDatabase(url: string): Promise<DatabaseHandle> {
 }
 
 async function openPglite(location: string): Promise<DatabaseHandle> {
+  // Loaded only when a local database is asked for, so a production bundle (the Netlify functions)
+  // never carries the embedded database or tries to load it.
+  const { PGlite } = await import('@electric-sql/pglite');
+  const { drizzle: drizzlePglite } = await import('drizzle-orm/pglite');
   if (location !== 'memory') mkdirSync(dirname(location), { recursive: true });
   const client = location === 'memory' ? new PGlite() : new PGlite(location);
   await client.waitReady;

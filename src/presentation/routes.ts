@@ -36,6 +36,70 @@ export const ROUTES: readonly RouteDefinition[] = [
     menuLabel: 'Resumen ejecutivo',
   },
   {
+    pattern: '/resumen',
+    entrypoint: './src/presentation/pages/resumen.astro',
+    kind: 'page',
+    access: { kind: 'permission', permission: 'section.summary' },
+    menuLabel: 'Resumen',
+  },
+  {
+    pattern: '/tareas',
+    entrypoint: './src/presentation/pages/tareas.astro',
+    kind: 'page',
+    access: { kind: 'permission', permission: 'section.work' },
+    menuLabel: 'Tareas',
+  },
+  {
+    pattern: '/sla',
+    entrypoint: './src/presentation/pages/sla.astro',
+    kind: 'page',
+    access: { kind: 'permission', permission: 'section.sla' },
+    menuLabel: 'SLAs',
+  },
+  {
+    pattern: '/incumplimientos',
+    entrypoint: './src/presentation/pages/incumplimientos.astro',
+    kind: 'page',
+    access: { kind: 'permission', permission: 'section.breach' },
+    menuLabel: 'SLAs incumplidos',
+  },
+  {
+    pattern: '/capacidad',
+    entrypoint: './src/presentation/pages/capacidad.astro',
+    kind: 'page',
+    access: { kind: 'permission', permission: 'section.capacity' },
+    menuLabel: 'Capacidad',
+  },
+  {
+    pattern: '/trimestres',
+    entrypoint: './src/presentation/pages/trimestres.astro',
+    kind: 'page',
+    access: { kind: 'permission', permission: 'section.qoq' },
+    menuLabel: 'Trimestre a trimestre',
+  },
+  {
+    pattern: '/aprendido',
+    entrypoint: './src/presentation/pages/aprendido.astro',
+    kind: 'page',
+    access: { kind: 'permission', permission: 'section.learn' },
+    menuLabel: 'Lo aprendido',
+  },
+  {
+    pattern: '/definiciones',
+    entrypoint: './src/presentation/pages/definiciones.astro',
+    kind: 'page',
+    access: { kind: 'permission', permission: 'section.defs' },
+    menuLabel: 'Definiciones',
+  },
+  {
+    // Shown to whoever may request a sync (the Leader by default): they are the ones who act on it.
+    pattern: '/estado',
+    entrypoint: './src/presentation/pages/estado.astro',
+    kind: 'page',
+    access: { kind: 'permission', permission: 'action.sync' },
+    menuLabel: 'Estado',
+  },
+  {
     pattern: '/permisos',
     entrypoint: './src/presentation/pages/permisos.astro',
     kind: 'page',
@@ -70,6 +134,20 @@ export const ROUTES: readonly RouteDefinition[] = [
     rateLimit: { scope: 'ip', limit: 20, windowMs: MINUTE },
   },
   {
+    pattern: '/api/time-zone',
+    entrypoint: './src/presentation/api/time-zone.ts',
+    kind: 'api',
+    access: { kind: 'authenticated' },
+    rateLimit: { scope: 'user', limit: 30, windowMs: MINUTE },
+  },
+  {
+    pattern: '/api/theme',
+    entrypoint: './src/presentation/api/theme.ts',
+    kind: 'api',
+    access: { kind: 'authenticated' },
+    rateLimit: { scope: 'user', limit: 30, windowMs: MINUTE },
+  },
+  {
     pattern: '/api/auth/logout',
     entrypoint: './src/presentation/api/auth-logout.ts',
     kind: 'api',
@@ -81,6 +159,21 @@ export const ROUTES: readonly RouteDefinition[] = [
     kind: 'api',
     access: { kind: 'permission', permission: 'admin.roles' },
     rateLimit: { scope: 'user', limit: 30, windowMs: MINUTE },
+  },
+  {
+    // Writing needs its own permission: seeing the page is not enough to change what it says (D-061).
+    pattern: '/api/learned',
+    entrypoint: './src/presentation/api/learned-save.ts',
+    kind: 'api',
+    access: { kind: 'permission', permission: 'action.learnedit' },
+    rateLimit: { scope: 'user', limit: 30, windowMs: MINUTE },
+  },
+  {
+    // The 1-per-minute limit lives in the handler so the person gets a clear message, not a bare 429.
+    pattern: '/api/sync',
+    entrypoint: './src/presentation/api/sync-request.ts',
+    kind: 'api',
+    access: { kind: 'permission', permission: 'action.sync' },
   },
 ];
 

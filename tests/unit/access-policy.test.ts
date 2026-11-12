@@ -36,9 +36,12 @@ const grant = (permissionKey: string, granted = true): PermissionGrant => ({
 });
 
 describe('permission catalog', () => {
-  it('contains every section, the two actions and admin.roles', () => {
-    expect(PERMISSION_CATALOG).toHaveLength(SECTION_IDS.length + 3);
+  it('contains every section, the three actions and admin.roles', () => {
+    expect(PERMISSION_CATALOG).toHaveLength(SECTION_IDS.length + 4);
     expect(PERMISSION_CATALOG).toContain('admin.roles');
+    // Reading "Lo aprendido" and writing it are separate permissions (D-061).
+    expect(PERMISSION_CATALOG).toContain('section.learn');
+    expect(PERMISSION_CATALOG).toContain('action.learnedit');
   });
 
   it('never lets admin.roles be assigned', () => {
@@ -80,13 +83,15 @@ describe('resolvePermissions', () => {
     expect(set.toArray()).toEqual([]);
   });
 
-  it('gives built-in collaborators the section permissions only (D-001)', () => {
+  it('gives built-in collaborators the section permissions only, except the page of the Leader (D-001, D-061)', () => {
     const defaults = DEFAULT_ROLE_GRANTS[COLLABORATOR_ROLE_NAME] ?? [];
     const set = resolvePermissions(
       collaborator,
       defaults.map((key) => grant(key)),
     );
-    expect(visibleSections(set)).toEqual([...SECTION_IDS]);
+    expect(visibleSections(set)).toEqual(SECTION_IDS.filter((id) => id !== 'learn'));
+    expect(can(set, 'section.learn')).toBe(false);
+    expect(can(set, 'action.learnedit')).toBe(false);
     expect(can(set, 'action.sync')).toBe(false);
     expect(can(set, 'admin.roles')).toBe(false);
   });
@@ -117,9 +122,7 @@ describe('PermissionSet', () => {
 
 describe('email rules', () => {
   it('normalizes case and whitespace', () => {
-    expect(normalizeEmail('  Sebastian.Morales@Holafly.com ')).toBe(
-      'sebastian.morales@holafly.com',
-    );
+    expect(normalizeEmail('  Maria.Lopez@Holafly.com ')).toBe('maria.lopez@holafly.com');
   });
 
   it.each(['ana@holafly.com', 'ANA@HOLAFLY.COM', ' ana.perez+x@holafly.com '])(

@@ -40,8 +40,10 @@ export const errorRedirect = (code: ErrorCode): string => `${REDIRECT_BASE}?erro
 /** Turns `?ok=` / `?error=` into a message. Unknown codes show nothing (no reflected text). */
 export function flashFromQuery(params: URLSearchParams): Flash | null {
   const ok = params.get('ok');
-  if (ok && ok in OK_TEXT) return { kind: 'ok', text: OK_TEXT[ok as OkCode] };
+  if (ok && Object.hasOwn(OK_TEXT, ok)) return { kind: 'ok', text: OK_TEXT[ok as OkCode] };
   const error = params.get('error');
-  if (error && error in ERROR_TEXT) return { kind: 'error', text: ERROR_TEXT[error as ErrorCode] };
+  if (error && Object.hasOwn(ERROR_TEXT, error)) {
+    return { kind: 'error', text: ERROR_TEXT[error as ErrorCode] };
+  }
   return null;
 }

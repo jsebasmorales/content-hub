@@ -1,0 +1,77 @@
+---
+import type { Quarter } from '@domain/jira/quarter';
+import { dayParam, quarterParam, type ReportPeriod } from '@domain/jira/report-period';
+import { quarterLabel } from '@domain/jira/quarter';
+import { SLA_PARAMS, slaQuarterHref } from '../sla-query';
+
+interface Props {
+  quarters: readonly Quarter[];
+  period: ReportPeriod;
+  /** Something was asked for that could not be used. */
+  ignored: boolean;
+  /** The page the choices lead to, so the same picker serves every page that has a period. */
+  basePath?: string;
+  /** Other choices on the page (a filter) that must survive changing the period. */
+  carry?: readonly [string, string][];
+}
+
+const { quarters, period, ignored, basePath = '/sla', carry = [] } = Astro.props;
+const chosen = period.kind === 'quarter' ? quarterParam(period.quarter) : null;
+---
+
+<section class="card period-picker" aria-label="Periodo">
+  <h2 class="picker-title">Periodo</h2>
+
+  {ignored && (
+    <p class="notice notice-error" role="alert">
+      No pudimos usar el periodo pedido, así que se muestra el trimestre en curso.
+    </p>
+  )}
+
+  <nav class="quick-quarters" aria-label="Trimestres">
+    {quarters.map((quarter) => {
+      const param = quarterParam(quarter);
+      return (
+        <a
+          class={`chip ${chosen === param ? 'chip-on' : ''}`}
+          href={slaQuarterHref(param, basePath, carry)}
+          aria-current={chosen === param ? 'page' : undefined}
+        >
+          {quarterLabel(quarter)}
+        </a>
+      );
+    })}
+  </nav>
+
+  <form class="period-form" method="get" action={basePath}>
+    {carry.map(([name, value]) => (
+      <input type="hidden" name={name} value={value} />
+    ))}
+    <div class="field">
+      <label for="p-desde">Desde</label>
+      <input
+        id="p-desde"
+        name={SLA_PARAMS.from}
+        type="date"
+        required
+        value={period.kind === 'custom' ? dayParam(period.from) : ''}
+      />
+    </div>
+    <div class="field">
+      <label for="p-hasta">Hasta (incluido)</label>
+      <input
+        id="p-hasta"
+        name={SLA_PARAMS.to}
+        type="date"
+        required
+        value={period.kind === 'custom' ? dayParam(period.to) : ''}
+      />
+    </div>
+    <button class="btn" type="submit">
+      Ver periodo
+    </button>
+  </form>
+  <p class="section-note">
+    Las fechas se cuentan en hora de Bogotá. El periodo máximo es de 3 años.
+  </p>
+</section>

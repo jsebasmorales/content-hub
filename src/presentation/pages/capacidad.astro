@@ -1,0 +1,190 @@
+---
+import { getApp, getJiraApp } from '@infrastructure/container';
+import { BALANCE_TOLERANCE, PACE_MONTHS } from '@domain/jira/capacity';
+import { NO_FILTER, OPEN_STATUS, UNASSIGNED } from '@domain/jira/task-list';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import KpiCard from '../components/KpiCard.astro';
+import LoadBars from '../components/LoadBars.astro';
+import VolumeChart from '../components/VolumeChart.astro';
+import PersonTable from '../components/PersonTable.astro';
+import SyncPanel from '../components/SyncPanel.astro';
+import { formatNumber, monthShortName } from '../format-number';
+import { splitForPhone } from '../phone-split';
+import { syncFlashFromQuery } from '../sync-messages';
+import { tasksHref } from '../tasks-query';
+
+const principal = Astro.locals.principal;
+if (!principal) return new Response(null, { status: 404 });
+
+const jira = await getJiraApp();
+// Opening the page refreshes stale data in the background; it never waits for Jira.
+await jira.requestSync.lazy();
+
+const [status, result] = await Promise.all([
+  jira.syncStatus.execute(),
+  jira.capacity.execute(principal.permissions),
+]);
+if (!result.ok) return new Response(null, { status: 404 });
+const report = result.value;
+const { flow } = report;
+
+const csrfToken = (await getApp()).csrf.tokenFor(principal.sessionId);
+const timeZone = principal.user.timeZone;
+const phone = splitForPhone(report.people);
+const outsideOpen = report.outside.reduce((sum, person) => sum + person.open, 0);
+
+const perMonth = (value: number | null): string =>
+  value === null ? 'Sin datos' : formatNumber(value);
+const difference = flow.difference;
+const differenceText =
+  difference === null
+    ? 'Sin datos'
+    : difference === 0
+      ? '0'
+      : `${difference > 0 ? '+' : '−'}${formatNumber(Math.abs(difference))}`;
+const differenceNote =
+  difference === null
+    ? undefined
+    : difference > 0
+      ? '▲ Entra más de lo que sale: la cola crece'
+      : difference < 0
+        ? '▼ Sale más de lo que entra: la cola baja'
+        : 'Entra y sale lo mismo';
+const unassignedHref = tasksHref({ ...NO_FILTER, assigneeId: UNASSIGNED, status: OPEN_STATUS }, 1);
+const tolerancePercent = Math.round(BALANCE_TOLERANCE * 100);
+---
+
+<BaseLayout title="Capacidad">
+  <h1>Capacidad</h1>
+  <p class="lede">
+    Cómo se reparte el trabajo abierto entre el equipo y si entra más de lo que sale. Hoy la carga
+    se mide en número de tareas.
+  </p>
+  <SyncPanel
+    status={status}
+    timeZone={timeZone}
+    canSync={principal.permissions.has('action.sync')}
+    csrfToken={csrfToken}
+    back="/capacidad"
+    flash={syncFlashFromQuery(Astro.url.searchParams)}
+  />
+
+  <h2 class="section-title">Entrada y salida de trabajo</h2>
+  <p class="section-note">
+    Promedio mensual de los últimos {PACE_MONTHS} meses completos, con las tareas del equipo y las
+    que nadie tiene asignadas.
+  </p>
+  <div class="kpi-grid">
+    <KpiCard
+      label="Cola actual"
+      value={formatNumber(flow.openNow)}
+      tip="Todas las tareas que todavía no están en Hecho, tengan o no responsable."
+    />
+    <KpiCard
+      label="Entran por mes"
+      value={perMonth(flow.arrivedPerMonth)}
+      tip="Tareas nuevas creadas por mes, en promedio, durante los últimos meses completos."
+    />
+    <KpiCard
+      label="Salen por mes"
+      value={perMonth(flow.finishedPerMonth)}
+      tip="Tareas que pasaron a Hecho por mes, en promedio, durante los últimos meses completos."
+    />
+    <KpiCard
+      label="Diferencia por mes"
+      value={differenceText}
+      change={differenceNote}
+      tip="Lo que entra menos lo que sale. Si es positivo y se mantiene, la cola crece cada mes."
+    />
+    <KpiCard
+      label="Meses para vaciar la cola"
+      value={flow.monthsToClear === null ? 'Sin datos' : formatNumber(flow.monthsToClear)}
+      tip="Cola actual dividida entre lo que sale por mes, suponiendo que no entrara nada nuevo. Es una referencia, no una predicción."
+    />
+    <KpiCard
+      label="Sin responsable"
+      value={formatNumber(report.unassignedOpen)}
+      tip="Tareas abiertas que nadie tiene asignadas. No entran en el promedio por persona."
+    />
+  </div>
+  {report.unassignedOpen > 0 && (
+    <p class="section-note">
+      <a href={unassignedHref}>
+        Ver las {formatNumber(report.unassignedOpen)} tareas abiertas sin responsable
+      </a>
+    </p>
+  )}
+
+  <h2 class="section-title">Entrada y salida, últimos 6 meses</h2>
+  <section class="card">
+    <VolumeChart
+      items={report.months.map((m) => ({
+        label: monthShortName(m.month.year, m.month.month),
+        created: m.created,
+        resolved: m.resolved,
+      }))}
+      title="Tickets creados y resueltos por mes"
+      idPrefix="monthly"
+      note="El último mes está en curso."
+    />
+  </section>
+
+  <h2 class="section-title">Reparto entre personas</h2>
+  {report.averageLoad === null ? (
+    <p class="empty">Todavía no hay personas con tareas abiertas.</p>
+  ) : (
+    <>
+      <p class="section-note">
+        Promedio: {formatNumber(report.averageLoad)} tareas abiertas por persona. Se considera
+        equilibrado estar a menos de {formatNumber(report.band)} del promedio (±{tolerancePercent}{' '}
+        %, y nunca menos de 1 tarea). La línea vertical de cada barra marca el promedio.
+      </p>
+      <section class="card">
+        <LoadBars people={report.people} average={report.averageLoad} />
+      </section>
+
+      <h2 class="section-title">Detalle por persona</h2>
+      <p class="section-note">
+        El análisis incluye solo a {report.people.length} personas del equipo. Todas aparecen aunque
+        no tengan nada abierto, porque su capacidad libre también cuenta.
+      </p>
+      <section class="card table-card">
+        <div class="only-wide">
+          <PersonTable rows={report.people} />
+        </div>
+        <div class="only-narrow">
+          <PersonTable rows={phone.first} />
+          {phone.more.length > 0 && (
+            <details class="more-rows">
+              <summary>Ver más ({phone.more.length})</summary>
+              <PersonTable rows={phone.more} withHead={false} />
+            </details>
+          )}
+        </div>
+      </section>
+    </>
+  )}
+  {report.outside.length > 0 && (
+    <>
+      <h2 class="section-title">Fuera del análisis</h2>
+      <p class="section-note">
+        Personas de otros equipos con tareas abiertas en este proyecto. No cuentan en ninguna cifra
+        de esta página, pero se muestran para que no quede nada oculto.
+      </p>
+      <section class="card">
+        <details class="more">
+          <summary>
+            {report.outside.length} personas, {formatNumber(outsideOpen)} tareas abiertas
+          </summary>
+          <ul class="plain-list">
+            {report.outside.map((person) => (
+              <li>
+                {person.name}: {formatNumber(person.open)}
+              </li>
+            ))}
+          </ul>
+        </details>
+      </section>
+    </>
+  )}
+</BaseLayout>

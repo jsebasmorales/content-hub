@@ -1,0 +1,63 @@
+---
+import type { PersonLoad } from '@domain/jira/capacity';
+import { NO_FILTER, OPEN_STATUS } from '@domain/jira/task-list';
+import { formatNumber } from '../format-number';
+import { tasksHref } from '../tasks-query';
+
+interface Props {
+  rows: readonly PersonLoad[];
+  /** False for a continuation of a table that already showed its heading. */
+  withHead?: boolean;
+}
+
+const { rows, withHead = true } = Astro.props;
+
+const signed = (value: number): string =>
+  value === 0 ? '0' : `${value > 0 ? '+' : '−'}${formatNumber(Math.abs(value))}`;
+---
+
+<table class="data-table">
+  {withHead && (
+    <thead>
+      <tr>
+        <th scope="col">Persona</th>
+        <th scope="col">Abiertas</th>
+        <th scope="col">En curso</th>
+        <th scope="col">Sin empezar</th>
+        <th scope="col">Terminó (90 días)</th>
+        <th scope="col">Frente al promedio</th>
+        <th scope="col">Tareas</th>
+      </tr>
+    </thead>
+  )}
+  <tbody>
+    {rows.map((person) => (
+      <tr>
+        <th scope="row" data-label="Persona">
+          {person.name}
+        </th>
+        <td data-label="Abiertas">{formatNumber(person.open)}</td>
+        <td data-label="En curso">{formatNumber(person.inProgress)}</td>
+        <td data-label="Sin empezar">{formatNumber(person.notStarted)}</td>
+        <td data-label="Terminó (90 días)">{formatNumber(person.resolvedRecent)}</td>
+        <td data-label="Frente al promedio">
+          <span class={`balance balance-${person.balance}`}>{signed(person.deviation)}</span>
+        </td>
+        <td data-label="Tareas">
+          {person.assigneeId === null ? (
+            '—'
+          ) : (
+            <a
+              href={tasksHref(
+                { ...NO_FILTER, assigneeId: person.assigneeId, status: OPEN_STATUS },
+                1,
+              )}
+            >
+              Ver abiertas
+            </a>
+          )}
+        </td>
+      </tr>
+    ))}
+  </tbody>
+</table>

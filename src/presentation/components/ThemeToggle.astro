@@ -1,0 +1,36 @@
+---
+import type { ThemeChoice } from '../theme';
+
+interface Props {
+  current: ThemeChoice;
+  csrfToken: string;
+  /** Page to come back to, with its filters. */
+  back: string;
+}
+
+const { current, csrfToken, back } = Astro.props;
+
+const choices: { value: ThemeChoice; icon: string; label: string }[] = [
+  { value: 'light', icon: '☀', label: 'Tema claro' },
+  { value: 'system', icon: '◐', label: 'Tema del dispositivo' },
+  { value: 'dark', icon: '☾', label: 'Tema oscuro' },
+];
+---
+
+<form class="theme-toggle" method="post" action="/api/theme" aria-label="Tema">
+  <input type="hidden" name="_csrf" value={csrfToken} />
+  <input type="hidden" name="back" value={back} />
+  {choices.map((choice) => (
+    <button
+      class={`theme-option ${current === choice.value ? 'theme-option-on' : ''}`}
+      type="submit"
+      name="theme"
+      value={choice.value}
+      aria-pressed={current === choice.value ? 'true' : 'false'}
+      aria-label={choice.label}
+      title={choice.label}
+    >
+      <span aria-hidden="true">{choice.icon}</span>
+    </button>
+  ))}
+</form>

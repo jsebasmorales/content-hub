@@ -8,7 +8,8 @@
   },
   "scripts": {
     "dev": "astro dev",
-    "build": "astro build",
+    "build": "pnpm build:functions && astro build",
+    "build:functions": "node scripts/build-functions.mjs",
     "preview": "astro preview",
     "check": "astro check",
     "lint": "eslint . --max-warnings 0",
@@ -19,11 +20,15 @@
     "test": "vitest run --passWithNoTests",
     "test:coverage": "vitest run tests/unit --coverage",
     "e2e": "playwright test",
+    "perf": "node scripts/perf-check.mjs",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx --env-file=.env src/infrastructure/db/migrate-cli.ts",
     "test:unit": "vitest run tests/unit",
     "test:integration": "vitest run tests/integration",
-    "verify:deploy": "node scripts/verify-deploy.mjs"
+    "verify:deploy": "node scripts/verify-deploy.mjs",
+    "probe:jira": "node --env-file=.env scripts/probe-jira.mjs",
+    "sync:jira": "tsx --env-file=.env src/infrastructure/jira/sync-cli.ts",
+    "compare:jira": "tsx --env-file=.env src/infrastructure/jira/compare-sample-cli.ts"
   },
   "dependencies": {
     "@astrojs/netlify": "^8.2.12",
@@ -43,9 +48,11 @@
     "@vitest/coverage-v8": "^5.1.0",
     "dependency-cruiser": "^18.7.2",
     "drizzle-kit": "^0.31.11",
+    "esbuild": "0.28.1",
     "eslint": "^10.14.0",
     "eslint-plugin-astro": "^3.2.1",
     "globals": "^17.14.0",
+    "lighthouse": "^13.6.0",
     "prettier": "^3.9.10",
     "prettier-plugin-astro": "^1.1.2",
     "tsx": "^4.23.15",

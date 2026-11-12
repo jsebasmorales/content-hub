@@ -1,0 +1,22 @@
+---
+interface Props {
+  ticketKey: string;
+  /** Address of the ticket in Jira, or null when none can be built. */
+  url: string | null;
+}
+
+const { ticketKey, url } = Astro.props;
+---
+
+{url ? (
+  <a
+    href={url}
+    target="_blank"
+    rel="noopener noreferrer"
+    aria-label={`${ticketKey} (se abre en Jira)`}
+  >
+    {ticketKey}
+  </a>
+) : (
+  ticketKey
+)}

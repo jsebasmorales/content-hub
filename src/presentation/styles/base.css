@@ -22,38 +22,41 @@ a {
   outline-offset: 2px;
 }
 
-.shell {
+/* The page: a sidebar with every section, and a column with the top bar and the content. */
+.app {
+  display: grid;
+  grid-template-columns: 15rem minmax(0, 1fr);
   min-height: 100vh;
-  display: flex;
-  flex-direction: column;
 }
 
-.topbar {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: var(--space);
-  padding: 0.75rem 1.25rem;
+.sidebar {
+  position: sticky;
+  top: 0;
+  align-self: start;
+  height: 100vh;
+  overflow-y: auto;
+  padding: 1.25rem 0.75rem;
   background: var(--surface);
-  border-bottom: 1px solid var(--border);
+  border-right: 1px solid var(--border);
 }
 
 .brand {
+  display: block;
+  padding: 0.25rem 0.75rem 1.25rem;
+  font-size: 1.1rem;
   font-weight: 700;
   color: var(--brand-strong);
   text-decoration: none;
-  margin-right: 1rem;
 }
 
 .menu {
   display: flex;
-  gap: 0.25rem;
-  flex: 1;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: 0.15rem;
 }
 
 .menu a {
-  padding: 0.4rem 0.75rem;
+  padding: 0.5rem 0.75rem;
   border-radius: 8px;
   color: var(--ink-2);
   text-decoration: none;
@@ -69,12 +72,146 @@ a {
   font-weight: 600;
 }
 
-.account {
+.main-col {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.topbar {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  color: var(--muted);
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 0.75rem 1rem;
+  padding: 0.6rem 1.25rem;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+/* The profile opens a small panel (no script) where the person picks the zone for their dates. */
+.profile {
+  position: relative;
+  margin-right: auto;
+  min-width: 0;
+}
+
+.profile-summary {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 0;
+  cursor: pointer;
+  list-style: none;
+}
+
+.profile-summary::-webkit-details-marker {
+  display: none;
+}
+
+.profile-panel {
+  position: absolute;
+  z-index: 3;
+  top: calc(100% + 0.4rem);
+  left: 0;
+  width: 20rem;
+  max-width: 85vw;
+  margin: 0;
+  box-shadow: 0 6px 24px rgb(0 0 0 / 18%);
+}
+
+.profile-panel select {
+  max-width: none;
+  margin-bottom: 0.5rem;
+}
+
+.profile-note {
+  margin: 0 0 0.75rem;
   font-size: 13px;
+  color: var(--muted);
+}
+
+.avatar {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  background: var(--brand-wash);
+  color: var(--brand-strong);
+  font-weight: 700;
+}
+
+.profile-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.25;
+}
+
+.profile-name {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.profile-meta {
+  font-size: 12px;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.theme-toggle {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.theme-option {
+  font: inherit;
+  cursor: pointer;
+  padding: 0.3rem 0.6rem;
+  border: 0;
+  background: transparent;
+  color: var(--ink-2);
+}
+
+.theme-option:hover {
+  background: var(--wash);
+}
+
+.theme-option-on {
+  background: var(--brand-wash);
+  color: var(--brand-strong);
+}
+
+@media (max-width: 900px) {
+  .app {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* On a narrow screen the sidebar becomes a strip above the content. */
+  .sidebar {
+    position: static;
+    height: auto;
+    border-right: 0;
+    border-bottom: 1px solid var(--border);
+    padding: 0.75rem;
+  }
+
+  .brand {
+    padding-bottom: 0.5rem;
+  }
+
+  .menu {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
 }
 
 .content {
@@ -200,6 +337,14 @@ th {
   color: var(--muted);
 }
 
+/* The first cell of a row names the row ("Ana", "Edit or Change Content"): it reads as text, not as a column heading. */
+tbody th[scope='row'] {
+  font-size: inherit;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--ink);
+}
+
 .inline-form {
   display: inline-flex;
   align-items: center;
@@ -226,6 +371,575 @@ th {
   color: var(--bad-text);
 }
 
+.sync-panel {
+  margin-bottom: 1.5rem;
+}
+
+.sync-line {
+  margin: 0 0 0.5rem;
+  color: var(--ink-2);
+}
+
+.sync-detail {
+  display: block;
+  font-size: 13px;
+}
+
+.section-title {
+  font-size: 1.1rem;
+  margin: 1.75rem 0 0.75rem;
+}
+
+.section-note {
+  color: var(--muted);
+  margin: -0.25rem 0 0.75rem;
+  font-size: 13px;
+}
+
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  gap: var(--space);
+}
+
+.kpi,
+.sla-meter {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem 1.1rem;
+}
+
+.kpi-label {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-2);
+}
+
+.kpi-value {
+  margin: 0.25rem 0;
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1.15;
+}
+
+.kpi-change {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.info-tip {
+  position: relative;
+  display: inline-block;
+  font-weight: 400;
+}
+
+.info-tip summary {
+  cursor: pointer;
+  list-style: none;
+  color: var(--muted);
+}
+
+.info-tip summary::-webkit-details-marker {
+  display: none;
+}
+
+.info-tip p {
+  position: absolute;
+  z-index: 2;
+  left: 0;
+  top: 1.5rem;
+  width: 16rem;
+  max-width: 80vw;
+  margin: 0;
+  padding: 0.6rem 0.75rem;
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--axis);
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 400;
+}
+
+.meter {
+  display: block;
+  width: 100%;
+  height: 0.7rem;
+  margin: 0.25rem 0 0.5rem;
+}
+
+.meter-track {
+  fill: var(--wash);
+}
+
+.meter-fill {
+  fill: var(--green);
+}
+
+.meter-fill-bad {
+  fill: var(--bad-text);
+}
+
+.meter-goal {
+  stroke: var(--ink);
+  stroke-width: 0.8;
+}
+
+.verdict {
+  white-space: nowrap;
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.verdict-ok {
+  color: var(--good-text);
+}
+
+.verdict-bad {
+  color: var(--bad-text);
+}
+
+.chart-figure {
+  margin: 0;
+}
+
+/* On a phone the chart keeps a readable size and scrolls sideways instead of shrinking its text. */
+.chart-scroll {
+  overflow-x: auto;
+  /* Right to left only decides where the scroll starts: at the newest end. The chart itself stays left to right. */
+  direction: rtl;
+}
+
+.chart-scroll > * {
+  direction: ltr;
+}
+
+.chart {
+  display: block;
+  width: 100%;
+  min-width: 30rem;
+  height: auto;
+}
+
+.chart-note {
+  margin-left: auto;
+  color: var(--muted);
+}
+
+.chart-axis {
+  stroke: var(--axis);
+  stroke-width: 1;
+}
+
+.chart-value,
+.chart-label {
+  fill: var(--ink-2);
+  font-size: 14px;
+}
+
+.chart-value {
+  fill: var(--ink);
+  font-weight: 600;
+}
+
+.bar-created,
+.swatch-created {
+  fill: var(--violet);
+  background: var(--violet);
+}
+
+.bar-resolved,
+.swatch-resolved {
+  fill: var(--aqua);
+  background: var(--aqua);
+}
+
+.chart-legend {
+  display: flex;
+  gap: 1rem;
+  margin-top: 0.5rem;
+  font-size: 13px;
+  color: var(--ink-2);
+}
+
+.swatch {
+  display: inline-block;
+  width: 0.8rem;
+  height: 0.8rem;
+  border-radius: 3px;
+  vertical-align: -1px;
+}
+
+.bar-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.bar-row {
+  display: grid;
+  grid-template-columns: minmax(8rem, 14rem) 1fr 2.5rem;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.3rem 0;
+}
+
+.bar-name {
+  overflow-wrap: anywhere;
+}
+
+.bar-track {
+  width: 100%;
+  height: 0.6rem;
+}
+
+.bar-count {
+  text-align: right;
+  font-weight: 600;
+}
+
+.empty {
+  color: var(--muted);
+}
+
+/* Where a person stands against the team average: a word and a symbol, plus color. */
+.balance {
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.bar-name .balance {
+  display: block;
+}
+
+.balance-above {
+  color: var(--bad-text);
+}
+
+.balance-balanced {
+  color: var(--good-text);
+}
+
+.balance-below {
+  color: var(--muted);
+}
+
+.bar-load-above {
+  fill: var(--bad-text);
+}
+
+.bar-load-balanced {
+  fill: var(--green);
+}
+
+.bar-load-below {
+  fill: var(--amber);
+}
+
+.load-average {
+  stroke: var(--ink);
+  stroke-width: 0.7;
+}
+
+.filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  gap: 0.75rem 1rem;
+  align-items: end;
+}
+
+.filters .field {
+  margin-bottom: 0;
+}
+
+.filters .field-wide {
+  grid-column: 1 / -1;
+}
+
+.filters select,
+.filters input[type='search'],
+.period-form input[type='date'] {
+  width: 100%;
+  max-width: none;
+  padding: 0.55rem 0.7rem;
+  font: inherit;
+  color: var(--ink);
+  background: var(--page);
+  border: 1px solid var(--axis);
+  border-radius: 8px;
+}
+
+.filter-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.table-card {
+  padding: 0.5rem 1rem;
+  overflow-x: auto;
+}
+
+.task-key {
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.badge-new {
+  background: var(--wash);
+}
+
+.badge-indeterminate {
+  background: var(--brand-wash);
+  color: var(--brand-strong);
+}
+
+.badge-done {
+  background: var(--good-wash);
+  color: var(--good-text);
+}
+
+.period-picker .picker-title {
+  font-size: 1rem;
+  margin: 0 0 0.75rem;
+}
+
+.quick-quarters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.chip {
+  padding: 0.35rem 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--ink-2);
+  text-decoration: none;
+  background: var(--page);
+}
+
+.chip:hover {
+  background: var(--wash);
+}
+
+.chip-on {
+  background: var(--brand-wash);
+  border-color: var(--brand-strong);
+  color: var(--brand-strong);
+  font-weight: 600;
+}
+
+.period-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 0.75rem 1rem;
+}
+
+.period-form .field {
+  margin-bottom: 0;
+}
+
+.two-columns {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr));
+  gap: 0 var(--space);
+}
+
+.table-scroll {
+  overflow-x: auto;
+}
+
+/* The same content in two shapes: the full table on a wide screen, a short list with "Ver más" on a phone. */
+.only-narrow {
+  display: none;
+}
+
+.more-rows summary {
+  cursor: pointer;
+  color: var(--brand-strong);
+  padding: 0.5rem 0;
+}
+
+@media (max-width: 640px) {
+  /* A long reference list reads better as plain entries separated by lines than as a pile of boxes. */
+  .definition.card {
+    padding: 0.75rem 0;
+    margin-bottom: 0;
+    border: 0;
+    border-bottom: 1px solid var(--border);
+    border-radius: 0;
+    background: none;
+  }
+
+  .only-wide {
+    display: none;
+  }
+
+  .only-narrow {
+    display: block;
+  }
+}
+
+.cell-note {
+  display: block;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.more {
+  margin-top: 1rem;
+}
+
+.toc {
+  margin-top: 1.5rem;
+}
+
+.toc-title {
+  font-size: 1rem;
+  margin: 0 0 0.5rem;
+}
+
+/* A finger needs a big enough target: each index link fills its own row (Lighthouse target-size). */
+.toc a {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+}
+
+.definitions {
+  margin: 0;
+}
+
+.definition {
+  margin-bottom: 0.75rem;
+  scroll-margin-top: 1rem;
+}
+
+.definition dt {
+  font-weight: 700;
+  font-size: 1.05rem;
+}
+
+.definition dd {
+  margin: 0.4rem 0 0;
+}
+
+.definition dd p {
+  margin: 0 0 0.5rem;
+}
+
+.back-link {
+  margin: 0 0 1.5rem;
+  font-size: 14px;
+}
+
+.definition-how,
+.definition-seen {
+  font-size: 14px;
+  color: var(--ink-2);
+}
+
+.learned-form textarea {
+  display: block;
+  width: 100%;
+  max-width: none;
+  padding: 0.6rem 0.7rem;
+  font: inherit;
+  color: var(--ink);
+  background: var(--page);
+  border: 1px solid var(--axis);
+  border-radius: 8px;
+  resize: vertical;
+}
+
+.field-help {
+  margin: 0 0 0.35rem;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.learned-read h3 {
+  margin: 0.75rem 0 0.25rem;
+  font-size: 0.95rem;
+}
+
+/* The Leader's own line breaks are kept, and long words never push the page sideways. */
+.learned-text {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.chip-mark {
+  color: var(--brand-strong);
+}
+
+.plain-list {
+  margin: 0.75rem 0 0;
+  padding-left: 1.25rem;
+}
+
+.more summary {
+  cursor: pointer;
+  color: var(--brand-strong);
+}
+
+.chart-goal {
+  stroke: var(--ink-2);
+  stroke-width: 1;
+  stroke-dasharray: 5 4;
+}
+
+.swatch-goal {
+  width: 1.1rem;
+  height: 0;
+  border-top: 2px dashed var(--ink-2);
+  border-radius: 0;
+  background: none;
+  vertical-align: 3px;
+}
+
+.bar-first,
+.swatch-first {
+  fill: var(--violet);
+  background: var(--violet);
+}
+
+.bar-done,
+.swatch-done {
+  fill: var(--aqua);
+  background: var(--aqua);
+}
+
+/* Natural width from the `width` attribute, but never narrower than its card. */
+.chart-fixed {
+  width: auto;
+  min-width: 100%;
+  height: auto;
+}
+
+.pager {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.pager-off {
+  color: var(--muted);
+}
+
 .center {
   min-height: 100vh;
   display: grid;
@@ -239,8 +953,14 @@ th {
 }
 
 @media (max-width: 640px) {
-  .account {
-    width: 100%;
+  /* Name on its own line, then the bar and the number, so the bar keeps room. */
+  .bar-row {
+    grid-template-columns: 1fr 2.5rem;
+    gap: 0.15rem 0.75rem;
+  }
+
+  .bar-name {
+    grid-column: 1 / -1;
   }
 
   table,
@@ -264,6 +984,45 @@ th {
 
   td {
     border: 0;
+  }
+
+  /* Each cell says what it is, because the header row is hidden on a phone. */
+  .task-table [data-label]::before,
+  .data-table [data-label]::before {
+    content: attr(data-label) ': ';
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .task-table th[data-label],
+  .data-table th[data-label] {
+    border: 0;
+    padding-bottom: 0;
+    font-size: 15px;
+    text-transform: none;
+    letter-spacing: 0;
+    color: var(--ink);
+  }
+
+  /* Two columns inside each card keep a long list from becoming a very long page. */
+  .task-table tr,
+  .data-table tr {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.1rem 0.75rem;
+  }
+
+  .task-table th[data-label],
+  .data-table th[data-label],
+  .task-table td[data-label='Resumen'],
+  .data-table td[data-label='Resumen'] {
+    grid-column: 1 / -1;
+  }
+
+  .task-table td,
+  .data-table td {
+    padding: 0.15rem 0;
+    overflow-wrap: anywhere;
   }
 }
 
