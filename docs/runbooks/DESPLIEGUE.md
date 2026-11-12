@@ -77,6 +77,13 @@ migrar. La app se conecta con un rol sin DDL (`app_runtime`):
 `DATABASE_URL`, las variables `JIRA_*` y `SYNC_TRIGGER_SECRET`; Netlify las entrega a las funciones sin
 configuración extra, siempre que el ámbito de cada variable incluya **Functions**.
 
+> **Ámbitos de las variables (primer despliegue, 2026-11-12).** Todas las variables de la tabla deben tener
+> los tres ámbitos: **Builds, Functions y Runtime**. Astro valida los secretos al _construir_ (SDD §15), así
+> que una variable sin **Builds** hace fallar el build con `<VARIABLE> is missing` aunque exista. Se vio en
+> la vista previa del PR con `JIRA_API_TOKEN` y `SYNC_TRIGGER_SECRET`. Las **vistas previas** (_Deploy
+> Previews_) llevan valores de relleno (el secreto de 32+ caracteres y distinto del de producción) y una
+> base distinta de la de producción: solo necesitan construirse.
+
 **Tras el primer despliegue con esta versión:**
 
 1. Aplica las migraciones `0003_jira_cache`, `0004_people_names`, `0005_learned_entry` y `0006_learned_leader_only` a la base de producción (paso 1 de **Pasos**).
