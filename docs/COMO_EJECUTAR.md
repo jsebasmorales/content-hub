@@ -11,7 +11,7 @@ Esta guía es para uso diario. No necesitas saber programar.
 4. Abre `.env` y rellena solo estas dos líneas:
    - `SESSION_SECRET=` → pega aquí un texto largo y aleatorio. Para generarlo, ejecuta en la terminal:
      `node -e "console.log(require('crypto').randomBytes(48).toString('base64url'))"`
-   - `BOOTSTRAP_LEADER_EMAIL=` → tu correo: `sebastian.morales@holafly.com`
+   - `BOOTSTRAP_LEADER_EMAIL=` → tu correo: `tu.nombre@holafly.com`
 5. Prepara la base de datos local: `pnpm db:migrate`
 
 El archivo `.env` es solo tuyo: nunca se sube a GitHub.

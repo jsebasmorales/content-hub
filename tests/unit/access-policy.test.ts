@@ -122,9 +122,7 @@ describe('PermissionSet', () => {
 
 describe('email rules', () => {
   it('normalizes case and whitespace', () => {
-    expect(normalizeEmail('  Sebastian.Morales@Holafly.com ')).toBe(
-      'sebastian.morales@holafly.com',
-    );
+    expect(normalizeEmail('  Maria.Lopez@Holafly.com ')).toBe('maria.lopez@holafly.com');
   });
 
   it.each(['ana@holafly.com', 'ANA@HOLAFLY.COM', ' ana.perez+x@holafly.com '])(
