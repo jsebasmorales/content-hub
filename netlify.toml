@@ -1,0 +1,15 @@
+# Netlify settings that must live in the repository (docs/runbooks/DESPLIEGUE.md).
+# The build command and publish directory stay in the Netlify UI; only what is listed here is
+# controlled from code.
+
+# The background function is already one self-contained ES module (scripts/build-functions.mjs).
+# Left to itself, Netlify bundles it again as CommonJS, which empties `import.meta.url` and
+# breaks the `require` shim at start-up. "none" ships the file exactly as built.
+[functions."sync-jira-background"]
+  node_bundler = "none"
+
+[build.environment]
+  # Netlify's secret scan fails the build when the value of a secret variable appears anywhere in
+  # the repository. The Jira project key is a public label (JSMCO) that tests and docs use
+  # everywhere, so it is not a secret. Other secrets (token, email, session secret) stay scanned.
+  SECRETS_SCAN_OMIT_KEYS = "JIRA_PROJECT_KEY"

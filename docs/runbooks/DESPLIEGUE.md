@@ -84,6 +84,8 @@ configuración extra, siempre que el ámbito de cada variable incluya **Function
 > Previews_) llevan valores de relleno (el secreto de 32+ caracteres y distinto del de producción) y una
 > base distinta de la de producción: solo necesitan construirse.
 
+**`netlify.toml` (primer despliegue, 2026-11-12).** Lo que debe vivir en el código está ahí: (1) `node_bundler = "none"` para la función, porque Netlify la re-empaquetaba como CommonJS y vaciaba `import.meta.url` (el log avisaba `"import.meta" is not available with the "cjs" output format`); y (2) `SECRETS_SCAN_OMIT_KEYS = "JIRA_PROJECT_KEY"`, porque el escáner de secretos de Netlify rompe el build si el valor de una variable secreta aparece en el repositorio, y la clave del proyecto (`JSMCO`) es una etiqueta pública que el código y los tests usan por todas partes. Los demás secretos siguen escaneados: **no escribas el correo de la cuenta de Jira ni ningún token en ejemplos o pruebas.**
+
 **Tras el primer despliegue con esta versión:**
 
 1. Aplica las migraciones `0003_jira_cache`, `0004_people_names`, `0005_learned_entry` y `0006_learned_leader_only` a la base de producción (paso 1 de **Pasos**).
