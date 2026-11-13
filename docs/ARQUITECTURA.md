@@ -62,6 +62,25 @@ Astro ([astro-integration.ts](../src/presentation/astro-integration.ts)) las iny
 | `/api/auth/logout`   | api  | autenticada            | —                  |
 | `/api/admin/users`   | api  | permiso `admin.roles`  | 30/min por usuario |
 
+## La capa de presentación (diseño)
+
+El aspecto vive en `src/presentation` y se rige por [DESIGN.md](DESIGN.md) (decisiones D-067 a D-076).
+
+| Pieza                                            | Qué es                                                                                                                                                                    |
+| ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `styles/tokens.css`                              | **El único sitio con colores, radios y sombras.** Primitivas Volare y capa semántica con `light-dark()`                                                                   |
+| `styles/base.css`, `shell.css`, `components.css` | Tipografía y formularios; marco (navegación, barra superior); componentes. Solo usan la capa semántica                                                                    |
+| `components/*.astro`                             | Componentes sin JavaScript: `KpiCard`, `SlaCard`, `ChartCard`, `StatusChip`, `FilterBar`, `DataTable`, `Pager`, `EmptyState`, `Tooltip`, `Icon`, gráficos SVG de servidor |
+| `icons.ts`                                       | Los iconos SVG propios (sin fuente ni librería de iconos)                                                                                                                 |
+| `navigation.ts`, `routes.ts`                     | El menú se arma en el servidor a partir de `ROUTES` (`menuGroup`, `menuIcon`) y **un grupo sin entradas visibles no se dibuja**                                           |
+| `layouts/BaseLayout.astro`                       | Marco de toda página; recibe `sync` (estado de Jira) de la página y muestra "Datos al ‹hora›" y los avisos                                                                |
+
+Reglas: las páginas y componentes **no escriben colores, radios ni sombras** (lo comprueba
+`pnpm check:design`, también en el CI); la navegación móvil y los menús usan el atributo `popover` del
+navegador, así que no hay JavaScript de cliente (presupuesto de SDD §12); un enlace dentro de una página
+solo se dibuja si la persona puede abrir su destino (SDD §10.3). Los gráficos son SVG de servidor y los
+tamaños que dependen del ancho se dan como porcentajes en atributos, porque el CSP no permite `style=`.
+
 ## Casos de uso
 
 Cada uno es una clase con una dependencia explícita de puertos (sin globales).
@@ -169,7 +188,8 @@ Identificadores UUID v7 (D-007). Todas las fechas en UTC.
 
 1. Crea el archivo en `src/presentation/pages` o `src/presentation/api`.
 2. Regístralo en `ROUTES` con su `access` (obligatorio, no hay valor por defecto) y, si es de
-   escritura o pública, un `rateLimit`. Agrega `menuLabel` si debe salir en el menú.
+   escritura o pública, un `rateLimit`. Si debe salir en el menú, agrega `menuLabel`, `menuGroup` y
+   `menuIcon` (los tres a la vez). Si es una página con datos de Jira, entrega `sync` a `BaseLayout`.
 3. Añade a `tests/unit/route-registry.test.ts` y a la matriz de autorización lo que corresponda.
 
 **Agregar un permiso**
@@ -198,4 +218,5 @@ Identificadores UUID v7 (D-007). Todas las fechas en UTC.
 - Sin `any`; en las fronteras se usa `unknown` y Zod.
 - La configuración solo se lee en `src/infrastructure/config`; nunca `process.env` en otro sitio.
 - Cobertura mínima de 90 % en `src/domain`.
+- Ningún color, radio ni sombra fuera de `tokens.css`, y contraste WCAG AA de los tokens (`pnpm check:design`).
 - Formato, ESLint con cero advertencias, tipos (`astro check`) y reglas de capas.

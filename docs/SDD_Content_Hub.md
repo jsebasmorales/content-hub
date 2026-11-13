@@ -465,7 +465,7 @@ La validación de seguridad es un entregable, no una tarea final. Se ejecuta en 
 2. **Datos precalculados:** un job tras cada sync calcula los agregados (KPIs, SLAs, árbol de objetivos) y los guarda en tablas/vistas materializadas; las páginas solo leen.
 3. **Caché por capas:** caché de agregados precalculados en la BD (en un entorno serverless no hay memoria compartida entre instancias) + `ETag`/`Cache-Control: private, max-age` (nunca `public` para páginas con permisos); invalidación por evento de sync.
 4. **Gráficos en SVG de servidor,** sin librerías de gráficos en el cliente.
-5. **Fuentes:** sistema o una sola familia con `font-display: swap` y _preload_; sin bibliotecas de iconos (SVG en línea).
+5. **Fuentes:** una sola familia, **Mulish** variable y alojada (subconjunto latino, 30 KB), con `font-display: swap`, _preload_ y una fuente de respaldo de métricas ajustadas (D-068); sin bibliotecas de iconos (SVG en línea, D-069).
 6. **Imágenes:** capturas servidas en WebP/AVIF con `width/height`, `loading="lazy"` salvo la principal, y una sola captura por sección.
 7. **Compresión** Brotli en el proxy; HTTP/2 o 3.
 8. **Índices de BD** para cada consulta de página; revisión con `EXPLAIN` en las 10 consultas más frecuentes.

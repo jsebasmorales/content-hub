@@ -28,22 +28,37 @@ Para detener el servidor, pulsa `Ctrl + C` en la terminal.
 
 ## Comandos útiles
 
-| Comando                    | Qué hace                                                                                          |
-| -------------------------- | ------------------------------------------------------------------------------------------------- |
-| `pnpm lint`                | Revisa la calidad del código                                                                      |
-| `pnpm check`               | Revisa los tipos                                                                                  |
-| `pnpm arch`                | Comprueba que las capas no se mezclen                                                             |
-| `pnpm test:unit`           | Pruebas rápidas de las reglas                                                                     |
-| `pnpm test:integration`    | Pruebas con base de datos                                                                         |
-| `pnpm e2e`                 | Pruebas con un navegador real (abre y cierra uno solo)                                            |
-| `pnpm perf`                | Lighthouse y tope de JavaScript en cada página (hay que tener la app corriendo en el puerto 4321) |
-| `pnpm probe:jira`          | Comprueba tu conexión con Jira (solo lee)                                                         |
-| `pnpm sync:jira`           | Trae a la base de datos lo que cambió en Jira                                                     |
-| `pnpm sync:jira --full`    | Lee todo el proyecto y quita lo borrado en Jira                                                   |
-| `pnpm sync:jira --dry-run` | Muestra qué haría, sin escribir nada                                                              |
-| `pnpm compare:jira`        | Compara 30 tickets variados con Jira y escribe una hoja para revisar                              |
-| `pnpm compare:jira --all`  | Compara todos los tickets y recuenta el SLA de cada trimestre                                     |
-| `pnpm build:functions`     | Empaqueta la función en segundo plano (lo hace `pnpm build` solo)                                 |
+| Comando                    | Qué hace                                                                                           |
+| -------------------------- | -------------------------------------------------------------------------------------------------- |
+| `pnpm lint`                | Revisa la calidad del código                                                                       |
+| `pnpm check`               | Revisa los tipos                                                                                   |
+| `pnpm arch`                | Comprueba que las capas no se mezclen                                                              |
+| `pnpm test:unit`           | Pruebas rápidas de las reglas                                                                      |
+| `pnpm test:integration`    | Pruebas con base de datos                                                                          |
+| `pnpm e2e`                 | Pruebas con un navegador real (abre y cierra uno solo)                                             |
+| `pnpm perf`                | Lighthouse y tope de JavaScript en cada página (hay que tener la app corriendo en el puerto 4321)  |
+| `pnpm check:design`        | Falla si hay un color, radio o sombra escritos fuera de `tokens.css` y revisa el contraste (D-067) |
+| `pnpm probe:jira`          | Comprueba tu conexión con Jira (solo lee)                                                          |
+| `pnpm sync:jira`           | Trae a la base de datos lo que cambió en Jira                                                      |
+| `pnpm sync:jira --full`    | Lee todo el proyecto y quita lo borrado en Jira                                                    |
+| `pnpm sync:jira --dry-run` | Muestra qué haría, sin escribir nada                                                               |
+| `pnpm compare:jira`        | Compara 30 tickets variados con Jira y escribe una hoja para revisar                               |
+| `pnpm compare:jira --all`  | Compara todos los tickets y recuenta el SLA de cada trimestre                                      |
+| `pnpm build:functions`     | Empaqueta la función en segundo plano (lo hace `pnpm build` solo)                                  |
+
+**Herramientas de diseño** (se usan al rediseñar páginas; no forman parte del producto):
+
+- `node --env-file=.env scripts/capture-pages.mjs <nombre> [http://localhost:4321] [/ruta,/otra]`
+  saca capturas de cada página a 1440, 1024 y 390 px, en claro y oscuro, en `.design-captures/<nombre>/`.
+  Solo funciona contra un servidor **local** con `AUTH_PROVIDER=local`, y esa carpeta puede mostrar datos
+  reales: está ignorada por git y no debe subirse. Para no tocar tu base ni llamar a Jira, arranca el
+  servidor sobre una copia: copia `.data/dev` a `.design-captures/db` y arranca con
+  `DATABASE_URL=pglite:.design-captures/db`.
+- `node --env-file=.env scripts/recount-type.mjs "<tipo de solicitud>" [2026-T4]` recuenta un tipo de
+  solicitud directamente en Jira (solo lee) con reglas escritas aparte de las del Hub, para comprobar
+  una fila de `/resumen` (D-073). Imprime claves de ticket y fechas, nunca resúmenes ni personas.
+- En Windows, `pnpm build` puede fallar al final con `EPERM ... symlink` (ver más abajo); aun así deja
+  `dist/_astro/*.css`, útil para medir el peso del CSS.
 
 `pnpm sync:jira` escribe en la base de datos de tu `.env`. En local es la base embebida (`pglite:`);
 antes de usarlo la primera vez ejecuta `pnpm db:migrate`. Una carga completa de los 1.046 tickets

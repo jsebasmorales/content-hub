@@ -1,0 +1,392 @@
+# DESIGN.md · Content Hub
+
+Design system for the **Content Hub**, an internal dashboard for Holafly's Content team (Jira tickets, SLAs, objectives and a searchable map of product texts). It is built on **Volare, Holafly's design ecosystem**.
+
+**How to read this file.** Every value tagged **[Volare]** comes from the official Volare documentation. Every value tagged **[Proposed]** is not defined in Volare and was added for this product; keep it, but do not treat it as official. Do not invent colors, sizes or tokens beyond what is written here. All interface copy is in **Spanish**.
+
+> Source: the `DESIGN.md` document of the Stitch project "Content Hub Dashboard Redesign". The short YAML export of the same system is kept as [DESIGN.stitch-corto.md](DESIGN.stitch-corto.md).
+
+---
+
+## 1. Visual theme and atmosphere
+
+A calm, bright and light workspace. Clean neutral surfaces, generous whitespace, and one confident brand color (Holafly Magenta) used sparingly for actions and emphasis. The product should feel friendly and functional, not corporate-heavy: Volare asks for light, fresh typography and restraint with gradients. Data is the hero: large, legible numbers; simple charts; clear status.
+
+Keywords: airy, friendly, precise, uncluttered, trustworthy.
+Density: medium. This is a daily-use tool for 5–15 people on desktop; favor scanning speed over decoration.
+
+---
+
+## 2. Color
+
+### 2.1 Brand and primary [Volare]
+
+- **Holafly Magenta**, `color.magenta.400`, **#E6485C** (R230 G72 B92). The main brand color. Reserved for important actions (buttons, tabs, selected states) and brand moments.
+- **Holafly primary-button gradient**, `#E12B57` → `#C8094E` (`color.gradient.holafly-magenta` → `holafly-magenta-medium`). Volare uses this gradient on primary buttons instead of flat Magenta 400 to meet contrast.
+- Magenta shades: 100 `#FFEEF0`, 200 `#FFA4B0`, 300 `#FF5A6F`, 400 `#E6485C`, 500 `#D22C49`, 600 `#951C39`.
+
+### 2.2 Neutrals [Volare]
+
+| Token       | Hex     | Typical use [Proposed mapping]      |
+| ----------- | ------- | ----------------------------------- |
+| neutral.100 | #FFFFFF | Card and panel surface              |
+| neutral.200 | #F8F8FB | Page background, table stripe       |
+| neutral.300 | #E4E6EA | Borders, dividers                   |
+| neutral.400 | #CCD0D7 | Disabled borders, placeholder icons |
+| neutral.500 | #56575A | Secondary text                      |
+| neutral.600 | #292B2E | Primary text, dark surface          |
+
+### 2.3 Secondary and supporting families [Volare]
+
+| Family    | 100     | 200     | 300     | 400     | 500     | 600     |
+| --------- | ------- | ------- | ------- | ------- | ------- | ------- |
+| Blue      | #EBF3FF | #BDD7FF | #62A0FF | #327DF0 | #2065CE | #002968 |
+| Baby blue | #F8FDFF | #EDF9FE | #DCF4FF | #BFEBFF | #90C6DE | #176C93 |
+| Green     | #EDFFF4 | #C5FFDB | #74FAA7 | #48EC86 | #32A45E | #206B43 |
+| Mint      | #ECFCF4 | #C4F8D9 | #85F4BF | #36B37E | #156F49 | #0B4D31 |
+| Amber     | #FFF8EC | #FFEAC0 | #FFCE6A | #F8BA3D | #C17B18 | #835617 |
+| Yellow    | #FFFDF6 | #FFFCEE | #FFF7D1 | #FFF0AB | #E5D795 | #B58741 |
+| Orange    | #FFFAF7 | #FDF3EE | #FFE3D3 | #FFCCB0 | #E5B59A | #B28870 |
+| Red       | #FFEFEC | #FFCDC1 | #FF876D | #EA5230 | #C83D1E | #841C05 |
+| Purple    | #FFEEFE | #E2BEE0 | #BD78B8 | #643560 | #4D2B49 | #3C263A |
+
+Volare's secondary palette (yellow, purple, orange, baby blue) is for emphasis in backgrounds, illustration and banners, usually paired with gradients and the primary color.
+
+### 2.4 Gradients [Volare]
+
+Use gradients only to highlight one relevant element; never as general backgrounds.
+`blossom #FFEEF0`, `blossom-medium #FEE5E9`, `sunrise-blue #EDF9FE`, `sunrise-blue-medium #BFEBFF`, `sunbeam #FFF2C9`, `sunbeam-medium #FFF6E6`, `silver #EDF4F8`, `silver-medium #B2BBCD`, `skeleton #FFFAFA`, `skeleton-medium #EEEEEE` (loading placeholders), `platinum #EDF9FE`.
+
+### 2.5 Effects [Volare]
+
+`effect.100` = `#292B2E` at 12 % opacity. `effect.200` = `#292B2E` at 20 % opacity. Used for shadows and overlays.
+
+### 2.6 Semantic roles [Proposed, built only from Volare tokens]
+
+| Role                                 | Light theme                            | Dark theme      |
+| ------------------------------------ | -------------------------------------- | --------------- |
+| Page background                      | #F8F8FB                                | #1E1F22         |
+| Surface (cards, panels)              | #FFFFFF                                | #292B2E         |
+| Raised surface (dropdowns, tooltips) | #FFFFFF + shadow                       | #34363A         |
+| Border                               | #E4E6EA                                | #3A3C40         |
+| Text primary                         | #292B2E                                | #F8F8FB         |
+| Text secondary                       | #56575A                                | #CCD0D7         |
+| Primary action                       | gradient #E12B57 → #C8094E, white text | same            |
+| Brand accent, selected state         | #E6485C                                | #FF5A6F         |
+| Link and small colored text          | #D22C49                                | #FF5A6F         |
+| Focus ring (2 px, 2 px offset)       | #2065CE                                | #62A0FF         |
+| Overlay / scrim                      | #292B2E at 40 %                        | #000000 at 60 % |
+
+**Status colors** (always paired with an icon and text, never color alone):
+
+| Status  | Text    | Background | Accent / icon |
+| ------- | ------- | ---------- | ------------- |
+| Success | #206B43 | #EDFFF4    | #32A45E       |
+| Warning | #835617 | #FFF8EC    | #C17B18       |
+| Error   | #841C05 | #FFEFEC    | #C83D1E       |
+| Info    | #002968 | #EBF3FF    | #2065CE       |
+| Neutral | #56575A | #F8F8FB    | #CCD0D7       |
+
+Warning: Holafly Magenta (#E6485C) and Red 400 (#EA5230) are close in hue. Errors must always carry an icon plus text, and the magenta action color must never be the only signal of a problem.
+
+### 2.7 Contrast notes (approximate, computed on white unless stated)
+
+- Magenta 400 #E6485C with white text: about 3.9:1. Fails for small text; use only for large text, graphics, borders and selected indicators.
+- `#E12B57` with white: about 4.5:1. `#C8094E` with white: about 5.8:1. This is why primary buttons use the gradient.
+- Magenta 500 #D22C49 on white: about 5:1. Use it for links and small colored text.
+- Neutral 500 #56575A on white: about 7:1. Neutral 600 #292B2E on white: above 14:1.
+- Volare targets: small text 4.5:1, large text (18 pt regular / 14 pt bold) and graphics 3:1.
+
+---
+
+## 3. Typography
+
+- **Corporate font [Volare]:** Modern Era. A tall x-height, low-contrast, friendly typeface. Use Light (300) and Regular (400) whenever possible to keep the brand's lightness.
+- **Secondary font [Volare]:** **Mulish**, to be used when Modern Era is not available and when working online. Volare says it should not be used in official marketing materials.
+- **For this product [Proposed]:** use **Mulish** (internal online tool), self-hosted as a variable font with a Latin subset. If a Modern Era license is provided later, swap the `--font-sans` token only.
+- Weights [Proposed extension]: 300 for large numbers, 400 for text. Use 600 only for table headers, tags and small captions where legibility needs it. Avoid 700+.
+
+Type scale [Proposed]:
+
+| Role                   | Size / line height | Weight | Notes                           |
+| ---------------------- | ------------------ | ------ | ------------------------------- |
+| KPI number (hero)      | 56 / 64 px         | 300    | Tabular figures, tight tracking |
+| KPI number (secondary) | 40 / 48 px         | 300    |                                 |
+| Page title (h1)        | 32 / 40 px         | 400    |                                 |
+| Section title (h2)     | 24 / 32 px         | 400    |                                 |
+| Card title (h3)        | 20 / 28 px         | 400    |                                 |
+| Body                   | 16 / 24 px         | 400    |                                 |
+| Small, table cell      | 14 / 20 px         | 400    |                                 |
+| Label, table header    | 12 / 16 px         | 600    | Sentence case, no all-caps      |
+| Caption, tag           | 12 / 16 px         | 600    |                                 |
+
+Rules: numbers use tabular figures; no all-caps; line length of paragraphs up to 70 characters; truncation with an ellipsis plus a tooltip for long ticket titles.
+
+---
+
+## 4. Spacing, radius, elevation
+
+**Spacing scale [Volare], px:** none 0, xs 4, s 8, m 12, l 16, xl 20, 2xl 24, 3xl 32, 4xl 40, 5xl 48, 6xl 64, 7xl 80.
+**Radius scale [Volare], px:** none 0, xs 4, s 8, m 12, l 16, xl 20, 2xl 24, 3xl 32, full 2000 (pill).
+
+Assignments [Proposed]:
+
+- Cards and panels: radius `l` (16), padding `2xl` (24).
+- Buttons, inputs, selects: radius `m` (12).
+- Dropdown panels and suggestion panel: radius `l` (16).
+- Tooltips: radius `s` (8).
+- Status chips and tags: `full` (pill).
+- Gap between cards: `l` (16). Page padding: `3xl` (32). Section gap: `4xl` (40).
+
+**Elevation [Proposed].** Cards sit flat with a 1 px border (#E4E6EA) and no shadow. Floating layers only: dropdowns, tooltips, the suggestion panel and toasts use `0 8px 24px effect.100`; modals use `0 16px 40px effect.200`.
+
+---
+
+## 5. Iconography
+
+Volare icon font `@holafly/volare-icon-font`, classes `volare-icon-<group>-<name>`, size controlled by `font-size`. Icons inherit the text color. Default size 20 px (16 px inside chips and tables). Open points: the full icon list, and whether a lighter SVG subset should replace the font for performance. Until confirmed, design with a simple outlined icon style, 1.5 px stroke, rounded caps.
+
+---
+
+## 6. Layout
+
+- **App shell:** fixed left navigation (248 px) + top bar (64 px) + scrollable content. Content max width 1200 px, centered, 12-column grid, 24 px gutters.
+- **Breakpoints [Proposed]:** 1440 px desktop (primary), 1024 px tablet (navigation collapses to icons, 72 px), 768 px narrow (navigation becomes an overlay).
+- **Left navigation:** brand mark at the top; sections grouped under small headings ("Resumen", "Content Ecosystem", "Trabajo", "Objetivos", "Referencia", "Administración"). Selected item: Magenta 100 `#FFEEF0` background, Magenta 500 text, 3 px Magenta 400 bar on the left. Sections the user cannot access **do not appear at all**: no lock icons, no disabled items, no hints.
+- **Top bar:** page title, "Datos al <hora>" last-sync text, button **"Resincronizar con Jira"** (secondary style, with a spinner while running), user menu with name and role.
+- **Page structure:** title and one-line purpose, a filter bar if the page has filters, a KPI row, then charts and tables in a card grid.
+
+---
+
+## 7. Components
+
+### 7.1 Buttons
+
+| Type                   | Style                                                                                                                                                                                                                                                                                            |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Primary                | Gradient #E12B57 → #C8094E, white text, 12 px radius, height 44 (default) / 36 (compact). Hover: gradient darkens slightly. Pressed: 2 % darker. Focus: 2 px #2065CE ring with offset. Disabled: neutral.300 background, neutral.400 text. Loading: spinner replaces the label, width preserved. |
+| Secondary              | White surface, 1 px #CCD0D7 border, #292B2E text. Hover: #F8F8FB background.                                                                                                                                                                                                                     |
+| Tertiary / text        | No border, Magenta 500 text, underline on hover.                                                                                                                                                                                                                                                 |
+| Destructive [Proposed] | Red 500 #C83D1E background, white text, always with a confirmation step.                                                                                                                                                                                                                         |
+
+One primary button per view region. Labels in Spanish, sentence case, verb first ("Resincronizar con Jira", "Aplicar filtros").
+
+### 7.2 Inputs, selects and filters
+
+Height 44, 12 px radius, 1 px #CCD0D7 border, white background, 16 px text. Hover: border #56575A. Focus: 2 px #2065CE ring. Error: border #C83D1E plus an error icon and message below in #841C05. Placeholder: neutral.500. Labels above the field, 12 px / 600.
+Filter bar: chips and compact selects in a single row on a neutral.200 strip; a "Limpiar" text button resets all filters.
+
+### 7.3 Content Ecosystem search (custom to this product)
+
+One horizontal bar, 56 px high, 16 px radius, white, 1 px #CCD0D7 border, soft shadow on focus. From left to right:
+
+1. **Category dropdown**: a button showing the selected category or "Todas las categorías" (no leading icon), a chevron, a 1 px vertical divider on its right. Optional; not required to search. The panel opens below with a check mark on the selected item and a count tag on each row.
+2. **Text input**: placeholder "Busca una frase, una llave de traducción o una ubicación".
+3. **Clear button** (× appears when there is text).
+4. **Search button**: a 44 px square (or pill) action button with a magnifier icon, in the primary gradient.
+
+The bar behaves like a combobox with keyboard support (arrows, Enter, Esc).
+
+**Suggestion panel** (opens under the bar like a search engine): white, 16 px radius, floating shadow, grouped rows by type with a small left icon and a type label on the right: _Frase_, _Campo_, _Llave_, _Ubicación_, _¿Quisiste decir…?_. Matched text is bolded; the active row has a Magenta 100 background. Maximum 8 rows. A footer row shows the keyboard hint.
+
+Categories (14): Home, PDP, App, Emails, Landing Page, Markdown Page, Blog, WhatsApp, B2B, Short FAQ Section, Product Feature, Push notifications, Checkout, Holafly Hub.
+
+### 7.4 Result list and detail panel (Content Ecosystem)
+
+Two-column layout: results list on the left (≈ 40 %), detail panel on the right (≈ 60 %).
+
+- Each result row: field label (14 / 600), the current text in two lines max with highlighted matches, then a metadata line with category, page, section and a platform tag. Selected row: Magenta 100 background and a left bar.
+- Detail panel sections, in order: **Captura** (one screenshot per section with a red box on the selected field; clicking another field moves the box), **Texto actual**, **Dónde editarlo** (platform tag, collection or project, a link button "Abrir en Strapi" or "Abrir en Crowdin"), **Llave de traducción** (monospace chip with copy button), **Dependencias**, **Checklist de impacto** (checkboxes with a short note), **Propietario y verificación** (owner, last verified date, status chip).
+- **Red box:** 3 px outline in Magenta 400 `#E6485C` with a 12 % Magenta fill and a 4 px radius, drawn over the screenshot; the rest of the image stays at full brightness. A small label "Campo seleccionado" may sit at its top left.
+
+### 7.5 Cards
+
+- **KPI card:** surface, 16 px radius, 24 px padding. Content: small label with an ⓘ icon (tooltip explains how the number is calculated), the number (56 / 64, weight 300), a unit or "de N", a delta line with an arrow icon and the comparison period, and an optional mini sparkline. Status shown with a chip, never with color alone. Hero KPIs in the executive summary use the largest size; secondary KPIs use 40 / 48.
+- **Chart card:** title (h3), one-line subtitle, chart, legend (direct labels preferred), and a footer with the data cut-off time.
+- **Insight card (executive summary):** left accent bar in Magenta 400, short headline, one sentence, optional link.
+
+### 7.6 Tables
+
+Sticky header on neutral.200, 12 / 600 headers, 14 px cells, 48 px rows, 1 px #E4E6EA row dividers, hover row #F8F8FB. Numeric columns right-aligned with tabular figures. Sortable columns show a small arrow. First column is the ticket key as a text link in Magenta 500. Pagination or "Mostrar más" at the bottom. Empty table: see 7.9.
+
+### 7.7 Chips and status
+
+Pill, 24 px high, 12 / 600 text, icon at 16 px. Ticket status chips: _Por hacer_ (neutral), _En progreso_ (info), _En revisión_ (warning), _Hecho_ (success), _SLA incumplido_ (error). Translation status and verification chips: _Listo_ (success), _Revisar_ (warning), _Desactualizado_ (error).
+
+### 7.8 Tabs, tooltips, toasts
+
+- **Tabs:** text tabs with a 3 px Magenta 400 underline on the selected one; secondary text in neutral.500; 44 px high.
+- **Tooltip:** neutral.600 background, white 12–14 px text, 8 px radius, max width 280 px, appears on hover and keyboard focus; used on every ⓘ to explain how a figure is computed.
+- **Toast:** floating card at the bottom right with an icon, message and optional action; auto-closes after 6 s; errors stay until dismissed.
+
+### 7.9 Empty, loading and error states
+
+- **Empty:** a simple illustration or icon, one line of title, one line of help, and a single action. Example: "No hay tickets para este filtro" + "Limpiar filtros".
+- **Loading:** skeleton blocks using `skeleton #FFFAFA` → `skeleton-medium #EEEEEE`, never a full-page spinner.
+- **Stale data:** a banner in warning style: "No pudimos conectar con Jira. Mostrando datos de las 14:32."
+- **Objectives tree empty:** "Aún no hay épicas de objetivo" with a short explanation.
+
+### 7.10 Objectives tree
+
+Indented tree: Company objective → Marketing objective → Team epic → tickets. Each node shows its name, a progress bar (neutral.300 track, Magenta 400 fill), the percentage of effort, and a chevron to expand. Keep indentation to 24 px per level and use thin connector lines (#E4E6EA).
+
+---
+
+## 8. Data visualization [Proposed, from Volare colors]
+
+- Series order: Magenta 400 `#E6485C`, Blue 400 `#327DF0`, Amber 400 `#F8BA3D`, Green 500 `#32A45E`, Purple 300 `#BD78B8`, Baby blue 500 `#90C6DE`. Use no more than six series; group the rest as "Otros" in neutral.400.
+- Never encode meaning with color alone: add direct labels, markers, or patterns. The 90 % SLA target is a dashed neutral.500 line with a label.
+- Chart types allowed: horizontal and vertical bars, lines, simple area, donut for part-to-whole with up to five parts, and stacked bars. No 3D, no gradients inside charts.
+- Gridlines: 1 px #E4E6EA, horizontal only. Axis text 12 px neutral.500. Tooltips follow the tooltip component.
+- Charts must be drawable as plain SVG; no animation required beyond a 200 ms fade on load.
+
+---
+
+## 9. Page patterns
+
+All pages share the shell (section 6). Content to preserve comes from the screenshot attached to each request.
+
+| Page                  | Purpose                                                   | Layout                                                                                               |
+| --------------------- | --------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| Resumen ejecutivo     | Period findings at a glance                               | 3–4 hero KPI cards with ⓘ tooltips, a traffic-light status, a leader's message card, 2 insight cards |
+| Content Ecosystem     | Find any text and see what depends on it                  | Search bar (7.3), result list and detail panel (7.4)                                                 |
+| Resumen               | Tickets created, completed and in progress                | Filter bar (type, date range), KPI row, trend chart, table                                           |
+| Tareas                | % completed, tasks by type and by status, one filter      | Single filter bar, KPI row, two charts, table                                                        |
+| SLAs                  | Time to response and Time to done against the 90 % target | One card per SLA with big percentage and target line, trend chart, table                             |
+| SLAs incumplidos      | Breaches and reasons                                      | KPI row, ranked table with breach chips                                                              |
+| Objetivos             | Link work to company goals                                | Objectives tree (7.10) beside an effort chart                                                        |
+| Capacidad             | Demand (created per week) vs capacity (resolved per week) | Combined line/bar chart, two KPI cards, short explanation                                            |
+| Trimestre a trimestre | Compare quarters                                          | Grouped bars, comparison table with delta chips                                                      |
+| Lo aprendido          | Quarter conclusions and next focus                        | Editorial layout: headline, three conclusion cards, focus list                                       |
+| Definiciones          | How every number is calculated                            | Two-column definition list with search, last cut-off date                                            |
+| Permisos              | Who sees what (leaders only)                              | Role × section matrix with switches, invite-by-email form, preview panel                             |
+| Estado                | Sync health (leaders only)                                | Status cards for Jira and Crowdin, failed events table                                               |
+
+---
+
+## 10. Interaction, motion and accessibility
+
+- Motion: 150–200 ms ease-out for hover, dropdowns and tooltips; no decorative animation; respect `prefers-reduced-motion`.
+- Keyboard: every control reachable; visible focus ring; the search combobox supports arrows, Enter and Esc; dropdowns and trees follow standard ARIA patterns.
+- Touch targets at least 44 × 44 px.
+- Contrast per section 2.7; do not rely on color alone; provide text alternatives for charts (a data table toggle or a summary sentence).
+- Language is Spanish; dates as "12 nov 2026", numbers with a thousands separator, percentages with no decimals unless needed.
+
+---
+
+## 11. Do and don't
+
+Do
+
+- Use Holafly Magenta for the one main action and for selection.
+- Keep surfaces white or #F8F8FB with thin borders.
+- Show the cut-off time and a ⓘ explanation on every key figure.
+- Hide what a user cannot access.
+
+Don't
+
+- Don't use flat #E6485C behind white small text.
+- Don't use gradients as backgrounds for whole sections.
+- Don't show lock icons or disabled sections for restricted areas.
+- Don't mix more than six chart colors or use red and magenta to mean different things without an icon.
+- Don't invent components outside section 7 without marking them [Proposed].
+
+---
+
+## 12. CSS tokens (reference for the Astro implementation)
+
+```css
+:root {
+  /* Volare */
+  --magenta-100: #ffeef0;
+  --magenta-300: #ff5a6f;
+  --magenta-400: #e6485c;
+  --magenta-500: #d22c49;
+  --magenta-600: #951c39;
+  --neutral-100: #ffffff;
+  --neutral-200: #f8f8fb;
+  --neutral-300: #e4e6ea;
+  --neutral-400: #ccd0d7;
+  --neutral-500: #56575a;
+  --neutral-600: #292b2e;
+  --blue-300: #62a0ff;
+  --blue-400: #327df0;
+  --blue-500: #2065ce;
+  --blue-600: #002968;
+  --blue-100: #ebf3ff;
+  --green-100: #edfff4;
+  --green-500: #32a45e;
+  --green-600: #206b43;
+  --amber-100: #fff8ec;
+  --amber-400: #f8ba3d;
+  --amber-500: #c17b18;
+  --amber-600: #835617;
+  --red-100: #ffefec;
+  --red-500: #c83d1e;
+  --red-600: #841c05;
+  --purple-300: #bd78b8;
+  --baby-blue-500: #90c6de;
+  --gradient-primary: linear-gradient(135deg, #e12b57, #c8094e);
+  --effect-100: rgb(41 43 46 / 12%);
+  --effect-200: rgb(41 43 46 / 20%);
+  --space-xs: 4px;
+  --space-s: 8px;
+  --space-m: 12px;
+  --space-l: 16px;
+  --space-xl: 20px;
+  --space-2xl: 24px;
+  --space-3xl: 32px;
+  --space-4xl: 40px;
+  --space-5xl: 48px;
+  --space-6xl: 64px;
+  --space-7xl: 80px;
+  --radius-s: 8px;
+  --radius-m: 12px;
+  --radius-l: 16px;
+  --radius-xl: 20px;
+  --radius-full: 2000px;
+  /* Proposed semantic layer */
+  --bg: var(--neutral-200);
+  --surface: var(--neutral-100);
+  --border: var(--neutral-300);
+  --text: var(--neutral-600);
+  --text-muted: var(--neutral-500);
+  --accent: var(--magenta-400);
+  --link: var(--magenta-500);
+  --focus: var(--blue-500);
+  --shadow-float: 0 8px 24px var(--effect-100);
+  --shadow-modal: 0 16px 40px var(--effect-200);
+  --font-sans: 'Mulish', system-ui, sans-serif;
+}
+[data-theme='dark'] {
+  --bg: #1e1f22;
+  --surface: #292b2e;
+  --border: #3a3c40;
+  --text: #f8f8fb;
+  --text-muted: #ccd0d7;
+  --accent: var(--magenta-300);
+  --link: var(--magenta-300);
+  --focus: var(--blue-300);
+}
+```
+
+---
+
+## 13. Open points to confirm with the design team
+
+1. Volare's semantic (alias) color tokens, which its documentation mentions but were not provided.
+2. The official type scale, line heights, and the real radius of buttons and inputs.
+3. Official shadow/elevation tokens, grid and breakpoints.
+4. Dark mode: not defined in Volare; all dark values here are proposed.
+5. Modern Era license, or confirmation that Mulish is acceptable for an internal tool.
+6. Access to the icon package, or an approved SVG subset.
+7. Screenshots of real Volare components (button, input, table, chip, tabs, navigation) to align shapes and states.
+
+---
+
+## Decisions taken in the repo on top of this file
+
+These do not change the Stitch document; they record how the Hub applies it (see `docs/PLAN_DISENO.md` and `docs/DECISIONES.md`).
+
+- Navigation breakpoints: icon-only rail (72 px) from 768 px to 1439 px; overlay panel below 768 px.
+- Second chart series: Blue 400 `#327DF0` (§8).
