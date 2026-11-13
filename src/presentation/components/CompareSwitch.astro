@@ -1,0 +1,17 @@
+---
+import { FILTER_PARAMS } from '@domain/jira/global-filter';
+import Icon from './Icon.astro';
+
+interface Props {
+  on: boolean;
+}
+
+const { on } = Astro.props;
+---
+
+<label class="gfilter-compare">
+  <Icon name="compare" size={20} />
+  <span>Comparar</span>
+  <input type="checkbox" role="switch" name={FILTER_PARAMS.compare} value="1" checked={on} />
+  <span class="gfilter-compare-track" aria-hidden="true"></span>
+</label>

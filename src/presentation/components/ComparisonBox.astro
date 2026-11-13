@@ -1,0 +1,23 @@
+---
+import type { ComparisonPlan } from '@domain/jira/comparison';
+import { boxHeadline, coverageNote } from '../compare-text';
+
+interface Props {
+  plan: ComparisonPlan;
+}
+
+const { plan } = Astro.props;
+// The partial case is told once, in the box: each figure then only adds what is its own.
+const note = coverageNote(plan.volume.coverage === 'ok' ? plan.sla : plan.volume);
+const empty = plan.volume.coverage === 'none' && plan.sla.coverage === 'none';
+---
+
+<div class="compare-box" role="note">
+  <span class="compare-box-title">
+    <i class="swatch swatch-previous"></i> Año previo
+  </span>
+  <span class="compare-box-days">{boxHeadline(plan)}</span>
+  {!empty && <span class="compare-box-muted">mismo número de días, {plan.previous.days} d</span>}
+  {note && <span class="compare-box-muted">{note.text}</span>}
+  <span class="compare-box-key">Este color marca los datos del año previo en todo el Hub</span>
+</div>

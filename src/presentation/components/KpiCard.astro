@@ -1,6 +1,8 @@
 ---
+import type { CompareMessage } from '../compare-text';
 import type { Delta } from '../format-number';
 import type { IconName } from '../icons';
+import CompareNote from './CompareNote.astro';
 import Icon from './Icon.astro';
 import type { StatusKind } from '../status-kind';
 import StatusChip from './StatusChip.astro';
@@ -18,10 +20,24 @@ interface Props {
   change?: string | undefined;
   /** A status shown with an icon and a word, never with color alone. */
   status?: { kind: StatusKind; label: string } | undefined;
+  /** The delta is against the previous year: its reference is marked in the comparison color. */
+  compared?: boolean;
+  /** Why the comparison should be read with care ("Pocos datos…", "Sin datos…"). */
+  note?: CompareMessage | null | undefined;
   tip: string;
 }
 
-const { label, value, hero = false, delta, change, status, tip } = Astro.props;
+const {
+  label,
+  value,
+  hero = false,
+  delta,
+  change,
+  status,
+  compared = false,
+  note,
+  tip,
+} = Astro.props;
 
 const DELTA_ICON: Record<Delta['direction'], IconName | null> = {
   up: 'arrow-up',
@@ -44,9 +60,11 @@ const deltaIcon = delta ? DELTA_ICON[delta.direction] : null;
   {delta && (
     <p class="kpi-delta" data-tone={delta.tone}>
       {deltaIcon && <Icon name={deltaIcon} size={16} />}
+      {compared && <i class="swatch swatch-previous"></i>}
       <span>{delta.text}</span>
     </p>
   )}
+  {note && <CompareNote message={note} />}
   {change && <p class="kpi-change">{change}</p>}
   <slot />
 </article>

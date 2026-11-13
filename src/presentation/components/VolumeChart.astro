@@ -1,11 +1,15 @@
 ---
 import { niceTicks } from '../chart-geometry';
+import CompareLegend from './CompareLegend.astro';
 
 interface Item {
   /** Already worded: "nov", "T3 2026". */
   label: string;
   created: number;
   resolved: number;
+  /** The same bar a year earlier, when the comparison is on and the data reaches it. */
+  previousCreated?: number | undefined;
+  previousResolved?: number | undefined;
 }
 
 interface Props {
@@ -22,10 +26,14 @@ interface Props {
 
 const { items, title, idPrefix, note, resolvedLabel = 'Resueltos' } = Astro.props;
 
-// Each group keeps this width however many there are; a long series scrolls sideways.
-const GROUP_WIDTH = 96;
-const BAR_WIDTH = 30;
-const BAR_GAP = 6;
+// With the previous year beside it each group has four bars (created, its year-earlier twin, resolved,
+// its twin), so the bars are narrower and the group wider. Each group keeps its width however many
+// there are; a long series scrolls sideways.
+const compared = items.some((item) => item.previousCreated !== undefined);
+const GROUP_WIDTH = compared ? 140 : 96;
+const BAR_WIDTH = compared ? 24 : 30;
+const BAR_GAP = compared ? 3 : 6;
+const PAIR_GAP = 12;
 const AXIS_WIDTH = 40;
 const BASELINE = 190;
 const PLOT_HEIGHT = 160;
@@ -33,27 +41,77 @@ const width = Math.max(600, AXIS_WIDTH + items.length * GROUP_WIDTH);
 const groupWidth = (width - AXIS_WIDTH) / Math.max(1, items.length);
 
 // Round gridlines (DESIGN.md §8). The tallest tick is the top of the plot; values are also written on the bars.
-const ticks = niceTicks(Math.max(0, ...items.flatMap((item) => [item.created, item.resolved])));
+const ticks = niceTicks(
+  Math.max(
+    0,
+    ...items.flatMap((item) => [
+      item.created,
+      item.resolved,
+      item.previousCreated ?? 0,
+      item.previousResolved ?? 0,
+    ]),
+  ),
+);
 const ceiling = ticks.at(-1) ?? 1;
 const heightOf = (value: number): number => (value / ceiling) * PLOT_HEIGHT;
 
+interface Bar {
+  kind: 'created' | 'resolved';
+  previous: boolean;
+  value: number;
+  x: number;
+}
+
 const groups = items.map((item, index) => {
-  const left = AXIS_WIDTH + index * groupWidth + (groupWidth - (BAR_WIDTH * 2 + BAR_GAP)) / 2;
-  return {
-    label: item.label,
-    centre: AXIS_WIDTH + index * groupWidth + groupWidth / 2,
-    bars: [
-      { kind: 'created', value: item.created, x: left },
-      { kind: 'resolved', value: item.resolved, x: left + BAR_WIDTH + BAR_GAP },
-    ] as const,
-  };
+  const inner = compared ? BAR_WIDTH * 4 + BAR_GAP * 2 + PAIR_GAP : BAR_WIDTH * 2 + BAR_GAP;
+  const left = AXIS_WIDTH + index * groupWidth + (groupWidth - inner) / 2;
+  const step = BAR_WIDTH + BAR_GAP;
+  const bars: Bar[] = compared
+    ? [
+        { kind: 'created', previous: false, value: item.created, x: left },
+        ...(item.previousCreated === undefined
+          ? []
+          : [
+              {
+                kind: 'created',
+                previous: true,
+                value: item.previousCreated,
+                x: left + step,
+              } as Bar,
+            ]),
+        {
+          kind: 'resolved',
+          previous: false,
+          value: item.resolved,
+          x: left + 2 * step + PAIR_GAP - BAR_GAP,
+        },
+        ...(item.previousResolved === undefined
+          ? []
+          : [
+              {
+                kind: 'resolved',
+                previous: true,
+                value: item.previousResolved,
+                x: left + 3 * step + PAIR_GAP - BAR_GAP,
+              } as Bar,
+            ]),
+      ]
+    : [
+        { kind: 'created', previous: false, value: item.created, x: left },
+        { kind: 'resolved', previous: false, value: item.resolved, x: left + step },
+      ];
+  return { label: item.label, centre: AXIS_WIDTH + index * groupWidth + groupWidth / 2, bars };
 });
 
 const summary = items
-  .map(
-    (item) =>
-      `${item.label}: ${String(item.created)} creados, ${String(item.resolved)} ${resolvedLabel.toLowerCase()}`,
-  )
+  .map((item) => {
+    const now = `${String(item.created)} creados, ${String(item.resolved)} ${resolvedLabel.toLowerCase()}`;
+    const before =
+      item.previousCreated === undefined
+        ? ''
+        : `; año previo: ${String(item.previousCreated)} creados, ${String(item.previousResolved ?? 0)} ${resolvedLabel.toLowerCase()}`;
+    return `${item.label}: ${now}${before}`;
+  })
   .join('; ');
 ---
 
@@ -68,6 +126,20 @@ const summary = items
     >
       <title id={`${idPrefix}-title`}>{title}</title>
       <desc id={`${idPrefix}-desc`}>{summary}</desc>
+      {compared && (
+        <defs>
+          <pattern
+            id={`${idPrefix}-stripes`}
+            width="6"
+            height="6"
+            patternUnits="userSpaceOnUse"
+            patternTransform="rotate(45)"
+          >
+            <rect class="stripe-bg" width="6" height="6"></rect>
+            <line class="stripe-line" x1="0" y1="0" x2="0" y2="6"></line>
+          </pattern>
+        </defs>
+      )}
       {ticks.map((tick) => (
         <g>
           <line
@@ -92,7 +164,8 @@ const summary = items
           {group.bars.map((bar) => (
             <g>
               <rect
-                class={`bar bar-${bar.kind}`}
+                class={bar.previous ? 'bar-previous' : `bar bar-${bar.kind}`}
+                fill={bar.previous ? `url(#${idPrefix}-stripes)` : undefined}
                 x={bar.x}
                 y={BASELINE - heightOf(bar.value)}
                 width={BAR_WIDTH}
@@ -100,7 +173,7 @@ const summary = items
                 rx="4"
               ></rect>
               <text
-                class="chart-value"
+                class={bar.previous ? 'chart-value chart-value-previous' : 'chart-value'}
                 x={bar.x + BAR_WIDTH / 2}
                 y={BASELINE - heightOf(bar.value) - 6}
                 text-anchor="middle"
@@ -123,6 +196,7 @@ const summary = items
     <span>
       <i class="swatch swatch-resolved"></i> {resolvedLabel}
     </span>
+    {compared && <CompareLegend />}
     {note && <span class="chart-note">{note}</span>}
   </figcaption>
 </figure>

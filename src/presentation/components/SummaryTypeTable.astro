@@ -5,9 +5,18 @@ import Tooltip from './Tooltip.astro';
 
 interface Props {
   rows: readonly TypeSummary[];
+  /**
+   * The same types a year earlier, when the comparison is on and the data reaches it. "Abiertos hoy"
+   * is a photo of today and is never compared.
+   */
+  previous?: readonly TypeSummary[] | null | undefined;
 }
 
-const { rows } = Astro.props;
+const { rows, previous } = Astro.props;
+const before =
+  previous === null || previous === undefined
+    ? null
+    : new Map(previous.map((row) => [row.requestType, row]));
 
 // The two names of the columns whose figures are easy to misread side by side (D-073).
 const RESOLVED_LABEL = 'Completados en el periodo';
@@ -40,9 +49,30 @@ const PERCENT_TIP =
         <th scope="row" data-label="Tipo de solicitud">
           {row.requestType}
         </th>
-        <td data-label="Creados">{formatNumber(row.created)}</td>
-        <td data-label={RESOLVED_LABEL}>{formatNumber(row.resolved)}</td>
-        <td data-label={PERCENT_LABEL}>{formatPercent(row.completionPercent)}</td>
+        <td data-label="Creados">
+          {formatNumber(row.created)}
+          {before && (
+            <span class="prev-line">
+              Año previo: {formatNumber(before.get(row.requestType)?.created ?? 0)}
+            </span>
+          )}
+        </td>
+        <td data-label={RESOLVED_LABEL}>
+          {formatNumber(row.resolved)}
+          {before && (
+            <span class="prev-line">
+              Año previo: {formatNumber(before.get(row.requestType)?.resolved ?? 0)}
+            </span>
+          )}
+        </td>
+        <td data-label={PERCENT_LABEL}>
+          {formatPercent(row.completionPercent)}
+          {before && (
+            <span class="prev-line">
+              Año previo: {formatPercent(before.get(row.requestType)?.completionPercent ?? null)}
+            </span>
+          )}
+        </td>
         <td data-label="Abiertos hoy">{formatNumber(row.openNow)}</td>
       </tr>
     ))}

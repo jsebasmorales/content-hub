@@ -2,6 +2,7 @@
 import { getApp, getJiraApp } from '@infrastructure/container';
 import BarList from '../components/BarList.astro';
 import ChartCard from '../components/ChartCard.astro';
+import CompareNote from '../components/CompareNote.astro';
 import DataTable from '../components/DataTable.astro';
 import EmptyState from '../components/EmptyState.astro';
 import GlobalFilters from '../components/GlobalFilters.astro';
@@ -10,8 +11,9 @@ import PageHeader from '../components/PageHeader.astro';
 import SummaryTypeTable from '../components/SummaryTypeTable.astro';
 import VolumeChart from '../components/VolumeChart.astro';
 import BaseLayout from '../layouts/BaseLayout.astro';
+import { cardNote, coverageNote, todayNote } from '../compare-text';
 import { clearFilterCookie, filterQuery, readFilterRequest, settleFilter } from '../filter-request';
-import { formatNumber, formatPercent } from '../format-number';
+import { describeComparedDelta, formatNumber, formatPercent } from '../format-number';
 import { bucketLabel, describeWindow, granularityNoun } from '../period-labels';
 import { syncFlashFromQuery } from '../sync-messages';
 
@@ -34,7 +36,7 @@ const [status, result] = await Promise.all([
   jira.summary.execute(principal.permissions, request.raw),
 ]);
 if (!result.ok) return new Response(null, { status: 404 });
-const { panel, report, granularity } = result.value;
+const { panel, report, granularity, comparison } = result.value;
 
 const tidy = settleFilter(Astro.url, Astro.cookies, secure, request, panel.filter);
 if (tidy) return Astro.redirect(tidy, 303);
@@ -43,6 +45,30 @@ const { window, types } = panel.filter;
 const periodLabel = describeWindow(window);
 const sentence = periodLabel.charAt(0).toUpperCase() + periodLabel.slice(1);
 const heading = types.all ? sentence : `${sentence} · ${types.names.join(', ')}`;
+const yearOn = comparison.yearOn;
+const before = report.previous;
+const tableNote = yearOn ? coverageNote(comparison.volume) : null;
+// Each card sets its figure against the year before only when the switch is on. "Sin datos" when the
+// data does not reach it; never a zero that was not measured.
+const against = (
+  kind: 'count' | 'rate' | 'days',
+  higherIs: 'better' | 'worse' | 'neutral',
+  current: number | null,
+  previous: number | null | undefined,
+  sample?: number,
+) =>
+  yearOn
+    ? describeComparedDelta({
+        current,
+        previous: before === null ? null : (previous ?? null),
+        kind,
+        higherIs,
+        reference: 'año previo',
+        ...(sample === undefined || before === null ? {} : { previousSample: sample }),
+      })
+    : undefined;
+const noteOf = (sample: number | undefined) =>
+  yearOn ? cardNote(comparison.volume, before === null ? null : sample) : null;
 const statusRows = report.openNow.byStatus.map((row) => ({
   label: row.status,
   count: row.count,
@@ -66,35 +92,56 @@ const statusRows = report.openNow.byStatus.map((row) => ({
       <div class="section-head">
         <h2 id="kpi-title">{heading}</h2>
       </div>
+      {tableNote && <CompareNote message={tableNote} />}
       <div class="kpi-grid kpi-grid-3">
         <KpiCard
           label="Creados"
           value={formatNumber(report.created)}
+          delta={against('count', 'neutral', report.created, before?.created, before?.created)}
+          compared={yearOn}
+          note={noteOf(before?.created)}
           tip="Tickets nuevos del período, según su fecha de creación en hora de Bogotá."
         />
         <KpiCard
           label="Completados en el período"
           value={formatNumber(report.resolved)}
+          delta={against('count', 'better', report.resolved, before?.resolved, before?.resolved)}
+          compared={yearOn}
+          note={noteOf(before?.resolved)}
           tip="Tickets que pasaron a Hecho dentro del período, sin importar cuándo se crearon. Incluye trabajo creado antes, por eso puede ser mayor que Creados."
         />
         <KpiCard
           label="% de lo creado ya completado"
           value={formatPercent(report.completionPercent)}
+          delta={against(
+            'rate',
+            'better',
+            report.completionPercent,
+            before?.completionPercent,
+            before?.created,
+          )}
+          compared={yearOn}
+          note={noteOf(before?.created)}
           tip="Solo mira lo creado en el período: cuántos de esos tickets ya están completados hoy. No cuenta lo creado antes, aunque se haya completado en el período. En un período reciente es menor porque hubo menos tiempo para completarse."
         />
         <KpiCard
           label="Tiempo típico (días)"
           value={report.resolutionDays === null ? 'Sin datos' : formatNumber(report.resolutionDays)}
+          delta={against('days', 'worse', report.resolutionDays, before?.resolutionDays)}
+          compared={yearOn}
+          note={noteOf(before?.resolved)}
           tip="Mediana de días naturales entre crear y completar, de los tickets completados en el período."
         />
         <KpiCard
           label="En curso hoy"
           value={formatNumber(report.openNow.inProgress)}
+          note={yearOn ? todayNote : null}
           tip="Tickets abiertos que Jira agrupa como en curso: alguien trabaja en ellos o esperan algo (aprobación, traducción…). Es el estado de hoy, no del período."
         />
         <KpiCard
           label="Sin empezar hoy"
           value={formatNumber(report.openNow.notStarted)}
+          note={yearOn ? todayNote : null}
           tip="Tickets abiertos que nadie ha empezado todavía. Es el estado de hoy, no del período."
         />
       </div>
@@ -113,6 +160,8 @@ const statusRows = report.openNow.byStatus.map((row) => ({
             label: bucketLabel(point.bucket, granularity),
             created: point.created,
             resolved: point.resolved,
+            previousCreated: point.previousCreated,
+            previousResolved: point.previousResolved,
           }))}
           title={`Tickets creados y completados ${granularityNoun(granularity)}`}
           idPrefix="summary-monthly"
@@ -120,6 +169,7 @@ const statusRows = report.openNow.byStatus.map((row) => ({
           note="La última barra llega hasta hoy."
         />
       )}
+      {tableNote && <CompareNote message={tableNote} />}
     </ChartCard>
 
     {report.byType.length > 0 && (
@@ -128,17 +178,19 @@ const statusRows = report.openNow.byStatus.map((row) => ({
           <h2 id="by-type-title">Por tipo de solicitud</h2>
           <p>De más a menos creados. "Abiertos hoy" es el estado de hoy, no del período.</p>
         </div>
+        {tableNote && <CompareNote message={tableNote} />}
         <DataTable
           label="Tickets por tipo de solicitud"
           footnote="Los tipos obsoletos no aparecen en la tabla, pero sí en los totales."
         >
-          <SummaryTypeTable rows={report.byType} />
+          <SummaryTypeTable rows={report.byType} previous={yearOn ? before?.byType : null} />
         </DataTable>
       </section>
     )}
 
     <ChartCard title="Abiertos hoy por estado">
       <BarList items={statusRows} limit={10} empty="No hay tickets abiertos." />
+      {yearOn && <CompareNote message={todayNote} />}
     </ChartCard>
   </div>
 </BaseLayout>

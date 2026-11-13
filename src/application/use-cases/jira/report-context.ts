@@ -44,6 +44,8 @@ export interface FilterPanel {
   /** Today in the reporting time zone: the page hands it to its script so the browser's clock is never used. */
   readonly today: YearMonthDay;
   readonly compareAvailable: boolean;
+  /** What the previous side is and how far the data reaches it: the box under the controls draws it. */
+  readonly comparison: ComparisonPlan;
 }
 
 export interface ReportContext {
@@ -100,6 +102,7 @@ export async function prepareReport(
     knownTypes: typeOptions.map((option) => option.value),
     compareAvailable,
   });
+  const comparison = planComparison(filter.window, filter.compare, dataStartOf(allTickets, stored));
   return {
     now,
     panel: {
@@ -108,10 +111,11 @@ export async function prepareReport(
       years: yearsOffered(allTickets, now),
       today: dayOf(now),
       compareAvailable,
+      comparison,
     },
     tickets: filterTicketsByTypes(allTickets, filter.types),
     records: filterRecordsByTypes(stored, allTickets, filter.types),
-    comparison: planComparison(filter.window, filter.compare, dataStartOf(allTickets, stored)),
+    comparison,
   };
 }
 

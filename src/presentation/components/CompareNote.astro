@@ -1,0 +1,15 @@
+---
+import type { CompareMessage } from '../compare-text';
+import Icon from './Icon.astro';
+
+interface Props {
+  message: CompareMessage;
+}
+
+const { message } = Astro.props;
+---
+
+<p class="compare-note" data-kind={message.kind}>
+  <Icon name="info" size={16} />
+  <span>{message.text}</span>
+</p>

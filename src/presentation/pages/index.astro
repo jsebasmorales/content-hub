@@ -2,6 +2,7 @@
 import { getApp, getJiraApp } from '@infrastructure/container';
 import BarList from '../components/BarList.astro';
 import ChartCard from '../components/ChartCard.astro';
+import CompareNote from '../components/CompareNote.astro';
 import GlobalFilters from '../components/GlobalFilters.astro';
 import Icon from '../components/Icon.astro';
 import KpiCard from '../components/KpiCard.astro';
@@ -9,6 +10,13 @@ import PageHeader from '../components/PageHeader.astro';
 import SlaCard from '../components/SlaCard.astro';
 import VolumeChart from '../components/VolumeChart.astro';
 import BaseLayout from '../layouts/BaseLayout.astro';
+import {
+  cardNote,
+  coverageNote,
+  describePrevious,
+  referenceName,
+  todayNote,
+} from '../compare-text';
 import { clearFilterCookie, filterQuery, readFilterRequest, settleFilter } from '../filter-request';
 import { describeComparedDelta, formatNumber } from '../format-number';
 import { buildMenu, nextMenuItem } from '../navigation';
@@ -35,7 +43,7 @@ const [status, result] = await Promise.all([
   jira.executiveSummary.execute(principal.permissions, request.raw),
 ]);
 if (!result.ok) return new Response(null, { status: 404 });
-const { summary, panel, previous, granularity } = result.value;
+const { summary, panel, previous, granularity, comparison } = result.value;
 
 const tidy = settleFilter(Astro.url, Astro.cookies, secure, request, panel.filter);
 if (tidy) return Astro.redirect(tidy, 303);
@@ -44,7 +52,15 @@ const displayName = principal.user.name ?? principal.user.email;
 const { window } = panel.filter;
 const now = describeWindow(window);
 const before = describeDays(previous);
-const reference = 'período anterior';
+const yearOn = comparison.yearOn;
+const reference = referenceName(comparison);
+const chartNote = yearOn ? coverageNote(comparison.volume) : null;
+const slaNote = yearOn ? coverageNote(comparison.sla) : null;
+// The previous year's figure of each metric, for its card; null when the data does not reach it.
+const previousMetric = (metric: string) =>
+  summary.previousSla?.metrics.find((item) => item.metric === metric) ?? null;
+const created = summary.created;
+const resolved = summary.resolved;
 const goalText = {
   true: 'Las dos métricas de SLA cumplen la meta en este período.',
   false: 'Alguna métrica de SLA no llega a la meta en este período.',
@@ -67,7 +83,11 @@ const requestTotal = summary.requestTypes.reduce((sum, item) => sum + item.count
   <div class="page">
     <PageHeader
       title="Resumen ejecutivo"
-      lede={`Hola, ${displayName}. Trabajo de Contenido en ${now}, frente al período anterior de ${String(summary.days)} días.`}
+      lede={
+        yearOn
+          ? `Hola, ${displayName}. Trabajo de Contenido en ${now}, frente al mismo tramo del año previo.`
+          : `Hola, ${displayName}. Trabajo de Contenido en ${now}, frente al período anterior de ${String(summary.days)} días.`
+      }
     >
       {canSeeDefinitions && (
         <a class="btn btn-secondary btn-compact" href="/definiciones">
@@ -84,12 +104,16 @@ const requestTotal = summary.requestTypes.reduce((sum, item) => sum + item.count
         <h2 id="sla-title">Cumplimiento de SLA en {now}</h2>
         <p>{goalText[String(summary.sla.goalMet) as 'true' | 'false' | 'null']}</p>
       </div>
+      {slaNote && <CompareNote message={slaNote} />}
       <div class="kpi-grid kpi-grid-2">
         {summary.sla.metrics.map((metric) => (
           <SlaCard
             metric={metric}
             label={METRIC_LABEL[metric.metric]}
             tip={METRIC_TIP[metric.metric]}
+            previous={yearOn ? previousMetric(metric.metric) : undefined}
+            compared={yearOn}
+            note={yearOn ? cardNote(comparison.sla, previousMetric(metric.metric)?.total) : null}
           />
         ))}
       </div>
@@ -107,36 +131,46 @@ const requestTotal = summary.requestTypes.reduce((sum, item) => sum + item.count
       <div class="section-head">
         <h2 id="activity-title">Actividad en {now}</h2>
         <p>
-          Se compara con los {summary.days} días del período anterior: {before}.
+          {yearOn
+            ? `Se compara con los mismos ${String(summary.days)} días del año previo: ${describePrevious(comparison)}.`
+            : `Se compara con los ${String(summary.days)} días del período anterior: ${before}.`}
         </p>
       </div>
+      {chartNote && <CompareNote message={chartNote} />}
       <div class="kpi-grid kpi-grid-4">
         <KpiCard
           label="Tickets creados"
           value={formatNumber(summary.created.current ?? 0)}
           delta={describeComparedDelta({
-            ...summary.created,
+            ...created,
             kind: 'count',
             higherIs: 'neutral',
             reference,
+            ...(yearOn ? { previousSample: created.previous } : {}),
           })}
+          compared={yearOn}
+          note={yearOn ? cardNote(comparison.volume, created.previous) : null}
           tip="Solicitudes nuevas recibidas en el período, según la fecha de creación en hora de Bogotá."
         />
         <KpiCard
           label="Tickets resueltos"
           value={formatNumber(summary.resolved.current ?? 0)}
           delta={describeComparedDelta({
-            ...summary.resolved,
+            ...resolved,
             kind: 'count',
             higherIs: 'better',
             reference,
+            ...(yearOn ? { previousSample: resolved.previous } : {}),
           })}
+          compared={yearOn}
+          note={yearOn ? cardNote(comparison.volume, resolved.previous) : null}
           tip="Solicitudes que pasaron a Hecho dentro del período, sin importar cuándo se crearon."
         />
         <KpiCard
           label="Abiertos hoy"
           value={formatNumber(summary.openNow)}
-          change="Estado de hoy"
+          change={yearOn ? undefined : 'Estado de hoy'}
+          note={yearOn ? todayNote : null}
           tip="Solicitudes que todavía no están en Hecho, sea cual sea su antigüedad. No depende del período."
         />
         <KpiCard
@@ -152,6 +186,8 @@ const requestTotal = summary.requestTypes.reduce((sum, item) => sum + item.count
             higherIs: 'worse',
             reference,
           })}
+          compared={yearOn}
+          note={yearOn ? cardNote(comparison.volume, resolved.previous) : null}
           tip="Mediana de días naturales entre crear y resolver, de las solicitudes resueltas en el período. Se usa la mediana para que unas pocas solicitudes muy antiguas no distorsionen la cifra."
         />
       </div>
@@ -163,11 +199,14 @@ const requestTotal = summary.requestTypes.reduce((sum, item) => sum + item.count
           label: bucketLabel(point.bucket, granularity),
           created: point.created,
           resolved: point.resolved,
+          previousCreated: point.previousCreated,
+          previousResolved: point.previousResolved,
         }))}
         title={`Tickets creados y resueltos ${granularityNoun(granularity)}`}
         idPrefix="monthly"
         note="La última barra llega hasta hoy."
       />
+      {chartNote && <CompareNote message={chartNote} />}
     </ChartCard>
 
     <ChartCard
@@ -175,9 +214,14 @@ const requestTotal = summary.requestTypes.reduce((sum, item) => sum + item.count
       total={`Total: ${formatNumber(requestTotal)} tickets`}
     >
       <BarList
-        items={summary.requestTypes.map((item) => ({ label: item.requestType, count: item.count }))}
+        items={summary.requestTypes.map((item) => ({
+          label: item.requestType,
+          count: item.count,
+          previousCount: item.previousCount,
+        }))}
         empty="Todavía no hay tickets creados en este período."
       />
+      {chartNote && <CompareNote message={chartNote} />}
     </ChartCard>
 
     {next && (

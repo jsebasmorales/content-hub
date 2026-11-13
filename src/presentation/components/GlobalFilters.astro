@@ -3,6 +3,8 @@ import type { FilterPanel } from '@application/use-cases/jira/report-context';
 import { FILTER_PARAMS, shownDays } from '@domain/jira/global-filter';
 import { dayParam } from '@domain/jira/report-period';
 import { typeDisplayLabels } from '../type-label';
+import ComparisonBox from './ComparisonBox.astro';
+import CompareSwitch from './CompareSwitch.astro';
 import Icon from './Icon.astro';
 
 interface Props {
@@ -74,6 +76,8 @@ const resetHref = `${action}?${FILTER_PARAMS.reset}=1`;
         {activeLabel}
       </span>
     )}
+    {/* Only once every report page can draw the comparison (D-0k). */}
+    {panel.compareAvailable && <CompareSwitch on={filter.compare} />}
   </header>
 
   {filter.notices.includes('period') && (
@@ -190,6 +194,8 @@ const resetHref = `${action}?${FILTER_PARAMS.reset}=1`;
       </button>
     </div>
   </div>
+
+  {filter.compare && <ComparisonBox plan={panel.comparison} />}
 
   <p class="gfilter-hint" role="status" data-types-hint></p>
   {window.partial && <p class="gfilter-note">El período llega hasta hoy.</p>}

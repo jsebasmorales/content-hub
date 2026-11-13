@@ -5,6 +5,8 @@ interface Item {
   /** What the bar is for: a request type, a status. */
   label: string;
   count: number;
+  /** Same days a year earlier; only when the comparison is on and the data reaches them. */
+  previousCount?: number | undefined;
 }
 
 interface Props {
@@ -22,33 +24,82 @@ const {
 } = Astro.props;
 
 const shown = items.slice(0, limit);
-const rest = items.slice(limit).reduce((sum, item) => sum + item.count, 0);
-const rows = rest > 0 ? [...shown, { label: 'Otros', count: rest }] : shown;
-const top = Math.max(1, ...rows.map((row) => row.count));
+const hasPrevious = items.some((item) => item.previousCount !== undefined);
+const leftover = items.slice(limit);
+const rest = leftover.reduce((sum, item) => sum + item.count, 0);
+const restPrevious = leftover.reduce((sum, item) => sum + (item.previousCount ?? 0), 0);
+const rows: Item[] =
+  rest > 0 || restPrevious > 0
+    ? [
+        ...shown,
+        { label: 'Otros', count: rest, ...(hasPrevious ? { previousCount: restPrevious } : {}) },
+      ]
+    : shown;
+const top = Math.max(1, ...rows.flatMap((row) => [row.count, row.previousCount ?? 0]));
+const stripes = `bars-${String(Math.abs(rows.length * 31 + top))}`;
 ---
 
 {rows.length === 0 ? (
   <p class="empty">{empty}</p>
 ) : (
-  <ul class="bar-list">
-    {rows.map((row) => (
-      <li class="bar-row">
-        <div class="bar-line">
-          <span class="bar-name">{row.label}</span>
-          <span class="bar-count">{formatNumber(row.count)}</span>
-        </div>
-        <svg class="bar-track" width="100%" height="12" aria-hidden="true">
-          <rect class="bar-track-rail" x="0" y="0" width="100%" height="12" rx="6"></rect>
-          <rect
-            class="bar-track-fill"
-            x="0"
-            y="0"
-            width={`${String((row.count / top) * 100)}%`}
-            height="12"
-            rx="6"
-          ></rect>
-        </svg>
-      </li>
-    ))}
-  </ul>
+  <Fragment>
+    {hasPrevious && (
+      <svg class="sr-only" width="0" height="0" aria-hidden="true" focusable="false">
+        <defs>
+          <pattern
+            id={stripes}
+            width="6"
+            height="6"
+            patternUnits="userSpaceOnUse"
+            patternTransform="rotate(45)"
+          >
+            <rect class="stripe-bg" width="6" height="6"></rect>
+            <line class="stripe-line" x1="0" y1="0" x2="0" y2="6"></line>
+          </pattern>
+        </defs>
+      </svg>
+    )}
+    <ul class="bar-list">
+      {rows.map((row) => (
+        <li class="bar-row">
+          <div class="bar-line">
+            <span class="bar-name">{row.label}</span>
+            <span class="bar-count">
+              {formatNumber(row.count)}
+              {row.previousCount !== undefined && (
+                <span class="bar-count-previous">
+                  {' '}
+                  · año previo {formatNumber(row.previousCount)}
+                </span>
+              )}
+            </span>
+          </div>
+          <svg class="bar-track" width="100%" height="12" aria-hidden="true">
+            <rect class="bar-track-rail" x="0" y="0" width="100%" height="12" rx="6"></rect>
+            <rect
+              class="bar-track-fill"
+              x="0"
+              y="0"
+              width={`${String((row.count / top) * 100)}%`}
+              height="12"
+              rx="6"
+            ></rect>
+          </svg>
+          {row.previousCount !== undefined && (
+            <svg class="bar-track" width="100%" height="8" aria-hidden="true">
+              <rect
+                class="bar-track-previous"
+                fill={`url(#${stripes})`}
+                x="0.75"
+                y="0.75"
+                width={`${String((row.previousCount / top) * 100)}%`}
+                height="6.5"
+                rx="3"
+              ></rect>
+            </svg>
+          )}
+        </li>
+      ))}
+    </ul>
+  </Fragment>
 )}

@@ -559,3 +559,13 @@ Estado: `aprobada` = confirmada por Sebas; `revisar` = a confirmar; `pendiente` 
 - **Texto del botón:** "Todos seleccionados" / "N seleccionados" (en singular, "1 seleccionado"), en lugar de "Todos los tipos (N)".
 - **Año:** mismo disparador; la lista usa `appearance: base-select` donde existe (Chrome y Edge) y la nativa en los demás, sin JavaScript.
 - **Script:** sin cambio de presupuesto: 1,85 KB gzip (nivel 9) tras recortar comentarios, bajo el límite de 2 KB de D-081.
+
+### D-083 · Comparación con el año previo en el Resumen ejecutivo y en Resumen (fase 1.5b) — aprobada
+
+- **Qué se construyó:** `planComparison` (dominio) decide qué es "lo previo" y cuánto cubren los datos; con el interruptor apagado, `/` sigue contra el período anterior (D-0c) y `/resumen` no compara. Con él encendido, ambas páginas ponen cada cifra junto a la de los mismos días un año antes (`previousYearWindow`: mismo número de días siempre). Las barras se alinean por posición y no se recorta ninguna al principio. Siguen siendo **dos lecturas** por página: el año previo se calcula en memoria sobre los mismos arreglos.
+- **Ubicación del interruptor (aprobada con el prototipo del 2026-11-13):** en la cabecera de la tarjeta, a la derecha, junto a "Filtros" y "N activos"; la caja del año previo va bajo los controles. Sus fechas salen de `previousYearWindow`, nunca escritas a mano.
+- **Cobertura:** `none` (el dato empieza después), `partial` (empieza dentro) u `ok`, por separado para tickets (volúmenes) y para ciclos SLA. Medido en producción (2026-11-13): el primer ticket es del 8 abr 2025, así que T1 2026 no tiene año previo, T2 lo tiene parcial y el resto, completo.
+- **Muestra pequeña (`MIN_RELIABLE_SAMPLE = 30`):** con menos casos en el año previo, un conteo muestra la diferencia en unidades, sin porcentaje, y la cifra lleva "Pocos datos del año previo (n = X)". Con los datos reales casi toda cifra del año previo queda por debajo de 30, así que la nota es corta y la explicación va en Definiciones ("Cuándo es fiable la comparación con el año previo"). La nota por cobertura se dice una vez por sección, no en cada tarjeta.
+- **Sigue apagado:** el interruptor no se muestra en ninguna página hasta cerrar la 1.5c (D-0k). Las dos entradas nuevas de Definiciones solo se listan cuando `COMPARE_ENABLED` es verdadero. Las pruebas de integración encienden la comparación inyectándola en los casos de uso (`compareEnabled`), no con una variable de entorno.
+- **Icono `compare`:** propio del Hub, documentado en DESIGN.md §5; el único dibujado en `--compare`.
+- **CI:** un job aparte que no bloquea (`continue-on-error`) corre los e2e del filtro, con y sin script, en Firefox y WebKit (`E2E_BROWSERS=all`). Chromium sigue siendo la ejecución que bloquea.

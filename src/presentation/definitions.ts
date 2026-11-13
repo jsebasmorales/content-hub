@@ -1,3 +1,4 @@
+import { COMPARE_ENABLED } from '@application/use-cases/jira/report-context';
 import type { PermissionSet } from '@domain/access/permission-set';
 import { decideAccess } from '@domain/access/route-access';
 import {
@@ -8,6 +9,7 @@ import {
   TEAM_MEMBERS,
 } from '@domain/jira/capacity';
 import { SUPPORTED_TIME_ZONES } from '@domain/access/time-zone';
+import { MIN_RELIABLE_SAMPLE } from '@domain/jira/period-window';
 import { QUARTERS_SHOWN } from '@domain/jira/quarterly';
 import { SLA_TARGET_PERCENT } from '@domain/jira/sla-compliance';
 import {
@@ -291,6 +293,26 @@ const capacityGroup: DefinitionGroup = {
   ],
 };
 
+/**
+ * The comparison with the previous year. Listed only once the switch exists in the pages (D-0k), so
+ * Definiciones never describes a control nobody can see.
+ */
+export const COMPARE_DEFINITIONS: readonly Definition[] = [
+  {
+    id: 'comparar-anio-previo',
+    term: 'Comparar con el año previo',
+    meaning:
+      'Con "Comparar" encendido, cada cifra se pone junto a la misma cifra de los mismos días un año antes: el período del filtro se mueve un año atrás y dura el mismo número de días ("15 oct – 13 nov 2026" frente a "15 oct – 13 nov 2025"). Los datos del año previo se dibujan siempre en morado, con rayas en las barras y con las palabras "año previo", nunca solo con color. Los estados de hoy (abiertos, en curso, sin empezar) no se comparan, porque no hay una foto de hace un año. Si el Hub no tiene datos de esas fechas lo dice; si los tiene solo desde cierto día, lo dice también y la cifra del año previo es un mínimo.',
+    seenIn: [EXEC, SUMMARY],
+  },
+  {
+    id: 'comparacion-fiable',
+    term: 'Cuándo es fiable la comparación con el año previo',
+    meaning: `El Hub guarda tickets desde abril de 2025 y entonces entraban muy pocos al mes, así que el año previo suele tener una décima parte del volumen de hoy. Con menos de ${String(MIN_RELIABLE_SAMPLE)} casos en el año previo, un porcentaje engaña (12 tickets contra 100 darían "+800 %"): la diferencia de un conteo se muestra en unidades, sin porcentaje, y la cifra lleva la nota "Pocos datos del año previo (n = …)". Las tasas se miden en puntos y los tiempos en días, y llevan la misma nota. El número entre paréntesis es cuántos casos hay en el año previo.`,
+    seenIn: [EXEC, SUMMARY],
+  },
+];
+
 const presentationGroup: DefinitionGroup = {
   id: 'lectura',
   title: 'Cómo leer las páginas',
@@ -330,6 +352,9 @@ const presentationGroup: DefinitionGroup = {
         'El filtro va en la dirección de la página, así que puedes compartir el enlace tal cual. Mientras no cierres el navegador, el Hub recuerda tu última elección al pasar de una de estas cuatro páginas a otra. Una sesión nueva vuelve a los últimos 30 días. "Restablecer" borra lo recordado.',
       seenIn: [EXEC, SUMMARY, SLA, BREACHES],
     },
+    // The flag is a constant until the switch is turned on for every page (D-0k).
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+    ...(COMPARE_ENABLED ? COMPARE_DEFINITIONS : []),
     {
       id: 'granularidad-grafico',
       term: 'Qué muestra cada barra de un gráfico',
