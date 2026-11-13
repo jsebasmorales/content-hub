@@ -1,6 +1,6 @@
 # Plan: filtros globales y comparación vs año previo
 
-Estado: **plan aprobado (decisiones del §0). No hay código escrito.** La 1.5a empieza cuando se fusione `feat/rediseno-stitch`: se crea `feat/filtros-globales` desde `main`. `/aprendido` y `/login` pendientes no bloquean.
+Estado: **plan aprobado. La fase 1.5a está hecha** (rama `feat/filtros-globales`): dominio del período y del filtro, las cuatro páginas con el filtro, cookie, menú, Definiciones y pruebas. **Quedan 1.5b y 1.5c** (la comparación con el año previo); el interruptor "Comparar" no existe todavía (`COMPARE_ENABLED = false`).
 
 ## 0. Aprobación y medición de datos
 
