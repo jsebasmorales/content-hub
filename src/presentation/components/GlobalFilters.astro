@@ -45,7 +45,13 @@ const activeLabel = `${String(filter.activeCount)} ${filter.activeCount === 1 ? 
 const resetHref = `${action}?${FILTER_PARAMS.reset}=1`;
 ---
 
-<form class="gfilter" method="get" action={action} aria-label="Filtros del período y los tipos">
+<form
+  class="gfilter"
+  method="get"
+  action={action}
+  aria-label="Filtros del período y los tipos"
+  data-today={dayParam(panel.today)}
+>
   {carry.map(([name, value]) => (
     <input type="hidden" name={name} value={value} />
   ))}
@@ -137,7 +143,7 @@ const resetHref = `${action}?${FILTER_PARAMS.reset}=1`;
 
     <details class="gfilter-types">
       <summary class="gfilter-control">
-        <span>{typeLabel}</span>
+        <span data-types-label>{typeLabel}</span>
         <Icon name="chevron-down" size={16} />
       </summary>
       <fieldset class="gfilter-types-panel">
@@ -157,6 +163,8 @@ const resetHref = `${action}?${FILTER_PARAMS.reset}=1`;
       </fieldset>
     </details>
 
+    <p class="gfilter-hint" role="status" data-types-hint></p>
+
     <div class="gfilter-actions">
       <a class="gfilter-reset" href={resetHref}>
         <Icon name="reset" size={16} />
@@ -174,3 +182,6 @@ const resetHref = `${action}?${FILTER_PARAMS.reset}=1`;
     {window.partial && ' El período llega hasta hoy.'}
   </p>
 </form>
+
+{/* The only script of these pages (D-081): it only adds comfort, the form works without it. */}
+<script is:inline type="module" src="/js/global-filter.js"></script>

@@ -6,8 +6,13 @@ import {
   type RawGlobalFilter,
   type ResolvedFilter,
 } from '@domain/jira/global-filter';
-import { granularityFor, type DayWindow, type Granularity } from '@domain/jira/period-window';
-import { monthOf } from '@domain/jira/quarter';
+import {
+  dayOf,
+  granularityFor,
+  type DayWindow,
+  type Granularity,
+} from '@domain/jira/period-window';
+import { monthOf, type YearMonthDay } from '@domain/jira/quarter';
 import type { SlaCycleRecord } from '@domain/jira/sla-report';
 import { summaryTypeOptions } from '@domain/jira/summary-report';
 import type { FilterOption } from '@domain/jira/task-list';
@@ -33,6 +38,8 @@ export interface FilterPanel {
   readonly typeOptions: readonly FilterOption[];
   /** Years offered next to the quarter chips, newest first. */
   readonly years: readonly number[];
+  /** Today in the reporting time zone: the page hands it to its script so the browser's clock is never used. */
+  readonly today: YearMonthDay;
   readonly compareAvailable: boolean;
 }
 
@@ -80,6 +87,7 @@ export async function prepareReport(
       filter,
       typeOptions,
       years: yearsOffered(allTickets, now),
+      today: dayOf(now),
       compareAvailable: COMPARE_ENABLED,
     },
     tickets: filterTicketsByTypes(allTickets, filter.types),

@@ -4,7 +4,8 @@
 // http://localhost:4321 and lider@holafly.com, with AUTH_PROVIDER=local so the script can sign in)
 //
 // 1. JS budget: how many KB (gzip) of JavaScript each page downloads. The Hub is server-rendered
-//    and ships none today, so any new script shows up here before it reaches a user.
+//    and ships only the filter's 2 KB enhancement script on four pages (D-081), so any new script
+//    shows up here before it reaches a user.
 // 2. Lighthouse (mobile, simulated slow 4G): scores and the SDD's LCP / CLS limits.
 // Exit code 1 if any budget is broken, so CI fails.
 import { gzipSync } from 'node:zlib';
@@ -29,6 +30,14 @@ const PAGES = [
   '/estado',
 ];
 const PUBLIC_PAGES = ['/login'];
+
+/**
+ * The four pages that show the global filter ship one small script of progressive enhancement
+ * (D-081). Their own, tighter limit keeps it from growing into the 30 KB general allowance; every
+ * other page still has none.
+ */
+const FILTER_PAGES = new Set(['/', '/resumen', '/sla', '/incumplimientos']);
+const FILTER_PAGE_JS_KB = 2;
 
 const BUDGET = {
   jsKbGzip: 30, // SDD §12: dashboard pages
@@ -108,6 +117,8 @@ async function audit(path, cookieHeader) {
 }
 
 function judge(path, kb, lh) {
+  const limit = FILTER_PAGES.has(path) ? FILTER_PAGE_JS_KB : 0;
+  if (kb > limit) fail(path, `${kb.toFixed(1)} KB of JS (limit ${String(limit)})`);
   if (kb > BUDGET.jsKbGzip) fail(path, `${kb.toFixed(1)} KB of JS (limit ${BUDGET.jsKbGzip})`);
   if (lh.performance < BUDGET.performance) fail(path, `performance ${lh.performance}`);
   if (lh.accessibility < BUDGET.accessibility) fail(path, `accessibility ${lh.accessibility}`);

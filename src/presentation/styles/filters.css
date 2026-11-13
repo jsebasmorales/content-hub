@@ -279,3 +279,48 @@
     justify-content: space-between;
   }
 }
+
+/* Short notice next to the types button (set by the script, announced to screen readers). */
+.gfilter-hint {
+  flex-basis: 100%;
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--fs-label);
+  text-align: right;
+}
+
+.gfilter-hint:empty {
+  display: block;
+  height: 0;
+}
+
+/* A quarter that has not started cannot be chosen (the script turns this on when the year changes). */
+.gfilter-chip input:disabled {
+  cursor: not-allowed;
+}
+
+.gfilter-chip input:disabled + span {
+  color: var(--text-muted);
+  opacity: 0.5;
+  text-decoration: line-through;
+}
+
+/* With the script, a click anywhere on the range opens the calendar, so the browser's own icon would
+   be a second, redundant one beside the design's. Without the script it stays: it is the only way in. */
+.gfilter-js .gfilter-range {
+  cursor: pointer;
+}
+
+.gfilter-js .gfilter-range input::-webkit-calendar-picker-indicator {
+  display: none;
+}
+
+/* The range field keeps the width of its content; shrinking it clipped the "30 d" at the border. */
+.gfilter-controls .gfilter-range {
+  min-width: min-content;
+}
+
+/* A fixed width, so that hiding the browser's own calendar icon (when the script runs) moves nothing. */
+.gfilter-range input[type='date'] {
+  width: 9.5rem;
+}
