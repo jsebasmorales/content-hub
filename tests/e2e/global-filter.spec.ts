@@ -1,12 +1,13 @@
 import { expect, test, type BrowserContext, type Page } from '@playwright/test';
+import { leaderContext } from './leader-session';
 
 /**
  * The global filter (docs/PLAN_FILTROS.md): it lives on four pages, travels in the address, is
- * remembered for the session and works with no script (the Hub ships none, so every test here is
- * also a no-script test). One sign-in for the whole file: logging in is limited to 10 a minute.
+ * remembered for the session and works with the progressive-enhancement script switched OFF
+ * (global-filter-js.spec.ts covers it switched on). One sign-in for the whole file: logging in is
+ * limited to 10 a minute.
  */
 
-const LEADER = 'lider@holafly.com';
 const FILTERED = ['/', '/resumen', '/sla', '/incumplimientos'];
 const UNFILTERED = [
   '/tareas',
@@ -28,12 +29,10 @@ let context: BrowserContext;
 let page: Page;
 
 test.beforeAll(async ({ browser }) => {
-  context = await browser.newContext();
+  // No script: everything the filter does must work from the plain form alone (D-078, D-081).
+  context = await leaderContext(browser, { javaScriptEnabled: false });
   page = await context.newPage();
-  await page.goto('/login');
-  await page.getByLabel('Correo de Holafly').fill(LEADER);
-  await page.getByRole('button', { name: 'Entrar' }).click();
-  await expect(page).toHaveURL('/');
+  await page.goto('/');
 });
 
 test.afterAll(async () => {

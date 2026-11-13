@@ -121,7 +121,8 @@ test('the Leader sees the administration entry, can ask Jira for an update and c
   await page.getByRole('button', { name: 'Resincronizar con Jira' }).click();
   await expect(page).toHaveURL(/\/\?sync=(started|running)$/);
   // Opening the page may already have started a refresh, which the button then reports as running.
-  await expect(page.getByRole('status')).toContainText(
+  // The filter's own notice ("Debe quedar al menos un tipo") is a status too, so it is left out.
+  await expect(page.locator('[role="status"]:not([data-types-hint])')).toContainText(
     /Pedimos la actualización|Ya hay una actualización en curso/,
   );
   await page.getByRole('button', { name: 'Resincronizar con Jira' }).click();
