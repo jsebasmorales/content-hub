@@ -267,6 +267,7 @@ All pages share the shell (section 6). Content to preserve comes from the screen
 ## 10. Interaction, motion and accessibility
 
 - Motion: 150–200 ms ease-out for hover, dropdowns and tooltips; no decorative animation; respect `prefers-reduced-motion`.
+- Progressive enhancement: nothing depends on JavaScript. The one script of the Hub (the global filter, section 14, at most 2 KB gzip) only adds comfort on top of a form that already works.
 - Keyboard: every control reachable; visible focus ring; the search combobox supports arrows, Enter and Esc; dropdowns and trees follow standard ARIA patterns.
 - Touch targets at least 44 × 44 px.
 - Contrast per section 2.7; do not rely on color alone; provide text alternatives for charts (a data table toggle or a summary sentence).
@@ -405,6 +406,8 @@ White card, 1 px `--border`, radius 16, padding 20 / 24. Header: funnel icon in 
 6. **Restablecer** (tertiary, reset icon) and **Aplicar** (primary gradient). There is one reset and no "Limpiar".
 
 With the comparison on, a **previous-year box** appears under the controls: "Año previo", its date range, "mismo número de días, N d" and "Este color marca los datos del año previo en todo el Hub". The "Aparece en…" note that sits above the card in the design is a canvas annotation, not part of the product. Mobile has no design: the controls wrap and nothing else is promised.
+
+**Behavior with the script on** (without it, all of this still works from the plain form): the request-type dropdown closes with Esc (focus returns to its button), on a click outside and when focus leaves it, only one is open at a time, and the last type cannot be unchecked (a short notice in a `role="status"` region says why); its label ("Todos los tipos (5)", "2 de 5 tipos") updates as you choose. A click anywhere on the date field opens the browser calendar, and the dates can still be typed. When the year changes, the quarter chips of quarters that have not started are disabled. The date format follows the browser language and cannot be forced; Firefox keeps its own calendar icon beside the design's.
 
 An active filter counts 1 each: a period other than the default, a type selection other than "todos", and the comparison on.
 

@@ -185,7 +185,7 @@ Las páginas replican el mockup. Cada una es una **ruta propia** (no un one-page
 Resumen ejecutivo, Resumen, SLAs y SLAs incumplidos comparten un filtro que no aparece en las demás páginas: **período** (por defecto los últimos 30 días, hoy incluido, en hora de Bogotá; también T1 a T4 de un año o un rango propio de hasta 3 años), **tipos de solicitud** (selección múltiple, nunca vacía; "todos" cuenta también los tipos retirados) y, cuando las cuatro páginas puedan dibujarla, la **comparación con el año previo**. Un período que llega más allá de hoy se corta en hoy y lo dice.
 
 - **Dónde vive:** la dirección es la fuente de verdad (`periodo`, `anio`, `desde`, `hasta`, `tipos`, `comparar`) y una cookie de sesión (`hub_filter`, `HttpOnly`, `SameSite=Lax`, sin caducidad) recuerda la última elección válida al pasar de una de las cuatro páginas a otra. Una sesión nueva vuelve al valor por defecto. Nada de la cookie ni de la dirección se usa sin validar.
-- **Capas:** el módulo `domain/jira/period-window.ts` calcula el período, el período anterior y el año previo; `global-filter.ts` resuelve y valida el filtro; `chart-buckets.ts` reparte el período en barras. `application` lee tickets y ciclos **una vez** (dos consultas) y estrecha por tipo; `presentation` lee la dirección y la cookie con Zod y dibuja el formulario, que funciona sin JavaScript.
+- **Capas:** el módulo `domain/jira/period-window.ts` calcula el período, el período anterior y el año previo; `global-filter.ts` resuelve y valida el filtro; `chart-buckets.ts` reparte el período en barras. `application` lee tickets y ciclos **una vez** (dos consultas) y estrecha por tipo; `presentation` lee la dirección y la cookie con Zod y dibuja el formulario, que funciona sin JavaScript; un script de mejora progresiva de ≤ 2 KB (`public/js/global-filter.js`, D-081) solo añade comodidad.
 - **Permisos:** sin cambios. El filtro es una preferencia de visualización; las secciones sin acceso siguen ocultas y no aparecen en ningún enlace.
 - Detalle y decisiones: `docs/PLAN_FILTROS.md`, D-078 a D-080.
 
@@ -458,15 +458,15 @@ La validación de seguridad es un entregable, no una tarea final. Se ejecuta en 
 
 **Presupuesto (medido en CI con Lighthouse CI y en producción con RUM simple):**
 
-| Métrica                             | Meta                                                   |
-| ----------------------------------- | ------------------------------------------------------ |
-| LCP                                 | ≤ 1,5 s en 4G simulada                                 |
-| INP                                 | ≤ 150 ms                                               |
-| CLS                                 | ≤ 0,05                                                 |
-| JS enviado en páginas del dashboard | ≤ 30 KB gzip (idealmente 0 en páginas sin interacción) |
-| JS de `/ecosystem`                  | ≤ 60 KB gzip                                           |
-| TTFB (con caché caliente)           | ≤ 200 ms                                               |
-| Respuesta del autocompletado        | ≤ 100 ms (p95)                                         |
+| Métrica                             | Meta                                                                                                                                                                         |
+| ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| LCP                                 | ≤ 1,5 s en 4G simulada                                                                                                                                                       |
+| INP                                 | ≤ 150 ms                                                                                                                                                                     |
+| CLS                                 | ≤ 0,05                                                                                                                                                                       |
+| JS enviado en páginas del dashboard | ≤ 30 KB gzip (idealmente 0 en páginas sin interacción); las cuatro páginas con filtro global cargan un solo script de mejora progresiva de ≤ 2 KB gzip (D-081) y el resto, 0 |
+| JS de `/ecosystem`                  | ≤ 60 KB gzip                                                                                                                                                                 |
+| TTFB (con caché caliente)           | ≤ 200 ms                                                                                                                                                                     |
+| Respuesta del autocompletado        | ≤ 100 ms (p95)                                                                                                                                                               |
 
 **Tácticas:**
 
