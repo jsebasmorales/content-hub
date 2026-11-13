@@ -1,4 +1,6 @@
 ---
+import { niceTicks } from '../chart-geometry';
+
 interface Item {
   /** Already worded: "nov", "T3 2026". */
   label: string;
@@ -24,20 +26,22 @@ const { items, title, idPrefix, note, resolvedLabel = 'Resueltos' } = Astro.prop
 const GROUP_WIDTH = 96;
 const BAR_WIDTH = 30;
 const BAR_GAP = 6;
+const AXIS_WIDTH = 40;
 const BASELINE = 190;
 const PLOT_HEIGHT = 160;
-const width = Math.max(600, items.length * GROUP_WIDTH);
-const groupWidth = width / Math.max(1, items.length);
+const width = Math.max(600, AXIS_WIDTH + items.length * GROUP_WIDTH);
+const groupWidth = (width - AXIS_WIDTH) / Math.max(1, items.length);
 
-// The tallest bar fills the plot: values are written on the bars, so there is no axis to round for.
-const ceiling = Math.max(1, ...items.flatMap((item) => [item.created, item.resolved]));
+// Round gridlines (DESIGN.md §8). The tallest tick is the top of the plot; values are also written on the bars.
+const ticks = niceTicks(Math.max(0, ...items.flatMap((item) => [item.created, item.resolved])));
+const ceiling = ticks.at(-1) ?? 1;
 const heightOf = (value: number): number => (value / ceiling) * PLOT_HEIGHT;
 
 const groups = items.map((item, index) => {
-  const left = index * groupWidth + (groupWidth - (BAR_WIDTH * 2 + BAR_GAP)) / 2;
+  const left = AXIS_WIDTH + index * groupWidth + (groupWidth - (BAR_WIDTH * 2 + BAR_GAP)) / 2;
   return {
     label: item.label,
-    centre: index * groupWidth + groupWidth / 2,
+    centre: AXIS_WIDTH + index * groupWidth + groupWidth / 2,
     bars: [
       { kind: 'created', value: item.created, x: left },
       { kind: 'resolved', value: item.resolved, x: left + BAR_WIDTH + BAR_GAP },
@@ -64,7 +68,25 @@ const summary = items
     >
       <title id={`${idPrefix}-title`}>{title}</title>
       <desc id={`${idPrefix}-desc`}>{summary}</desc>
-      <line class="chart-axis" x1="0" x2={width} y1={BASELINE} y2={BASELINE}></line>
+      {ticks.map((tick) => (
+        <g>
+          <line
+            class={tick === 0 ? 'chart-axis' : 'chart-gridline'}
+            x1={AXIS_WIDTH}
+            x2={width}
+            y1={BASELINE - heightOf(tick)}
+            y2={BASELINE - heightOf(tick)}
+          ></line>
+          <text
+            class="chart-tick"
+            x={AXIS_WIDTH - 8}
+            y={BASELINE - heightOf(tick) + 4}
+            text-anchor="end"
+          >
+            {tick}
+          </text>
+        </g>
+      ))}
       {groups.map((group) => (
         <g>
           {group.bars.map((bar) => (
@@ -75,7 +97,7 @@ const summary = items
                 y={BASELINE - heightOf(bar.value)}
                 width={BAR_WIDTH}
                 height={heightOf(bar.value)}
-                rx="3"
+                rx="4"
               ></rect>
               <text
                 class="chart-value"

@@ -1,11 +1,15 @@
 ---
-import { getApp, getJiraApp } from '@infrastructure/container';
+import { getJiraApp } from '@infrastructure/container';
 import { quarterLabel } from '@domain/jira/quarter';
-import BaseLayout from '../layouts/BaseLayout.astro';
+import ChartCard from '../components/ChartCard.astro';
 import ComplianceChart from '../components/ComplianceChart.astro';
+import DataTable from '../components/DataTable.astro';
+import EmptyState from '../components/EmptyState.astro';
+import Icon from '../components/Icon.astro';
+import PageHeader from '../components/PageHeader.astro';
 import QuarterTable from '../components/QuarterTable.astro';
-import SyncPanel from '../components/SyncPanel.astro';
 import VolumeChart from '../components/VolumeChart.astro';
+import BaseLayout from '../layouts/BaseLayout.astro';
 import { syncFlashFromQuery } from '../sync-messages';
 
 const principal = Astro.locals.principal;
@@ -22,9 +26,6 @@ const [status, result] = await Promise.all([
 if (!result.ok) return new Response(null, { status: 404 });
 const { quarters } = result.value;
 
-const csrfToken = (await getApp()).csrf.tokenFor(principal.sessionId);
-const timeZone = principal.user.timeZone;
-
 /** "T3 26": short enough to sit under a bar. */
 const shortLabel = (quarter: { year: number; quarter: number }): string =>
   `T${String(quarter.quarter)} ${String(quarter.year).slice(2)}`;
@@ -32,67 +33,79 @@ const current = quarters.find((entry) => entry.inProgress);
 const newestFirst = [...quarters].reverse();
 ---
 
-<BaseLayout title="Trimestre a trimestre">
-  <h1>Trimestre a trimestre</h1>
-  <p class="lede">
-    Las mismas cifras para cada uno de los últimos trimestres, para ver hacia dónde va el equipo.
-  </p>
-  <SyncPanel
-    status={status}
-    timeZone={timeZone}
-    canSync={principal.permissions.has('action.sync')}
-    csrfToken={csrfToken}
-    back="/trimestres"
-    flash={syncFlashFromQuery(Astro.url.searchParams)}
-  />
+<BaseLayout
+  title="Trimestre a trimestre"
+  sync={{ status, flash: syncFlashFromQuery(Astro.url.searchParams) }}
+>
+  <div class="page">
+    <PageHeader
+      title="Trimestre a trimestre"
+      lede="Las mismas cifras para cada uno de los últimos trimestres, para ver hacia dónde va el equipo."
+    />
 
-  {quarters.length === 0 ? (
-    <p class="empty">
-      Todavía no hay datos de Jira. Aparecerán cuando termine la primera actualización.
-    </p>
-  ) : (
-    <>
-      {current && (
-        <p class="section-note">
-          {quarterLabel(current.quarter)} está en curso ({current.elapsedDays} días): sus cifras son
-          parciales y no deben compararse con las de un trimestre terminado.
-        </p>
-      )}
+    {quarters.length === 0 ? (
+      <div class="card">
+        <EmptyState
+          icon="trend"
+          title="Todavía no hay datos de Jira"
+          help="Aparecerán cuando termine la primera actualización."
+        />
+      </div>
+    ) : (
+      <>
+        {current && (
+          <p class="notice notice-info" role="status">
+            <Icon name="info" />
+            <span>
+              {quarterLabel(current.quarter)} está en curso ({current.elapsedDays} días): sus cifras
+              son parciales y no deben compararse con las de un trimestre terminado.
+            </span>
+          </p>
+        )}
 
-      <h2 class="section-title">Cumplimiento de SLA por trimestre</h2>
-      <section class="card">
-        <ComplianceChart
-          items={quarters.map((entry) => ({
-            label: `${shortLabel(entry.quarter)}${entry.inProgress ? '*' : ''}`,
-            compliance: entry.sla,
-          }))}
+        <ChartCard
           title="Cumplimiento de SLA por trimestre"
-          idPrefix="sla-quarterly"
-        />
-      </section>
+          subtitle="Porcentaje de ciclos que cumplen la meta, por métrica."
+        >
+          <ComplianceChart
+            items={quarters.map((entry) => ({
+              label: `${shortLabel(entry.quarter)}${entry.inProgress ? '*' : ''}`,
+              compliance: entry.sla,
+            }))}
+            title="Cumplimiento de SLA por trimestre"
+            idPrefix="sla-quarterly"
+          />
+        </ChartCard>
 
-      <h2 class="section-title">Creados y resueltos por trimestre</h2>
-      <section class="card">
-        <VolumeChart
-          items={quarters.map((entry) => ({
-            label: `${shortLabel(entry.quarter)}${entry.inProgress ? '*' : ''}`,
-            created: entry.created,
-            resolved: entry.resolved,
-          }))}
-          title="Tickets creados y resueltos por trimestre"
-          idPrefix="volume-quarterly"
-          note="* Trimestre en curso: cifra parcial."
-        />
-      </section>
+        <ChartCard
+          title="Creados y resueltos por trimestre"
+          subtitle="Tickets que entran frente a tickets que se cierran."
+        >
+          <VolumeChart
+            items={quarters.map((entry) => ({
+              label: `${shortLabel(entry.quarter)}${entry.inProgress ? '*' : ''}`,
+              created: entry.created,
+              resolved: entry.resolved,
+            }))}
+            title="Tickets creados y resueltos por trimestre"
+            idPrefix="volume-quarterly"
+            note="* Trimestre en curso: cifra parcial."
+          />
+        </ChartCard>
 
-      <h2 class="section-title">Las cifras</h2>
-      <p class="section-note">
-        El tiempo típico es la mediana de días entre crear y resolver. Cada métrica de SLA debe
-        llegar al 90 % por separado para cumplir la meta.
-      </p>
-      <section class="card table-card">
-        <QuarterTable rows={newestFirst} />
-      </section>
-    </>
-  )}
+        <section class="section" aria-labelledby="numbers-title">
+          <div class="section-head">
+            <h2 id="numbers-title">Las cifras</h2>
+            <p>
+              El tiempo típico es la mediana de días entre crear y resolver. Cada métrica de SLA
+              debe llegar al 90 % por separado para cumplir la meta.
+            </p>
+          </div>
+          <DataTable label="Cifras por trimestre">
+            <QuarterTable rows={newestFirst} />
+          </DataTable>
+        </section>
+      </>
+    )}
+  </div>
 </BaseLayout>

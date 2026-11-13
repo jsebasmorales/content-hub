@@ -1,63 +1,66 @@
 ---
-import type { Principal } from '@application/use-cases/resolve-session';
-import { SUPPORTED_TIME_ZONES } from '@domain/access/time-zone';
-import { zoneLabel } from '../format-moment';
-import type { ThemeChoice } from '../theme';
-import ThemeToggle from './ThemeToggle.astro';
+import type { SyncStatus } from '@application/use-cases/jira/get-sync-status';
+import type { SupportedTimeZone } from '@domain/access/time-zone';
+import { formatMoment } from '../format-moment';
+import Icon from './Icon.astro';
+import StatusChip from './StatusChip.astro';
 
 interface Props {
-  principal: Principal;
-  csrfToken: string;
-  theme: ThemeChoice;
-  /** Page to come back to after changing the theme or the zone. */
-  back: string;
+  /** The state of the Jira data. Pages that do not show it leave this out. */
+  sync?:
+    | {
+        status: SyncStatus;
+        timeZone: SupportedTimeZone;
+        /** The person may press the button. When false, nothing about it is rendered. */
+        canSync: boolean;
+        csrfToken: string;
+        /** Page to come back to after pressing the button. */
+        back: string;
+      }
+    | undefined;
 }
 
-const { principal, csrfToken, theme, back } = Astro.props;
-const name = principal.user.name ?? principal.user.email;
-const initial = name.trim().charAt(0).toUpperCase() || '?';
-const zone = principal.user.timeZone;
+const { sync } = Astro.props;
 ---
 
 <header class="topbar">
-  <details class="profile">
-    <summary class="profile-summary">
-      <span class="avatar" aria-hidden="true">
-        {initial}
-      </span>
-      <span class="profile-text">
-        <span class="profile-name">{name}</span>
-        <span class="profile-meta">
-          {principal.user.email} · {principal.user.role.name}
-        </span>
-        <span class="profile-meta">Hora: {zoneLabel(zone)}</span>
-      </span>
-    </summary>
-    <form class="profile-panel card" method="post" action="/api/time-zone">
-      <input type="hidden" name="_csrf" value={csrfToken} />
-      <input type="hidden" name="back" value={back} />
-      <label for="profile-zone">Mostrar las horas en</label>
-      <select id="profile-zone" name="zone">
-        {SUPPORTED_TIME_ZONES.map((option) => (
-          <option value={option.id} selected={option.id === zone}>
-            {option.label}
-          </option>
-        ))}
-      </select>
-      <p class="profile-note">
-        Solo cambia cómo ves las horas. Los trimestres y los meses se agrupan siempre en hora de
-        Bogotá, así todo el equipo ve las mismas cifras.
-      </p>
-      <button class="btn" type="submit">
-        Guardar
-      </button>
-    </form>
-  </details>
-  <ThemeToggle current={theme} csrfToken={csrfToken} back={back} />
-  <form method="post" action="/api/auth/logout">
-    <input type="hidden" name="_csrf" value={csrfToken} />
-    <button class="btn btn-quiet" type="submit">
-      Cerrar sesión
-    </button>
-  </form>
+  <button
+    class="icon-btn topbar-menu"
+    type="button"
+    popovertarget="site-nav"
+    aria-label="Abrir el menú"
+  >
+    <Icon name="menu" />
+  </button>
+  <a class="topbar-brand" href="/">
+    Content Hub
+  </a>
+
+  {sync && (
+    <div class="sync-info">
+      <div class="sync-stamp">
+        {sync.status.lastUpdateAt ? (
+          <>
+            <span class="sync-stamp-label">Datos al</span>
+            <span class="sync-stamp-time">
+              {formatMoment(sync.status.lastUpdateAt, sync.timeZone)}
+            </span>
+          </>
+        ) : (
+          <span class="sync-stamp-label">Todavía no hay datos de Jira.</span>
+        )}
+      </div>
+      {sync.status.running && <StatusChip kind="info" label="Actualizando…" icon="refresh" />}
+      {sync.canSync && (
+        <form method="post" action="/api/sync">
+          <input type="hidden" name="_csrf" value={sync.csrfToken} />
+          <input type="hidden" name="back" value={sync.back} />
+          <button class="btn btn-secondary btn-compact sync-button" type="submit">
+            <Icon name="refresh" size={16} />
+            <span class="sync-button-text">Resincronizar con Jira</span>
+          </button>
+        </form>
+      )}
+    </div>
+  )}
 </header>

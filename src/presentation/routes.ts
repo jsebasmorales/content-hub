@@ -1,4 +1,14 @@
 import type { AccessRequirement } from '@domain/access/route-access';
+import type { IconName } from './icons';
+
+/** The heading a menu entry sits under. Order here is the order in the menu. */
+export const MENU_GROUPS = [
+  'Resumen',
+  'Trabajo',
+  'Impacto y planeación',
+  'Ayuda y ajustes',
+] as const;
+export type MenuGroup = (typeof MENU_GROUPS)[number];
 
 export interface RateLimitSpec {
   /** `ip` applies before sign-in; `user` after it. */
@@ -19,6 +29,9 @@ export interface RouteDefinition {
   readonly rateLimit?: RateLimitSpec;
   /** Spanish label shown in the navigation menu when the user may see this route. */
   readonly menuLabel?: string;
+  /** Heading and icon of the menu entry; both are required whenever `menuLabel` is set. */
+  readonly menuGroup?: MenuGroup;
+  readonly menuIcon?: IconName;
 }
 
 const MINUTE = 60_000;
@@ -34,6 +47,8 @@ export const ROUTES: readonly RouteDefinition[] = [
     kind: 'page',
     access: { kind: 'permission', permission: 'section.exec' },
     menuLabel: 'Resumen ejecutivo',
+    menuGroup: 'Resumen',
+    menuIcon: 'dashboard',
   },
   {
     pattern: '/resumen',
@@ -41,6 +56,8 @@ export const ROUTES: readonly RouteDefinition[] = [
     kind: 'page',
     access: { kind: 'permission', permission: 'section.summary' },
     menuLabel: 'Resumen',
+    menuGroup: 'Resumen',
+    menuIcon: 'list',
   },
   {
     pattern: '/tareas',
@@ -48,6 +65,8 @@ export const ROUTES: readonly RouteDefinition[] = [
     kind: 'page',
     access: { kind: 'permission', permission: 'section.work' },
     menuLabel: 'Tareas',
+    menuGroup: 'Trabajo',
+    menuIcon: 'tasks',
   },
   {
     pattern: '/sla',
@@ -55,6 +74,8 @@ export const ROUTES: readonly RouteDefinition[] = [
     kind: 'page',
     access: { kind: 'permission', permission: 'section.sla' },
     menuLabel: 'SLAs',
+    menuGroup: 'Trabajo',
+    menuIcon: 'clock',
   },
   {
     pattern: '/incumplimientos',
@@ -62,6 +83,8 @@ export const ROUTES: readonly RouteDefinition[] = [
     kind: 'page',
     access: { kind: 'permission', permission: 'section.breach' },
     menuLabel: 'SLAs incumplidos',
+    menuGroup: 'Trabajo',
+    menuIcon: 'breach',
   },
   {
     pattern: '/capacidad',
@@ -69,6 +92,8 @@ export const ROUTES: readonly RouteDefinition[] = [
     kind: 'page',
     access: { kind: 'permission', permission: 'section.capacity' },
     menuLabel: 'Capacidad',
+    menuGroup: 'Impacto y planeación',
+    menuIcon: 'capacity',
   },
   {
     pattern: '/trimestres',
@@ -76,6 +101,8 @@ export const ROUTES: readonly RouteDefinition[] = [
     kind: 'page',
     access: { kind: 'permission', permission: 'section.qoq' },
     menuLabel: 'Trimestre a trimestre',
+    menuGroup: 'Impacto y planeación',
+    menuIcon: 'trend',
   },
   {
     pattern: '/aprendido',
@@ -83,6 +110,8 @@ export const ROUTES: readonly RouteDefinition[] = [
     kind: 'page',
     access: { kind: 'permission', permission: 'section.learn' },
     menuLabel: 'Lo aprendido',
+    menuGroup: 'Impacto y planeación',
+    menuIcon: 'lightbulb',
   },
   {
     pattern: '/definiciones',
@@ -90,6 +119,8 @@ export const ROUTES: readonly RouteDefinition[] = [
     kind: 'page',
     access: { kind: 'permission', permission: 'section.defs' },
     menuLabel: 'Definiciones',
+    menuGroup: 'Ayuda y ajustes',
+    menuIcon: 'book',
   },
   {
     // Shown to whoever may request a sync (the Leader by default): they are the ones who act on it.
@@ -98,6 +129,8 @@ export const ROUTES: readonly RouteDefinition[] = [
     kind: 'page',
     access: { kind: 'permission', permission: 'action.sync' },
     menuLabel: 'Estado',
+    menuGroup: 'Ayuda y ajustes',
+    menuIcon: 'pulse',
   },
   {
     pattern: '/permisos',
@@ -105,6 +138,8 @@ export const ROUTES: readonly RouteDefinition[] = [
     kind: 'page',
     access: { kind: 'permission', permission: 'admin.roles' },
     menuLabel: 'Permisos',
+    menuGroup: 'Ayuda y ajustes',
+    menuIcon: 'shield',
   },
   {
     pattern: '/login',

@@ -54,6 +54,8 @@ export default defineConfig(
       'test-results/',
       'src/infrastructure/db/migrations/',
       'docs/reference/',
+      // Screenshots and throwaway probes of the design work: never part of the product.
+      '.design-captures/',
     ],
   },
   js.configs.recommended,
@@ -130,6 +132,11 @@ export default defineConfig(
     // Tool config files run outside the app; they may read the CI flag.
     files: ['*.config.ts', '*.config.js', '*.config.mjs'],
     rules: { 'no-restricted-properties': 'off' },
+  },
+  {
+    // Developer tools run from a terminal: they print their results and read the shell's variables.
+    files: ['scripts/capture-pages.mjs', 'scripts/check-design.mjs', 'scripts/recount-type.mjs'],
+    rules: { 'no-console': 'off', 'no-restricted-properties': 'off' },
   },
   {
     // The test harness picks its database from TEST_DATABASE_URL (a test-only switch, never

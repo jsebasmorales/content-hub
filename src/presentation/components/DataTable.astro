@@ -1,0 +1,17 @@
+---
+interface Props {
+  /** Names the table for screen readers. */
+  label: string;
+  /** A line of small print under the table. */
+  footnote?: string | undefined;
+}
+
+const { label, footnote } = Astro.props;
+---
+
+<section class="card table-card" aria-label={label}>
+  <div class="table-scroll">
+    <slot />
+  </div>
+  {footnote && <p class="table-foot">{footnote}</p>}
+</section>

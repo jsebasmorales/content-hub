@@ -5,7 +5,9 @@
 # The background function is already one self-contained ES module (scripts/build-functions.mjs).
 # Left to itself, Netlify bundles it again as CommonJS, which empties `import.meta.url` and
 # breaks the `require` shim at start-up. "none" ships the file exactly as built.
-[functions."sync-jira-background"]
+# The local emulator (`pnpm dev`) ignores this setting when it scans the file, so the bundle
+# itself contains no `import.meta` (scripts/build-functions.mjs).
+[functions]
   node_bundler = "none"
 
 [build.environment]

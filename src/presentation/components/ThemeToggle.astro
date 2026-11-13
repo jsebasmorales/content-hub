@@ -1,5 +1,7 @@
 ---
+import type { IconName } from '../icons';
 import type { ThemeChoice } from '../theme';
+import Icon from './Icon.astro';
 
 interface Props {
   current: ThemeChoice;
@@ -10,10 +12,10 @@ interface Props {
 
 const { current, csrfToken, back } = Astro.props;
 
-const choices: { value: ThemeChoice; icon: string; label: string }[] = [
-  { value: 'light', icon: '☀', label: 'Tema claro' },
-  { value: 'system', icon: '◐', label: 'Tema del dispositivo' },
-  { value: 'dark', icon: '☾', label: 'Tema oscuro' },
+const choices: { value: ThemeChoice; icon: IconName; label: string }[] = [
+  { value: 'light', icon: 'sun', label: 'Tema claro' },
+  { value: 'system', icon: 'monitor', label: 'Tema del dispositivo' },
+  { value: 'dark', icon: 'moon', label: 'Tema oscuro' },
 ];
 ---
 
@@ -30,7 +32,7 @@ const choices: { value: ThemeChoice; icon: string; label: string }[] = [
       aria-label={choice.label}
       title={choice.label}
     >
-      <span aria-hidden="true">{choice.icon}</span>
+      <Icon name={choice.icon} />
     </button>
   ))}
 </form>

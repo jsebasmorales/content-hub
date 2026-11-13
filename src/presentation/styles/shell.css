@@ -1,0 +1,644 @@
+/*
+ * The application shell (DESIGN.md §6): a fixed navigation, a 64 px top bar and a scrolling content
+ * area. Three widths:
+ *   >= 1440 px   full navigation, 248 px
+ *   768 - 1439   icon-only rail, 72 px
+ *   < 768 px     no rail: a button in the top bar opens the navigation as a panel
+ * The navigation is a `popover` element, so the panel needs no JavaScript: it closes with Esc, on
+ * a click outside and when a link is followed. Above 768 px it is simply always shown.
+ */
+
+.app {
+  display: grid;
+  grid-template-columns: var(--nav-width) minmax(0, 1fr);
+  min-height: 100vh;
+}
+
+@media (max-width: 1439px) {
+  .app {
+    grid-template-columns: var(--nav-width-rail) minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 767px) {
+  .app {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ---------------------------------------------------------------- navigation */
+.sidebar {
+  display: none;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: var(--space-l);
+  margin: 0;
+  padding: var(--space-l);
+  border: 0;
+  background: var(--surface);
+  color: var(--text);
+  overflow-y: auto;
+}
+
+@media (min-width: 768px) {
+  .sidebar {
+    display: flex;
+    position: static;
+    inset: auto;
+    width: auto;
+    height: auto;
+    border-right: 1px solid var(--border);
+    overflow: visible;
+  }
+}
+
+/* Sticky only when the window is tall enough to show the whole rail, so a short window scrolls it. */
+@media (min-width: 768px) and (min-height: 720px) {
+  .sidebar {
+    position: sticky;
+    top: 0;
+    align-self: start;
+    height: 100vh;
+    overflow-y: auto;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1439px) {
+  .sidebar {
+    overflow: visible;
+    padding: var(--space-m) var(--space-s);
+  }
+}
+
+@media (max-width: 767px) {
+  .sidebar:popover-open {
+    display: flex;
+    position: fixed;
+    inset: 0 auto 0 0;
+    width: min(20rem, 86vw);
+    height: 100dvh;
+    box-shadow: var(--shadow-modal);
+  }
+
+  .sidebar::backdrop {
+    background: var(--scrim);
+  }
+}
+
+.sidebar-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-s);
+}
+
+.icon-btn.sidebar-close {
+  display: none;
+}
+
+@media (max-width: 767px) {
+  .icon-btn.sidebar-close {
+    display: inline-grid;
+  }
+}
+
+.sidebar-main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-l);
+  min-height: 0;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-s);
+  padding: var(--space-xs);
+  color: var(--text);
+  text-decoration: none;
+}
+
+.brand-mark {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-s);
+  background: var(--gradient-primary);
+  color: var(--on-accent);
+  font-weight: 600;
+}
+
+.brand-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.brand-name {
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.brand-sub {
+  font-size: var(--fs-label);
+  color: var(--text-muted);
+}
+
+.menu {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-l);
+}
+
+.menu-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.menu-title {
+  padding: 0 var(--space-m);
+  font-size: var(--fs-label);
+  line-height: var(--lh-label);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--text-muted);
+}
+
+.menu a {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-s);
+  min-height: 44px;
+  padding: 0 var(--space-m);
+  border-left: 3px solid transparent;
+  border-radius: var(--radius-s);
+  color: var(--text-muted);
+  font-size: var(--fs-small);
+  line-height: var(--lh-small);
+  text-decoration: none;
+  transition:
+    background var(--ease),
+    color var(--ease);
+}
+
+.menu a:hover {
+  background: var(--surface-sunken);
+  color: var(--text);
+}
+
+.menu a[aria-current='page'] {
+  border-left-color: var(--accent);
+  background: var(--selected-bg);
+  color: var(--selected-text);
+  font-weight: 600;
+}
+
+/* Icon-only rail: the label stays for screen readers and shows as a tooltip on hover and focus. */
+@media (min-width: 768px) and (max-width: 1439px) {
+  .brand-text,
+  .menu-title,
+  .nav-label,
+  .user-text {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .brand {
+    justify-content: center;
+  }
+
+  .menu {
+    gap: var(--space-s);
+  }
+
+  .menu-section + .menu-section {
+    padding-top: var(--space-s);
+    border-top: 1px solid var(--border);
+  }
+
+  .menu a {
+    justify-content: center;
+    padding: 0;
+  }
+
+  .menu a::after,
+  .sidebar-foot button::after {
+    /* The empty text after the slash keeps this decoration out of the accessible name. */
+    content: attr(data-label) / '';
+    position: absolute;
+    z-index: 5;
+    left: calc(100% + var(--space-s));
+    padding: var(--space-xs) var(--space-s);
+    border-radius: var(--radius-s);
+    background: var(--neutral-600);
+    color: var(--neutral-100);
+    font-size: var(--fs-label);
+    line-height: var(--lh-label);
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity var(--ease);
+  }
+
+  .menu a:hover::after,
+  .menu a:focus-visible::after,
+  .sidebar-foot button:hover::after,
+  .sidebar-foot button:focus-visible::after {
+    opacity: 1;
+  }
+}
+
+.sidebar-foot {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  padding-top: var(--space-m);
+  border-top: 1px solid var(--border);
+}
+
+.sidebar-foot button {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-s);
+  width: 100%;
+  min-height: 44px;
+  padding: 0 var(--space-m);
+  border: 0;
+  border-radius: var(--radius-s);
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: var(--fs-small);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background var(--ease),
+    color var(--ease);
+}
+
+.sidebar-foot button:hover {
+  background: var(--surface-sunken);
+  color: var(--text);
+}
+
+@media (min-width: 768px) and (max-width: 1439px) {
+  .sidebar-foot button {
+    justify-content: center;
+    padding: 0;
+  }
+}
+
+.avatar {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-full);
+  background: var(--selected-bg);
+  color: var(--selected-text);
+  font-size: var(--fs-label);
+  font-weight: 600;
+}
+
+.user-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.25;
+}
+
+.user-name {
+  overflow: hidden;
+  color: var(--text);
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.user-meta {
+  overflow: hidden;
+  color: var(--text-muted);
+  font-size: var(--fs-label);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---------------------------------------------------------------- user menu */
+.user-menu {
+  position: fixed;
+  inset: auto auto var(--space-l) calc(var(--nav-width) + var(--space-s));
+  width: min(22rem, 90vw);
+  margin: 0;
+  padding: var(--space-2xl);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-l);
+  background: var(--surface-raised);
+  color: var(--text);
+  box-shadow: var(--shadow-float);
+}
+
+@media (max-width: 1439px) {
+  .user-menu {
+    inset-inline-start: calc(var(--nav-width-rail) + var(--space-s));
+  }
+}
+
+@media (max-width: 767px) {
+  .user-menu {
+    inset-inline-start: var(--space-l);
+    bottom: var(--space-l);
+  }
+}
+
+.user-menu h2 {
+  margin: 0 0 var(--space-xs);
+  font-size: var(--fs-h3);
+  line-height: var(--lh-h3);
+}
+
+.user-menu-meta {
+  margin: 0 0 var(--space-l);
+  color: var(--text-muted);
+  font-size: var(--fs-small);
+  overflow-wrap: anywhere;
+}
+
+.user-menu label {
+  margin-bottom: var(--space-xs);
+  font-size: var(--fs-label);
+}
+
+.user-menu select {
+  max-width: none;
+  margin-bottom: var(--space-s);
+}
+
+.user-menu-note {
+  margin: 0 0 var(--space-m);
+  color: var(--text-muted);
+  font-size: var(--fs-label);
+  line-height: 1.4;
+}
+
+.user-menu-section + .user-menu-section {
+  margin-top: var(--space-l);
+  padding-top: var(--space-l);
+  border-top: 1px solid var(--border);
+}
+
+.theme-toggle {
+  display: inline-flex;
+  gap: var(--space-xs);
+  padding: var(--space-xs);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-m);
+}
+
+.theme-option {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 36px;
+  border: 0;
+  border-radius: var(--radius-s);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.theme-option:hover {
+  background: var(--surface-sunken);
+}
+
+.theme-option-on {
+  background: var(--selected-bg);
+  color: var(--selected-text);
+}
+
+/* ---------------------------------------------------------------- main column and top bar */
+.main-col {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: var(--space-s) var(--space-l);
+  min-height: var(--topbar-height);
+  padding: var(--space-s) var(--space-2xl);
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+.icon-btn.topbar-menu,
+.topbar-brand {
+  display: none;
+}
+
+@media (max-width: 767px) {
+  .topbar {
+    justify-content: space-between;
+    padding-inline: var(--space-l);
+  }
+
+  .icon-btn.topbar-menu {
+    display: inline-grid;
+  }
+
+  .topbar-brand {
+    display: block;
+    margin-right: auto;
+    color: var(--text);
+    font-weight: 600;
+    text-decoration: none;
+  }
+}
+
+.icon-btn {
+  display: inline-grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-m);
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.icon-btn:hover {
+  background: var(--surface-sunken);
+}
+
+.sync-info {
+  display: flex;
+  align-items: center;
+  gap: var(--space-m);
+  min-width: 0;
+}
+
+.sync-stamp {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  line-height: 1.25;
+  text-align: right;
+}
+
+.sync-stamp-label {
+  color: var(--text-muted);
+  font-size: var(--fs-label);
+}
+
+.sync-stamp-time {
+  font-size: var(--fs-small);
+  font-weight: 600;
+}
+
+@media (max-width: 767px) {
+  .sync-info {
+    flex-basis: 100%;
+    justify-content: space-between;
+  }
+
+  .sync-stamp {
+    align-items: flex-start;
+    text-align: left;
+  }
+}
+
+.sync-button {
+  white-space: nowrap;
+}
+
+@media (max-width: 479px) {
+  .sync-button-text {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
+
+/* ---------------------------------------------------------------- content area */
+.content {
+  width: 100%;
+  max-width: var(--content-max);
+  margin: 0 auto;
+  padding: var(--space-3xl);
+}
+
+@media (max-width: 1439px) {
+  .content {
+    padding: var(--space-2xl);
+  }
+}
+
+@media (max-width: 767px) {
+  .content {
+    padding: var(--space-l) var(--space-l) var(--space-3xl);
+  }
+}
+
+/* A migrated page: sections separated by the section rhythm of DESIGN.md §4. */
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4xl);
+}
+
+.page > .card {
+  margin-bottom: 0;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-l);
+}
+
+.section-head h2 {
+  margin: 0;
+}
+
+.section-head p {
+  margin: var(--space-xs) 0 0;
+  color: var(--text-muted);
+}
+
+.page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-l);
+}
+
+.page-header h1 {
+  margin: 0;
+}
+
+.page-header .lede {
+  margin: var(--space-xs) 0 0;
+}
+
+.next-link {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.next-link a {
+  display: flex;
+  align-items: center;
+  gap: var(--space-m);
+  min-height: 48px;
+  padding: var(--space-s) var(--space-2xl);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-l);
+  background: var(--surface);
+  color: var(--text);
+  text-decoration: none;
+}
+
+.next-link a:hover {
+  border-color: var(--accent);
+}
+
+.next-link-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+  text-align: right;
+}
+
+.next-link-kicker {
+  color: var(--text-muted);
+  font-size: var(--fs-label);
+}
+
+.next-link-title {
+  font-weight: 600;
+}
+
+.next-link .icon {
+  color: var(--link);
+}

@@ -17,9 +17,18 @@ const EXTERNAL = [
   'drizzle-orm/pglite',
   'drizzle-orm/pglite/migrator',
 ];
-// Dependencies written as CommonJS (pg) call require(); this gives them one in an ES module.
-const REQUIRE_SHIM =
-  "import { createRequire as __createRequire } from 'node:module'; const require = __createRequire(import.meta.url);";
+// The bundle must not contain `import.meta`: while `pnpm dev` runs, the local Netlify emulator
+// re-reads every file in netlify/functions/ with esbuild as CommonJS (it ignores
+// `node_bundler = "none"` in that step) and prints an [empty-import-meta] warning per use.
+// Instead, `import.meta.url` is replaced at build time by `__importMetaUrl`, defined here from
+// the working directory (/var/task on Netlify). Dependencies written as CommonJS (pg) call
+// require(); this gives them one in an ES module.
+const REQUIRE_SHIM = [
+  "import { createRequire as __createRequire } from 'node:module';",
+  "import { pathToFileURL as __pathToFileURL } from 'node:url';",
+  "const __importMetaUrl = __pathToFileURL(process.cwd() + '/').href;",
+  'const require = __createRequire(__importMetaUrl);',
+].join(' ');
 
 const FUNCTIONS = [
   { entry: 'src/infrastructure/netlify/sync-jira-background.ts', name: 'sync-jira-background' },
@@ -38,6 +47,7 @@ for (const { entry, name } of FUNCTIONS) {
     tsconfig: 'tsconfig.json',
     external: EXTERNAL,
     banner: { js: REQUIRE_SHIM },
+    define: { 'import.meta.url': '__importMetaUrl' },
     legalComments: 'none',
     logLevel: 'warning',
   });

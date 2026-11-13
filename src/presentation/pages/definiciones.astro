@@ -1,9 +1,15 @@
 ---
-import { getApp, getJiraApp } from '@infrastructure/container';
-import BaseLayout from '../layouts/BaseLayout.astro';
+import { getJiraApp } from '@infrastructure/container';
+import EmptyState from '../components/EmptyState.astro';
 import KpiCard from '../components/KpiCard.astro';
-import SyncPanel from '../components/SyncPanel.astro';
-import { buildDefinitionGroups, visibleLinks } from '../definitions';
+import PageHeader from '../components/PageHeader.astro';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import {
+  buildDefinitionGroups,
+  filterDefinitionGroups,
+  MAX_DEFINITION_SEARCH,
+  visibleLinks,
+} from '../definitions';
 import { formatMoment } from '../format-moment';
 import { formatNumber } from '../format-number';
 import { syncFlashFromQuery } from '../sync-messages';
@@ -19,117 +25,171 @@ const result = await jira.definitions.execute(principal.permissions);
 if (!result.ok) return new Response(null, { status: 404 });
 const { status, quality } = result.value;
 
-const csrfToken = (await getApp()).csrf.tokenFor(principal.sessionId);
 const timeZone = principal.user.timeZone;
-const groups = buildDefinitionGroups();
+const allGroups = buildDefinitionGroups();
+// A plain GET search over the page's own text: it works without script and the address says what is shown.
+const query = (Astro.url.searchParams.get('q') ?? '').slice(0, MAX_DEFINITION_SEARCH).trim();
+const groups = filterDefinitionGroups(allGroups, query);
+const matches = groups.reduce((sum, group) => sum + group.items.length, 0);
 ---
 
-<BaseLayout title="Definiciones">
-  <h1>Definiciones</h1>
-  <p class="lede">
-    Qué significa cada cifra del Hub y cómo se calcula, para que nadie tenga que discutir qué quiere
-    decir "% completadas" o "SLA cumplido".
-  </p>
-  <SyncPanel
-    status={status}
-    timeZone={timeZone}
-    canSync={principal.permissions.has('action.sync')}
-    csrfToken={csrfToken}
-    back="/definiciones"
-    flash={syncFlashFromQuery(Astro.url.searchParams)}
-  />
+<BaseLayout
+  title="Definiciones"
+  sync={{ status, flash: syncFlashFromQuery(Astro.url.searchParams) }}
+>
+  <div class="page">
+    <PageHeader
+      title="Definiciones"
+      lede={
+        'Qué significa cada cifra del Hub y cómo se calcula, para que nadie tenga que discutir qué quiere decir "% de lo creado ya completado" o "SLA cumplido".'
+      }
+    />
 
-  <h2 class="section-title" id="corte">
-    Fecha de corte y calidad del dato
-  </h2>
-  <p class="section-note">
-    {status.lastUpdateAt
-      ? `Las cifras de todas las páginas están calculadas con los datos de Jira del ${formatMoment(status.lastUpdateAt, timeZone)}.`
-      : 'Todavía no hay datos de Jira: las cifras aparecerán cuando termine la primera actualización.'}{' '}
-    Esto es lo que hay guardado hoy:
-  </p>
-  <div class="kpi-grid">
-    <KpiCard
-      label="Tickets guardados"
-      value={formatNumber(quality.tickets)}
-      tip="Todos los tickets del proyecto que el Hub ha leído de Jira, abiertos y cerrados."
-    />
-    <KpiCard
-      label="Abiertos"
-      value={formatNumber(quality.openTickets)}
-      tip="Tickets que todavía no están en Hecho."
-    />
-    <KpiCard
-      label="Abiertos sin responsable"
-      value={formatNumber(quality.openWithoutAssignee)}
-      tip="Tickets abiertos que nadie tiene asignados. No entran en el reparto por persona de Capacidad."
-    />
-    <KpiCard
-      label="Ciclos abiertos en tickets cerrados"
-      value={formatNumber(quality.closedWithOpenClock)}
-      tip="Relojes de SLA que Jira nunca detuvo aunque el ticket ya está en Hecho. Siguen contando en el cumplimiento."
-    />
-    <KpiCard
-      label="Ciclos en pausa"
-      value={formatNumber(quality.pausedOnOpenTickets)}
-      tip="Relojes de SLA detenidos en Jira en tickets abiertos. No cuentan como incumplidos mientras estén en pausa."
-    />
-    <KpiCard
-      label="Tickets de tipos retirados"
-      value={formatNumber(quality.retiredTypeTickets)}
-      tip="Tickets de un tipo de solicitud marcado como obsoleto en Jira. Siguen en los totales."
-    />
-  </div>
-
-  <nav class="toc card" id="indice" aria-label="Contenido de esta página">
-    <h2 class="toc-title">En esta página</h2>
-    <ul class="plain-list">
-      {groups.map((group) => (
-        <li>
-          <a href={`#${group.id}`}>{group.title}</a>
-        </li>
-      ))}
-    </ul>
-  </nav>
-
-  {groups.map((group) => (
-    <section aria-labelledby={group.id}>
-      <h2 class="section-title" id={group.id}>
-        {group.title}
-      </h2>
-      <p class="section-note">{group.intro}</p>
-      <dl class="definitions">
-        {group.items.map((item) => {
-          const links = visibleLinks(item.seenIn, principal.permissions);
-          return (
-            <div class="definition card" id={item.id}>
-              <dt>{item.term}</dt>
-              <dd>
-                <p>{item.meaning}</p>
-                {item.how && (
-                  <p class="definition-how">
-                    <strong>Cómo se calcula:</strong> {item.how}
-                  </p>
-                )}
-                {links.length > 0 && (
-                  <p class="definition-seen">
-                    Dónde se ve:{' '}
-                    {links.map((link, index) => (
-                      <>
-                        {index > 0 && ', '}
-                        <a href={link.href}>{link.label}</a>
-                      </>
-                    ))}
-                  </p>
-                )}
-              </dd>
-            </div>
-          );
-        })}
-      </dl>
-      <p class="back-link">
-        <a href="#indice">↑ Volver al índice</a>
-      </p>
+    <section class="section" aria-labelledby="corte">
+      <div class="section-head">
+        <h2 id="corte">Fecha de corte y calidad del dato</h2>
+        <p>
+          {status.lastUpdateAt
+            ? `Las cifras de todas las páginas están calculadas con los datos de Jira del ${formatMoment(status.lastUpdateAt, timeZone)}.`
+            : 'Todavía no hay datos de Jira: las cifras aparecerán cuando termine la primera actualización.'}{' '}
+          Esto es lo que hay guardado hoy:
+        </p>
+      </div>
+      <div class="kpi-grid kpi-grid-3">
+        <KpiCard
+          label="Tickets guardados"
+          value={formatNumber(quality.tickets)}
+          tip="Todos los tickets del proyecto que el Hub ha leído de Jira, abiertos y cerrados."
+        />
+        <KpiCard
+          label="Abiertos"
+          value={formatNumber(quality.openTickets)}
+          tip="Tickets que todavía no están en Hecho."
+        />
+        <KpiCard
+          label="Abiertos sin responsable"
+          value={formatNumber(quality.openWithoutAssignee)}
+          tip="Tickets abiertos que nadie tiene asignados. No entran en el reparto por persona de Capacidad."
+        />
+        <KpiCard
+          label="Ciclos abiertos en tickets cerrados"
+          value={formatNumber(quality.closedWithOpenClock)}
+          tip="Relojes de SLA que Jira nunca detuvo aunque el ticket ya está en Hecho. Siguen contando en el cumplimiento."
+        />
+        <KpiCard
+          label="Ciclos en pausa"
+          value={formatNumber(quality.pausedOnOpenTickets)}
+          tip="Relojes de SLA detenidos en Jira en tickets abiertos. No cuentan como incumplidos mientras estén en pausa."
+        />
+        <KpiCard
+          label="Tickets de tipos retirados"
+          value={formatNumber(quality.retiredTypeTickets)}
+          tip="Tickets de un tipo de solicitud marcado como obsoleto en Jira. Siguen en los totales."
+        />
+      </div>
     </section>
-  ))}
+
+    <form
+      class="search-bar"
+      method="get"
+      action="/definiciones"
+      role="search"
+      aria-label="Buscar en las definiciones"
+    >
+      <div class="field">
+        <label for="d-buscar">Buscar una definición</label>
+        <input
+          id="d-buscar"
+          name="q"
+          type="search"
+          maxlength={MAX_DEFINITION_SEARCH}
+          value={query}
+          placeholder="Por ejemplo: completados, meta, pausa"
+        />
+      </div>
+      <button class="btn btn-secondary" type="submit">
+        Buscar
+      </button>
+      {query !== '' && (
+        <a class="filter-clear" href="/definiciones">
+          Limpiar
+        </a>
+      )}
+    </form>
+    {query !== '' && matches > 0 && (
+      <p class="list-status" role="status">
+        {matches === 1 ? '1 definición' : `${String(matches)} definiciones`} para "{query}".
+      </p>
+    )}
+
+    {groups.length === 0 ? (
+      <div class="card" role="status">
+        <EmptyState
+          icon="book"
+          title={`No hay definiciones para "${query}"`}
+          help="Prueba con otra palabra o limpia la búsqueda."
+        >
+          <a class="btn btn-secondary btn-compact" href="/definiciones">
+            Limpiar búsqueda
+          </a>
+        </EmptyState>
+      </div>
+    ) : (
+      <div class="definitions-layout">
+        <nav class="toc card" id="indice" aria-label="Contenido de esta página">
+          <h2 class="toc-title">En esta página</h2>
+          <ul class="plain-list">
+            {groups.map((group) => (
+              <li>
+                <a href={`#${group.id}`}>{group.title}</a>
+              </li>
+            ))}
+          </ul>
+        </nav>
+
+        <div>
+          {groups.map((group) => (
+            <section class="definition-group" aria-labelledby={group.id} id={`grupo-${group.id}`}>
+              <div class="section-head">
+                <h2 id={group.id}>{group.title}</h2>
+                <p>{group.intro}</p>
+              </div>
+              <dl class="definitions">
+                {group.items.map((item) => {
+                  const links = visibleLinks(item.seenIn, principal.permissions);
+                  return (
+                    <div class="definition card" id={item.id}>
+                      <dt>{item.term}</dt>
+                      <dd>
+                        <p>{item.meaning}</p>
+                        {item.how && (
+                          <p class="definition-how">
+                            <strong>Cómo se calcula:</strong> {item.how}
+                          </p>
+                        )}
+                        {links.length > 0 && (
+                          <p class="definition-seen">
+                            Dónde se ve:{' '}
+                            {links.map((link, index) => (
+                              <>
+                                {index > 0 && ', '}
+                                <a href={link.href}>{link.label}</a>
+                              </>
+                            ))}
+                          </p>
+                        )}
+                      </dd>
+                    </div>
+                  );
+                })}
+              </dl>
+              <p class="back-link">
+                <a href="#indice">Volver al índice</a>
+              </p>
+            </section>
+          ))}
+        </div>
+      </div>
+    )}
+  </div>
 </BaseLayout>

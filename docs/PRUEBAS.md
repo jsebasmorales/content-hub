@@ -29,35 +29,36 @@ fiables para pruebas rápidas (D-018).
 
 ## Qué cubre cada archivo
 
-| Archivo                                  | Cubre                                                             |
-| ---------------------------------------- | ----------------------------------------------------------------- |
-| `unit/access-policy.test.ts`             | Reglas de acceso del dominio                                      |
-| `unit/authorization-matrix.test.ts`      | Matriz rol × ruta: quién ve qué                                   |
-| `unit/route-access.test.ts`              | `decideAccess`: permitir, no autenticado, oculto                  |
-| `unit/route-registry.test.ts`            | Todas las rutas declaran acceso; sin duplicados                   |
-| `unit/session-policy.test.ts`            | Caducidad absoluta, inactividad y renovación                      |
-| `unit/security-headers.test.ts`          | Cabeceras de seguridad                                            |
-| `integration/sign-in.test.ts`            | Invitación, dominio, desactivados y bootstrap del Líder           |
-| `integration/admin-users.test.ts`        | Invitar, cambiar rol y dar de baja; reglas de "siempre un Líder"  |
-| `integration/atlassian-provider.test.ts` | OAuth con red simulada: `state`, PKCE y errores                   |
-| `integration/rate-limit-csrf.test.ts`    | Límite de tasa y tokens CSRF                                      |
-| `integration/denied-audit.test.ts`       | Auditoría de intentos denegados y su tope                         |
-| `integration/db-schema.test.ts`          | Restricciones, trigger de solo inserción en `audit_log`           |
-| `integration/env-rules.test.ts`          | Validación de entorno, incluidas las reglas de producción         |
-| `integration/seed-and-forms.test.ts`     | Semilla idempotente y concurrente; formularios y límite de cuerpo |
-| `integration/port-contracts.test.ts`     | Fakes y adaptadores reales se comportan igual                     |
-| `e2e/hide-not-block.spec.ts`             | Un Colaborador no ve ni accede a `/permisos`; flujo de invitación |
+| Archivo                                  | Cubre                                                                                                                                                         |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `unit/access-policy.test.ts`             | Reglas de acceso del dominio                                                                                                                                  |
+| `unit/authorization-matrix.test.ts`      | Matriz rol × ruta: quién ve qué                                                                                                                               |
+| `unit/route-access.test.ts`              | `decideAccess`: permitir, no autenticado, oculto                                                                                                              |
+| `unit/route-registry.test.ts`            | Todas las rutas declaran acceso; sin duplicados                                                                                                               |
+| `unit/session-policy.test.ts`            | Caducidad absoluta, inactividad y renovación                                                                                                                  |
+| `unit/security-headers.test.ts`          | Cabeceras de seguridad                                                                                                                                        |
+| `integration/sign-in.test.ts`            | Invitación, dominio, desactivados y bootstrap del Líder                                                                                                       |
+| `integration/admin-users.test.ts`        | Invitar, cambiar rol y dar de baja; reglas de "siempre un Líder"                                                                                              |
+| `integration/atlassian-provider.test.ts` | OAuth con red simulada: `state`, PKCE y errores                                                                                                               |
+| `integration/rate-limit-csrf.test.ts`    | Límite de tasa y tokens CSRF                                                                                                                                  |
+| `integration/denied-audit.test.ts`       | Auditoría de intentos denegados y su tope                                                                                                                     |
+| `integration/db-schema.test.ts`          | Restricciones, trigger de solo inserción en `audit_log`                                                                                                       |
+| `integration/env-rules.test.ts`          | Validación de entorno, incluidas las reglas de producción                                                                                                     |
+| `integration/seed-and-forms.test.ts`     | Semilla idempotente y concurrente; formularios y límite de cuerpo                                                                                             |
+| `integration/port-contracts.test.ts`     | Fakes y adaptadores reales se comportan igual                                                                                                                 |
+| `e2e/hide-not-block.spec.ts`             | Un Colaborador no ve ni accede a `/permisos`; flujo de invitación; el perfil, la zona horaria y el tema viven en el menú de la persona (pie de la navegación) |
 
 ## La Fase 1 (Jira y dashboard)
 
-| Archivo (en `unit/` e `integration/`)                                                     | Cubre                                                                                      |
-| ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
-| `jira-gateway`, `jira-sync`, `jira-request-sync`, `sync-function`, `jira-store-contracts` | El cliente de Jira, el sync incremental, la función en segundo plano y la caché            |
-| `sla-compliance`, `sla-report`, `sla-breaches`, `report-period`, `quarterly`, `quarter`   | Reglas de SLA (D-042), periodos, trimestres en hora de Bogotá, incumplimientos             |
-| `executive-summary`, `summary-report`, `task-list`, `capacity`, `data-quality`            | Cifras de cada página y sus filtros                                                        |
-| `definitions`                                                                             | Cada número del texto de Definiciones coincide con la constante del código                 |
-| `learned`, `time-zone`, `theme-and-return`                                                | Lo aprendido (versiones, solo-añadir), zona horaria por persona, tema y destinos de vuelta |
-| `sample-comparison`                                                                       | La comparación con Jira: elección de la muestra y detección de diferencias                 |
+| Archivo (en `unit/` e `integration/`)                                                     | Cubre                                                                                                                             |
+| ----------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `jira-gateway`, `jira-sync`, `jira-request-sync`, `sync-function`, `jira-store-contracts` | El cliente de Jira, el sync incremental, la función en segundo plano y la caché                                                   |
+| `sla-compliance`, `sla-report`, `sla-breaches`, `report-period`, `quarterly`, `quarter`   | Reglas de SLA (D-042), periodos, trimestres en hora de Bogotá, incumplimientos                                                    |
+| `executive-summary`, `summary-report`, `task-list`, `capacity`, `data-quality`            | Cifras de cada página y sus filtros                                                                                               |
+| `definitions`                                                                             | Cada número del texto de Definiciones coincide con la constante del código                                                        |
+| `learned`, `time-zone`, `theme-and-return`                                                | Lo aprendido (versiones, solo-añadir), zona horaria por persona, tema y destinos de vuelta                                        |
+| `sample-comparison`                                                                       | La comparación con Jira: elección de la muestra y detección de diferencias                                                        |
+| `navigation`, `chart-geometry`, `format-number`, `definitions`                            | Rediseño: menú agrupado sin grupos vacíos, ticks de los gráficos, miles y variaciones (`describeDelta`), búsqueda de Definiciones |
 
 ## Comparación con Jira
 
@@ -92,6 +93,18 @@ respuesta 138 cumplidos y 3 incumplidos, resolución 139 y 10).
 
 **Lo que esto no prueba:** que las reglas de D-042 sean las que el equipo quiere (eso es una decisión,
 no un dato) ni que Jira calcule bien sus relojes. Prueba que el Hub guarda y cuenta lo que Jira dice.
+
+## Diseño
+
+- **`pnpm check:design`** (también en el CI): ningún color, radio ni sombra fuera de `tokens.css`, y
+  contraste WCAG AA de cada par de tokens en claro y oscuro (4,5:1 texto, 3:1 gráficos); además mide
+  cuánto se distinguen las dos primeras series de los gráficos, también con daltonismo.
+- **`pnpm perf`** sigue siendo la puerta de rendimiento y de accesibilidad (Lighthouse). Sus cifras de
+  LCP en el servidor de desarrollo son **pesimistas** (documento sin comprimir, ver D-076): la medida
+  que cuenta es la de la vista previa de Netlify.
+- **Recuento independiente** (`scripts/recount-type.mjs`, D-073): repite en código aparte las cifras de
+  un tipo de solicitud directamente desde Jira.
+- No hay comparación automática de capturas: las de `scripts/capture-pages.mjs` se revisan a ojo.
 
 ## Reglas al escribir pruebas
 

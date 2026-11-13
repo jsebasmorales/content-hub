@@ -16,6 +16,7 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
+    "check:design": "node scripts/check-design.mjs",
     "arch": "depcruise src tests --config .dependency-cruiser.cjs",
     "test": "vitest run --passWithNoTests",
     "test:coverage": "vitest run tests/unit --coverage",

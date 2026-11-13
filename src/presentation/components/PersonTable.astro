@@ -1,16 +1,20 @@
 ---
 import type { PersonLoad } from '@domain/jira/capacity';
 import { NO_FILTER, OPEN_STATUS } from '@domain/jira/task-list';
+import { BALANCE_CHIP } from '../balance';
 import { formatNumber } from '../format-number';
 import { tasksHref } from '../tasks-query';
+import StatusChip from './StatusChip.astro';
 
 interface Props {
   rows: readonly PersonLoad[];
   /** False for a continuation of a table that already showed its heading. */
   withHead?: boolean;
+  /** Whether the person may open the tasks list: the "Ver abiertas" link exists only then. */
+  canSeeTasks?: boolean;
 }
 
-const { rows, withHead = true } = Astro.props;
+const { rows, withHead = true, canSeeTasks = false } = Astro.props;
 
 const signed = (value: number): string =>
   value === 0 ? '0' : `${value > 0 ? '+' : '−'}${formatNumber(Math.abs(value))}`;
@@ -41,10 +45,15 @@ const signed = (value: number): string =>
         <td data-label="Sin empezar">{formatNumber(person.notStarted)}</td>
         <td data-label="Terminó (90 días)">{formatNumber(person.resolvedRecent)}</td>
         <td data-label="Frente al promedio">
-          <span class={`balance balance-${person.balance}`}>{signed(person.deviation)}</span>
+          <StatusChip
+            kind={BALANCE_CHIP[person.balance].kind}
+            icon={BALANCE_CHIP[person.balance].icon}
+            label={signed(person.deviation)}
+            hint={BALANCE_CHIP[person.balance].label}
+          />
         </td>
         <td data-label="Tareas">
-          {person.assigneeId === null ? (
+          {person.assigneeId === null || !canSeeTasks ? (
             '—'
           ) : (
             <a

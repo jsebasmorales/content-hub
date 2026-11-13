@@ -3,6 +3,7 @@ import type { SupportedTimeZone } from '@domain/access/time-zone';
 import type { OngoingCycle } from '@domain/jira/sla-report';
 import { describeLimit, formatMomentPlain, zoneLabel } from '../format-moment';
 import { METRIC_LABEL } from '../sla-labels';
+import StatusChip from './StatusChip.astro';
 import TicketLink from './TicketLink.astro';
 
 interface Props {
@@ -43,10 +44,16 @@ const { rows, ticketUrlOf, timeZone, now, withHead = true } = Astro.props;
           {cycle.breachAt ? formatMomentPlain(cycle.breachAt, timeZone) : '—'}
         </td>
         <td data-label="Estado">
-          <span class={cycle.breached ? 'verdict verdict-bad' : 'verdict'}>
-            {cycle.breached ? '✖ ' : ''}
-            {describeLimit(cycle.breachAt, now)}
-          </span>
+          {cycle.breached ? (
+            <StatusChip
+              kind="error"
+              icon="x-circle"
+              label={describeLimit(cycle.breachAt, now)}
+              hint="SLA incumplido"
+            />
+          ) : (
+            describeLimit(cycle.breachAt, now)
+          )}
         </td>
       </tr>
     ))}

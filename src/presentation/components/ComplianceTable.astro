@@ -3,6 +3,7 @@ import { SLA_METRICS } from '@domain/jira/sla';
 import { SLA_TARGET_PERCENT, type SlaCompliance } from '@domain/jira/sla-compliance';
 import { formatNumber, formatPercent } from '../format-number';
 import { METRIC_LABEL } from '../sla-labels';
+import StatusChip from './StatusChip.astro';
 
 interface Row {
   label: string;
@@ -16,14 +17,6 @@ interface Props {
 }
 
 const { firstColumn, rows } = Astro.props;
-
-/** Mark and class for one metric: words and a symbol, never color alone. */
-function verdict(meets: boolean | null): { mark: string; cls: string } {
-  if (meets === null) return { mark: '', cls: 'verdict' };
-  return meets
-    ? { mark: '✔ ', cls: 'verdict verdict-ok' }
-    : { mark: '✖ ', cls: 'verdict verdict-bad' };
-}
 ---
 
 {rows.length === 0 ? (
@@ -48,13 +41,17 @@ function verdict(meets: boolean | null): { mark: string; cls: string } {
               {row.label}
             </th>
             {row.compliance.metrics.map((metric) => {
-              const { mark, cls } = verdict(metric.meetsTarget);
               return (
                 <td data-label={METRIC_LABEL[metric.metric]}>
-                  <span class={cls}>
-                    {mark}
-                    {formatPercent(metric.ratePercent)}
-                  </span>
+                  {metric.meetsTarget === null ? (
+                    formatPercent(metric.ratePercent)
+                  ) : (
+                    <StatusChip
+                      kind={metric.meetsTarget ? 'success' : 'error'}
+                      label={formatPercent(metric.ratePercent)}
+                      hint={metric.meetsTarget ? 'cumple la meta' : 'no cumple la meta'}
+                    />
+                  )}
                   {metric.total > 0 && (
                     <span class="cell-note">
                       {formatNumber(metric.met)} de {formatNumber(metric.total)}

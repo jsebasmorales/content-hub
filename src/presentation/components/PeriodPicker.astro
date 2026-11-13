@@ -3,6 +3,7 @@ import type { Quarter } from '@domain/jira/quarter';
 import { dayParam, quarterParam, type ReportPeriod } from '@domain/jira/report-period';
 import { quarterLabel } from '@domain/jira/quarter';
 import { SLA_PARAMS, slaQuarterHref } from '../sla-query';
+import Icon from './Icon.astro';
 
 interface Props {
   quarters: readonly Quarter[];
@@ -13,37 +14,47 @@ interface Props {
   basePath?: string;
   /** Other choices on the page (a filter) that must survive changing the period. */
   carry?: readonly [string, string][];
+  /** Where "Limpiar" leads. Left out when there is nothing to clear. */
+  clearHref?: string | undefined;
 }
 
-const { quarters, period, ignored, basePath = '/sla', carry = [] } = Astro.props;
+const { quarters, period, ignored, basePath = '/sla', carry = [], clearHref } = Astro.props;
 const chosen = period.kind === 'quarter' ? quarterParam(period.quarter) : null;
 ---
 
-<section class="card period-picker" aria-label="Periodo">
-  <h2 class="picker-title">Periodo</h2>
-
+<!--
+  The filter bar of DESIGN.md §7.2: quarters as chips, a custom range, and whatever other filters the
+  page puts in the slot, all in one card. Everything is a plain GET form: no script.
+-->
+<section class="filter-bar" aria-label="Filtros">
   {ignored && (
     <p class="notice notice-error" role="alert">
-      No pudimos usar el periodo pedido, así que se muestra el trimestre en curso.
+      <Icon name="x-circle" />
+      <span>No pudimos usar el periodo pedido, así que se muestra el trimestre en curso.</span>
     </p>
   )}
 
-  <nav class="quick-quarters" aria-label="Trimestres">
-    {quarters.map((quarter) => {
-      const param = quarterParam(quarter);
-      return (
-        <a
-          class={`chip ${chosen === param ? 'chip-on' : ''}`}
-          href={slaQuarterHref(param, basePath, carry)}
-          aria-current={chosen === param ? 'page' : undefined}
-        >
-          {quarterLabel(quarter)}
-        </a>
-      );
-    })}
-  </nav>
+  <div class="filter-group">
+    <p class="filter-label" id="filter-quarters">
+      Periodo
+    </p>
+    <nav class="quick-quarters" aria-labelledby="filter-quarters">
+      {quarters.map((quarter) => {
+        const param = quarterParam(quarter);
+        return (
+          <a
+            class={`chip ${chosen === param ? 'chip-on' : ''}`}
+            href={slaQuarterHref(param, basePath, carry)}
+            aria-current={chosen === param ? 'page' : undefined}
+          >
+            {quarterLabel(quarter)}
+          </a>
+        );
+      })}
+    </nav>
+  </div>
 
-  <form class="period-form" method="get" action={basePath}>
+  <form method="get" action={basePath}>
     {carry.map(([name, value]) => (
       <input type="hidden" name={name} value={value} />
     ))}
@@ -67,11 +78,20 @@ const chosen = period.kind === 'quarter' ? quarterParam(period.quarter) : null;
         value={period.kind === 'custom' ? dayParam(period.to) : ''}
       />
     </div>
-    <button class="btn" type="submit">
+    <button class="btn btn-secondary" type="submit">
       Ver periodo
     </button>
   </form>
-  <p class="section-note">
+
+  <slot />
+
+  {clearHref && (
+    <a class="filter-clear" href={clearHref}>
+      Limpiar
+    </a>
+  )}
+
+  <p class="filter-note">
     Las fechas se cuentan en hora de Bogotá. El periodo máximo es de 3 años.
   </p>
 </section>

@@ -24,19 +24,21 @@ const { items, title, idPrefix } = Astro.props;
 const GROUP_WIDTH = 64;
 const BAR_WIDTH = 26;
 const BAR_GAP = 4;
+const AXIS_WIDTH = 40;
 const BASELINE = 190;
 const PLOT_HEIGHT = 150;
-const width = Math.max(600, items.length * GROUP_WIDTH);
-const groupWidth = width / Math.max(1, items.length);
+const TICKS = [0, 25, 50, 75, 100] as const;
+const width = Math.max(600, AXIS_WIDTH + items.length * GROUP_WIDTH);
+const groupWidth = (width - AXIS_WIDTH) / Math.max(1, items.length);
 const heightOf = (percent: number): number => (percent / 100) * PLOT_HEIGHT;
 const goalY = BASELINE - heightOf(SLA_TARGET_PERCENT);
 
 const groups = items.map((entry, index) => {
-  const left = index * groupWidth + (groupWidth - (BAR_WIDTH * 2 + BAR_GAP)) / 2;
+  const left = AXIS_WIDTH + index * groupWidth + (groupWidth - (BAR_WIDTH * 2 + BAR_GAP)) / 2;
   const [first, done] = entry.compliance.metrics;
   return {
     label: entry.label,
-    centre: index * groupWidth + groupWidth / 2,
+    centre: AXIS_WIDTH + index * groupWidth + groupWidth / 2,
     bars: [
       { kind: 'first', percent: first?.ratePercent ?? null, x: left },
       { kind: 'done', percent: done?.ratePercent ?? null, x: left + BAR_WIDTH + BAR_GAP },
@@ -63,8 +65,29 @@ const summary = items
     >
       <title id={`${idPrefix}-title`}>{title}, frente a la meta del {SLA_TARGET_PERCENT} %</title>
       <desc id={`${idPrefix}-desc`}>{summary}</desc>
-      <line class="chart-axis" x1="0" x2={width} y1={BASELINE} y2={BASELINE}></line>
-      <line class="chart-goal" x1="0" x2={width} y1={goalY} y2={goalY}></line>
+      {TICKS.map((tick) => (
+        <g>
+          <line
+            class={tick === 0 ? 'chart-axis' : 'chart-gridline'}
+            x1={AXIS_WIDTH}
+            x2={width}
+            y1={BASELINE - heightOf(tick)}
+            y2={BASELINE - heightOf(tick)}
+          ></line>
+          <text
+            class="chart-tick"
+            x={AXIS_WIDTH - 8}
+            y={BASELINE - heightOf(tick) + 4}
+            text-anchor="end"
+          >
+            {tick}
+          </text>
+        </g>
+      ))}
+      <line class="chart-goal" x1={AXIS_WIDTH} x2={width} y1={goalY} y2={goalY}></line>
+      <text class="chart-goal-label" x={width - 4} y={goalY - 6} text-anchor="end">
+        Meta {SLA_TARGET_PERCENT} %
+      </text>
       {groups.map((group) => (
         <g>
           {group.bars.map((bar) =>
@@ -85,7 +108,7 @@ const summary = items
                   y={BASELINE - heightOf(bar.percent)}
                   width={BAR_WIDTH}
                   height={heightOf(bar.percent)}
-                  rx="3"
+                  rx="4"
                 ></rect>
                 <text
                   class="chart-value"

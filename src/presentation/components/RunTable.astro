@@ -3,6 +3,7 @@ import type { SupportedTimeZone } from '@domain/access/time-zone';
 import type { SyncRun } from '@application/ports/sync';
 import { formatDuration, formatMomentPlain, zoneLabel } from '../format-moment';
 import { formatNumber } from '../format-number';
+import StatusChip from './StatusChip.astro';
 
 interface Props {
   rows: readonly SyncRun[];
@@ -19,11 +20,12 @@ const KIND_LABEL = {
   scheduled: 'Programada',
 } as const;
 
-function outcome(run: SyncRun): { text: string; cls: string } {
-  if (run.status === 'running') return { text: 'En curso', cls: 'verdict' };
+/** The result as a chip: an icon and a word, never color alone. */
+function outcome(run: SyncRun): { kind: 'info' | 'success' | 'error'; text: string } {
+  if (run.status === 'running') return { kind: 'info', text: 'En curso' };
   return run.status === 'succeeded'
-    ? { text: '✔ Correcta', cls: 'verdict verdict-ok' }
-    : { text: '✖ Falló', cls: 'verdict verdict-bad' };
+    ? { kind: 'success', text: 'Correcta' }
+    : { kind: 'error', text: 'Falló' };
 }
 ---
 
@@ -55,7 +57,11 @@ function outcome(run: SyncRun): { text: string; cls: string } {
               : '—'}
           </td>
           <td data-label="Resultado">
-            <span class={result.cls}>{result.text}</span>
+            <StatusChip
+              kind={result.kind}
+              label={result.text}
+              icon={result.kind === 'info' ? 'refresh' : undefined}
+            />
           </td>
           <td data-label="Tickets leídos">{formatNumber(run.items)}</td>
           <td data-label="Detalle">{run.error ?? '—'}</td>
