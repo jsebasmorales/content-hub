@@ -13,7 +13,8 @@ const filterCard = (page: Page) =>
   page.getByRole('form', { name: 'Filtros del período y los tipos' });
 const typesButton = (page: Page) => filterCard(page).locator('summary');
 const typesBox = (page: Page) => filterCard(page).locator('details');
-const typeChecks = (page: Page) => filterCard(page).locator('details input[type="checkbox"]');
+const typeChecks = (page: Page) => filterCard(page).locator('details input[name="tipos"]');
+const selectAll = (page: Page) => filterCard(page).locator('[data-select-all] input');
 
 test.describe.configure({ mode: 'serial', timeout: 90_000 });
 
@@ -45,10 +46,10 @@ async function withData(target: Page): Promise<void> {
     ).join('');
     const html = (await response.text())
       .replace(
-        /(<fieldset class="gfilter-types-panel"[^>]*>\s*<legend[^>]*>[^<]*<\/legend>)[\s\S]*?(<\/fieldset>)/,
+        /(<div class="gfilter-types-panel"[^>]*>\s*<label class="gfilter-check gfilter-all"[\s\S]*?<\/label>)[\s\S]*?(<\/div>)/,
         `$1${checks}$2`,
       )
-      .replace(/(<span data-types-label[^>]*>)[^<]*/, '$1Todos los tipos (3)')
+      .replace(/(<span data-types-label[^>]*>)[^<]*/, '$1Todos seleccionados')
       .replace(/data-today="[^"]*"/, 'data-today="2026-02-10"')
       .replace(/(<select[^>]*name="anio"[^>]*>)/, '$1<option value="2025">2025</option>');
     await route.fulfill({ response, body: html });
@@ -132,15 +133,15 @@ test('the last type cannot be unchecked, and a short notice says why', async () 
 
 test('the button label follows the choice at once', async () => {
   const label = filterCard(page).locator('[data-types-label]');
-  await expect(label).toHaveText('Todos los tipos (3)');
+  await expect(label).toHaveText('Todos seleccionados');
   await typesButton(page).click();
   await typeChecks(page).nth(0).uncheck();
-  await expect(label).toHaveText('2 de 3 tipos');
+  await expect(label).toHaveText('2 seleccionados');
   await typeChecks(page).nth(1).uncheck();
-  await expect(label).toHaveText('1 de 3 tipos');
+  await expect(label).toHaveText('1 seleccionado');
   await typeChecks(page).nth(0).check();
   await typeChecks(page).nth(1).check();
-  await expect(label).toHaveText('Todos los tipos (3)');
+  await expect(label).toHaveText('Todos seleccionados');
 });
 
 test('a click anywhere on the date field asks the browser for the calendar', async () => {
@@ -205,4 +206,45 @@ test('applying still works with the script on', async () => {
   await filterCard(page).getByLabel('T3', { exact: true }).check();
   await filterCard(page).getByRole('button', { name: 'Aplicar' }).click();
   await expect(page).toHaveURL(/\/resumen\?periodo=T3&anio=2025/);
+});
+
+test('"Seleccionar todos": a tick with all, a dash with some, and it never leaves none', async () => {
+  const all = selectAll(page);
+  const checks = typeChecks(page);
+  const dash = () => all.evaluate((input) => (input as HTMLInputElement).indeterminate);
+  await typesButton(page).click();
+  await expect(all).toBeVisible();
+  await expect(all).toBeChecked();
+  expect(await dash()).toBe(false);
+
+  await checks.nth(0).uncheck();
+  await expect(all).not.toBeChecked();
+  expect(await dash()).toBe(true);
+
+  await all.check();
+  for (const i of [0, 1, 2]) await expect(checks.nth(i)).toBeChecked();
+  expect(await dash()).toBe(false);
+
+  // With everything chosen, clicking it again does nothing: one type must always be left.
+  await all.click();
+  await expect(all).toBeChecked();
+  for (const i of [0, 1, 2]) await expect(checks.nth(i)).toBeChecked();
+  // It has no name, so it never travels with the form.
+  expect(await all.getAttribute('name')).toBeNull();
+  await expect(filterCard(page).locator('[data-types-label]')).toHaveText('Todos seleccionados');
+});
+
+test('the dropdown panel is wide and tall enough: no name on more than one line, no scroll bar', async () => {
+  await typesButton(page).click();
+  const panel = filterCard(page).locator('.gfilter-types-panel');
+  const box = await panel.evaluate((el) => ({
+    width: el.getBoundingClientRect().width,
+    scrolls: el.scrollHeight > el.clientHeight,
+    first: el.querySelector('.gfilter-all')?.getBoundingClientRect().top ?? 0,
+    top: el.getBoundingClientRect().top,
+  }));
+  expect(box.width).toBeGreaterThanOrEqual(340);
+  expect(box.scrolls).toBe(false);
+  // The first row sits fully inside the panel, below its edge.
+  expect(box.first).toBeGreaterThanOrEqual(box.top);
 });

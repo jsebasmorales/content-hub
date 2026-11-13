@@ -10,13 +10,13 @@ import {
 
 describe('typesLabel', () => {
   it('says "todos" when every type is chosen and counts otherwise', () => {
-    expect(typesLabel(5, 5)).toBe('Todos los tipos (5)');
-    expect(typesLabel(2, 5)).toBe('2 de 5 tipos');
-    expect(typesLabel(1, 5)).toBe('1 de 5 tipos');
+    expect(typesLabel(5, 5)).toBe('Todos seleccionados');
+    expect(typesLabel(2, 5)).toBe('2 seleccionados');
+    expect(typesLabel(1, 5)).toBe('1 seleccionado');
   });
 
   it('never reads "0 de N": one type is always left', () => {
-    expect(typesLabel(1, 1)).toBe('Todos los tipos (1)');
+    expect(typesLabel(1, 1)).toBe('Todos seleccionados');
   });
 });
 

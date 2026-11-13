@@ -2,6 +2,7 @@
 import type { FilterPanel } from '@application/use-cases/jira/report-context';
 import { FILTER_PARAMS, shownDays } from '@domain/jira/global-filter';
 import { dayParam } from '@domain/jira/report-period';
+import { typeDisplayLabels } from '../type-label';
 import Icon from './Icon.astro';
 
 interface Props {
@@ -39,8 +40,10 @@ const shown = shownDays(filter);
 const total = typeOptions.length;
 const selected = filter.types.all ? total : filter.types.names.length;
 const typeLabel = filter.types.all
-  ? `Todos los tipos (${String(total)})`
-  : `${String(selected)} de ${String(total)} tipos`;
+  ? 'Todos seleccionados'
+  : `${String(selected)} ${selected === 1 ? 'seleccionado' : 'seleccionados'}`;
+// The short names are for drawing only: the value that travels is always the full Jira name.
+const shortNames = typeDisplayLabels(typeOptions.map((option) => option.value));
 const activeLabel = `${String(filter.activeCount)} ${filter.activeCount === 1 ? 'activo' : 'activos'}`;
 const resetHref = `${action}?${FILTER_PARAMS.reset}=1`;
 ---
@@ -113,7 +116,7 @@ const resetHref = `${action}?${FILTER_PARAMS.reset}=1`;
     </fieldset>
 
     <label class="gfilter-control gfilter-year">
-      <span class="gfilter-control-label">Año</span>
+      <span class="gfilter-field-label">Año</span>
       <select name={FILTER_PARAMS.year} aria-label="Año de los trimestres">
         {yearChoices.map((year) => (
           <option value={String(year)} selected={year === chosenYear}>
@@ -146,24 +149,34 @@ const resetHref = `${action}?${FILTER_PARAMS.reset}=1`;
 
     <details class="gfilter-types">
       <summary class="gfilter-control">
-        <span data-types-label>{typeLabel}</span>
+        <span class="gfilter-field-text">
+          <span class="gfilter-field-label">Tipo de tarea</span>
+          <span class="gfilter-field-value" data-types-label>
+            {typeLabel}
+          </span>
+        </span>
         <Icon name="chevron-down" size={16} />
       </summary>
-      <fieldset class="gfilter-types-panel">
-        <legend class="sr-only">Tipos de solicitud</legend>
+      <div class="gfilter-types-panel" role="group" aria-label="Tipos de solicitud">
+        {/* Only the script shows this row; it has no name, so it never travels with the form. */}
+        <label class="gfilter-check gfilter-all" hidden data-select-all>
+          <input type="checkbox" checked={filter.types.all} />
+          <span class="gfilter-check-name">Seleccionar todos</span>
+        </label>
         {typeOptions.map((option) => (
-          <label class="gfilter-check">
+          <label class="gfilter-check" title={option.value}>
             <input
               type="checkbox"
               name={FILTER_PARAMS.types}
               value={option.value}
+              aria-label={option.value}
               checked={filter.types.all || filter.types.names.includes(option.value)}
             />
-            <span>{option.label}</span>
+            <span class="gfilter-check-name">{shortNames.get(option.value) ?? option.label}</span>
             <span class="gfilter-count">{option.count}</span>
           </label>
         ))}
-      </fieldset>
+      </div>
     </details>
 
     <div class="gfilter-actions">

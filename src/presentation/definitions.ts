@@ -320,7 +320,7 @@ const presentationGroup: DefinitionGroup = {
       id: 'filtro-tipos',
       term: 'Filtro por tipo de solicitud',
       meaning:
-        'Puedes elegir varios tipos a la vez, pero no ninguno: si no queda ninguno, se muestran todos. Con "Todos los tipos" se cuentan también los tipos retirados, igual que en los totales; si eliges tipos concretos, solo se cuentan esos. Elegir todos los tipos vigentes equivale a "todos".',
+        'Puedes elegir varios tipos a la vez, pero no ninguno: si no queda ninguno, se muestran todos. Con "Todos seleccionados" se cuentan también los tipos retirados, igual que en los totales; si eliges tipos concretos, solo se cuentan esos. Elegir todos los tipos vigentes equivale a "todos".',
       seenIn: [EXEC, SUMMARY, SLA, BREACHES],
     },
     {

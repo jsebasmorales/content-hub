@@ -1,25 +1,21 @@
 // @ts-check
-// Progressive enhancement of the global filter (D-081). The filter is a plain GET form that works with
-// no script; this only adds comfort and never replaces what the server decides. Budget: 2 KB gzip.
+// Progressive enhancement of the global filter (D-081): the form works without it. Budget: 2 KB gzip.
 
-/** "Todos los tipos (5)" or "2 de 5 tipos". */
 export const typesLabel = (/** @type {number} */ n, /** @type {number} */ total) =>
-  n >= total ? `Todos los tipos (${total})` : `${n} de ${total} tipos`;
+  n >= total ? 'Todos seleccionados' : `${n} seleccionado${n === 1 ? '' : 's'}`;
 
-/** The server's "today" (YYYY-MM-DD, Bogotá): the browser's own clock is never asked. */
+// "Today" comes from the server (Bogotá), never from the browser's clock.
 export function parseToday(/** @type {string | undefined} */ value) {
   const m = /^(\d{4})-(\d{2})-\d{2}$/.exec(value ?? '');
   return m ? { year: Number(m[1]), month: Number(m[2]) } : null;
 }
 
-/** A quarter that starts after today (it starts on the 1st, so only the month matters). */
 export const isFutureQuarter = (
   /** @type {number} */ year,
   /** @type {number} */ quarter,
   /** @type {{ year: number, month: number }} */ today,
 ) => year > today.year || (year === today.year && quarter * 3 - 2 > today.month);
 
-/** The chip to check when the checked quarter is in the future: the latest one left, or 30 days. */
 export function fallbackChip(
   /** @type {number} */ year,
   /** @type {{ year: number, month: number }} */ today,
@@ -28,14 +24,7 @@ export function fallbackChip(
   return '30d';
 }
 
-/** @param {HTMLFormElement} form */
-function types(form) {
-  const box = form.querySelector('details');
-  const button = box?.querySelector('summary');
-  const label = form.querySelector('[data-types-label]');
-  const hint = form.querySelector('[data-types-hint]');
-  if (!box || !button || !label) return;
-  const checks = [...box.querySelectorAll('input')];
+function dropdown(/** @type {HTMLDetailsElement} */ box, /** @type {HTMLElement} */ button) {
   const close = (/** @type {boolean} */ refocus) => {
     box.open = false;
     if (refocus) button.focus();
@@ -58,14 +47,41 @@ function types(form) {
   document.addEventListener('pointerdown', (e) => {
     if (box.open && e.target instanceof Node && !box.contains(e.target)) close(false);
   });
+}
+
+/** @param {HTMLFormElement} form */
+function types(form) {
+  const box = form.querySelector('details');
+  const button = box?.querySelector('summary');
+  const label = form.querySelector('[data-types-label]');
+  const hint = form.querySelector('[data-types-hint]');
+  if (!box || !button || !label) return;
+  dropdown(box, button);
+  const checks = /** @type {HTMLInputElement[]} */ ([...box.querySelectorAll('input[name]')]);
+  const all = box.querySelector('[data-select-all]');
+  const allBox = all?.querySelector('input');
+  const sync = () => {
+    const n = checks.filter((c) => c.checked).length;
+    label.textContent = typesLabel(n, checks.length);
+    if (allBox) {
+      allBox.checked = n === checks.length;
+      allBox.indeterminate = n < checks.length;
+    }
+  };
+  all?.removeAttribute('hidden');
+  allBox?.addEventListener('change', () => {
+    for (const c of checks) c.checked = true;
+    sync();
+  });
   for (const check of checks) {
     check.addEventListener('change', () => {
-      const n = checks.filter((c) => c.checked).length;
-      if (n === 0) check.checked = true;
-      if (hint) hint.textContent = n === 0 ? 'Debe quedar al menos un tipo de solicitud.' : '';
-      label.textContent = typesLabel(Math.max(n, 1), checks.length);
+      const empty = !checks.some((c) => c.checked);
+      if (empty) check.checked = true;
+      if (hint) hint.textContent = empty ? 'Debe quedar al menos un tipo de solicitud.' : '';
+      sync();
     });
   }
+  sync();
 }
 
 /** @param {HTMLFormElement} form */
@@ -81,7 +97,7 @@ function dates(form) {
     try {
       input.showPicker();
     } catch {
-      // Refused (no gesture, or no picker): the field can still be typed in.
+      // Refused: the field can still be typed in.
     }
   });
 }

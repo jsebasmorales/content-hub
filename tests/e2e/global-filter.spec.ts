@@ -69,6 +69,12 @@ test('it opens on the last 30 days with nothing active', async () => {
   await expect(card.getByRole('switch')).toHaveCount(0);
 });
 
+test('"Seleccionar todos" is not offered without the script, and the list still works', async () => {
+  await page.goto('/resumen');
+  await expect(filterCard(page).locator('[data-select-all]')).toBeHidden();
+  await expect(filterCard(page).locator('details summary')).toBeVisible();
+});
+
 test('a quarter is applied, shown in the address and counted as active', async () => {
   await page.goto('/resumen');
   await filterCard(page).getByLabel('T3', { exact: true }).check();
