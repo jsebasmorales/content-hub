@@ -146,6 +146,8 @@ Assignments [Proposed]:
 
 Volare icon font `@holafly/volare-icon-font`, classes `volare-icon-<group>-<name>`, size controlled by `font-size`. Icons inherit the text color. Default size 20 px (16 px inside chips and tables). Open points: the full icon list, and whether a lighter SVG subset should replace the font for performance. Until confirmed, design with a simple outlined icon style, 1.5 px stroke, rounded caps.
 
+**`compare` (the Comparar switch).** The Hub's own icon, in `src/presentation/icons.ts`, on the same 24 px grid and 1.5 px stroke as the others: two small circles (bottom left, top right) joined by two right-angled lines whose arrowheads point in opposite directions, read as "this period set against another". It is used once, at 18 px, in front of the word "Comparar" in the filter header, and it is the only icon drawn in `--compare` (the previous-year purple, section 14.2) instead of the text color: it announces the color that will mark the previous year. When the Volare package or its SVG subset arrives (open point 6 of section 13), the equivalent comparison glyph replaces it with no change to the places that use it.
+
 ---
 
 ## 6. Layout

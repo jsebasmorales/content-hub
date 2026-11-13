@@ -130,7 +130,7 @@ no un dato) ni que Jira calcule bien sus relojes. Prueba que el Hub guarda y cue
 
 1. **quality**: instalación congelada, formato, ESLint, `astro check`, reglas de arquitectura,
    unitarias con cobertura, integración y build.
-2. **e2e** (después de quality): Playwright.
+2. **e2e** (después de quality): Playwright en Chromium (bloquea). Un job aparte, **que no bloquea** (`continue-on-error`), corre los dos archivos del filtro (`global-filter*.spec.ts`, con y sin script) en Firefox y WebKit con `E2E_BROWSERS=all`. Para correrlo en local: `$env:E2E_BROWSERS='all'; pnpm exec playwright install firefox webkit; pnpm exec playwright test --project=firefox --project=webkit global-filter`. WebKit de Playwright no es Safari.
 3. **security** (en paralelo): gitleaks con historial completo y `pnpm audit --audit-level=high`.
 4. **CodeQL** en su propio flujo, y Dependabot para actualizaciones semanales.
 

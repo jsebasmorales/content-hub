@@ -54,6 +54,15 @@ export const ICONS = {
   filter: ['M3 5h18l-7 8.5V20l-4-2v-4.5z'],
   calendar: ['M4 6h16v14H4z', 'M4 10h16', 'M8 3v4', 'M16 3v4'],
   reset: ['M4 12a8 8 0 1 0 2.4-5.7', 'M4 4v4.5h4.5'],
+  // Two points joined by arrows going opposite ways: "this period against another" (the Comparar switch).
+  compare: [
+    'M6 15.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5z',
+    'M18 3.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5z',
+    'M6 15.5V9a3 3 0 0 1 3-3h4',
+    'M11 3l3 3-3 3',
+    'M18 8.5V15a3 3 0 0 1-3 3h-4',
+    'M13 21l-3-3 3-3',
+  ],
   check: ['M5 12.5l4.5 4.5L19 7.5'],
   help: [
     'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z',

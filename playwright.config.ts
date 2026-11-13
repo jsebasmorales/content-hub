@@ -2,6 +2,9 @@ import { defineConfig, devices } from '@playwright/test';
 
 const PORT = 4321;
 const isCi = Boolean(process.env['CI']);
+// The blocking run is Chromium alone. CI has a second, non-blocking job that sets this to also run
+// the filter's specs in Firefox and WebKit (docs/PRUEBAS.md).
+const otherBrowsers = process.env['E2E_BROWSERS'] === 'all';
 
 export default defineConfig({
   testDir: 'tests/e2e',
@@ -11,7 +14,15 @@ export default defineConfig({
   retries: 0,
   reporter: isCi ? 'github' : 'list',
   use: { baseURL: `http://localhost:${String(PORT)}`, trace: 'retain-on-failure' },
-  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
+  projects: [
+    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+    ...(otherBrowsers
+      ? [
+          { name: 'firefox', use: { ...devices['Desktop Firefox'] } },
+          { name: 'webkit', use: { ...devices['Desktop Safari'] } },
+        ]
+      : []),
+  ],
   webServer: {
     command: `pnpm exec astro dev --port ${String(PORT)}`,
     url: `http://localhost:${String(PORT)}/login`,

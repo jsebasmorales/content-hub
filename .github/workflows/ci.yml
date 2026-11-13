@@ -130,6 +130,38 @@ jobs:
             playwright-report/
           retention-days: 7
 
+  e2e-other-browsers:
+    # Informational: it never blocks a merge (continue-on-error). It runs the filter's specs, the ones
+    # with and without the script, in Firefox and WebKit; Chromium stays the blocking run above.
+    name: Filter in Firefox and WebKit (non-blocking)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    continue-on-error: true
+    needs: quality
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Install browsers
+        run: pnpm exec playwright install --with-deps firefox webkit
+      - name: Run the filter specs
+        env:
+          E2E_BROWSERS: all
+        run: pnpm exec playwright test --project=firefox --project=webkit global-filter
+      - name: Keep the report when tests fail
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: playwright-report-other-browsers
+          path: |
+            test-results/
+            playwright-report/
+          retention-days: 7
+
   performance:
     name: Performance (Lighthouse and JS budget)
     runs-on: ubuntu-latest
