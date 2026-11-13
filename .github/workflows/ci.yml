@@ -60,6 +60,9 @@ jobs:
       - name: Architecture rules (dependency-cruiser)
         run: pnpm arch
 
+      - name: Design gate (no literal colors, radii or shadows; WCAG contrast of the tokens)
+        run: pnpm check:design
+
       - name: Unit tests with domain coverage gate (>= 90 %)
         run: pnpm test:coverage
 

@@ -1,80 +1,183 @@
 /*
- * Holafly design tokens: the single place for colors (SDD §18).
- * Values come from the approved mockup. The theme is chosen in this order:
- *   1. the person's own choice, written by the server as data-theme="light" or "dark";
- *   2. otherwise the device setting (prefers-color-scheme).
+ * Design tokens of the Hub: the single place where colors, radii, shadows and spacing are written.
+ * Source of truth: docs/DESIGN.md (Volare + the [Proposed] layer). Rules:
+ *   - Components use the SEMANTIC layer (--bg, --surface, --text, --accent...), never a primitive.
+ *   - A hex, rgb() or box-shadow value written anywhere outside this file is a defect
+ *     (pnpm check:design fails on it).
+ *   - Each semantic token is written once with light-dark(light, dark). The theme comes from
+ *     color-scheme: the person's own choice (data-theme, written by the server) or, when they made
+ *     none, the device setting.
  */
+
+/* ------------------------------------------------------------------ primitives (Volare) */
 :root {
-  color-scheme: light;
+  --magenta-100: #ffeef0;
+  --magenta-200: #ffa4b0;
+  --magenta-300: #ff5a6f;
+  --magenta-400: #e6485c;
+  --magenta-500: #d22c49;
+  --magenta-600: #951c39;
 
-  --page: #f9f9f7;
-  --surface: #fcfcfb;
-  --ink: #0b0b0b;
-  --ink-2: #52514e;
-  --muted: #6b6a64;
-  --grid: #e1e0d9;
-  --axis: #8a8981;
-  --border: rgb(11 11 11 / 10%);
-  --wash: #f0efec;
+  --neutral-100: #ffffff;
+  --neutral-200: #f8f8fb;
+  --neutral-300: #e4e6ea;
+  --neutral-400: #ccd0d7;
+  --neutral-500: #56575a;
+  --neutral-600: #292b2e;
 
-  --brand: #e6485c;
-  /* Darker coral for text-on-color: white on #c42f47 passes WCAG AA (5.4:1). */
-  --brand-strong: #c42f47;
-  --brand-wash: #fdecee;
-  --violet: #6250d6;
-  --aqua: #1baf7a;
-  --amber: #eda100;
-  --green: #008300;
+  --blue-100: #ebf3ff;
+  --blue-300: #62a0ff;
+  --blue-400: #327df0;
+  --blue-500: #2065ce;
+  --blue-600: #002968;
+  --baby-blue-500: #90c6de;
+  --green-100: #edfff4;
+  --green-300: #74faa7;
+  --green-400: #48ec86;
+  --green-500: #32a45e;
+  --green-600: #206b43;
+  --amber-100: #fff8ec;
+  --amber-300: #ffce6a;
+  --amber-400: #f8ba3d;
+  --amber-500: #c17b18;
+  --amber-600: #835617;
+  --red-100: #ffefec;
+  --red-300: #ff876d;
+  --red-500: #c83d1e;
+  --red-600: #841c05;
+  --purple-300: #bd78b8;
 
-  --good-text: #006300;
-  --bad-text: #b02a2a;
-  --bad-wash: #fbeaea;
-  --good-wash: #e7f5ea;
+  --gradient-primary: linear-gradient(135deg, #e12b57, #c8094e);
+  --effect-100: rgb(41 43 46 / 12%);
+  --effect-200: rgb(41 43 46 / 20%);
 
-  --radius: 10px;
-  --space: 1rem;
-  --font: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  /* Dark theme surfaces [Proposed, DESIGN.md §2.6]. */
+  --night-100: #1e1f22;
+  --night-200: #292b2e;
+  --night-300: #34363a;
+  --night-400: #3a3c40;
+
+  /* Spacing [Volare, DESIGN.md §4]. */
+  --space-xs: 4px;
+  --space-s: 8px;
+  --space-m: 12px;
+  --space-l: 16px;
+  --space-xl: 20px;
+  --space-2xl: 24px;
+  --space-3xl: 32px;
+  --space-4xl: 40px;
+  --space-5xl: 48px;
+  --space-6xl: 64px;
+  --space-7xl: 80px;
+
+  /* Radius [Volare, DESIGN.md §4]. */
+  --radius-xs: 4px;
+  --radius-s: 8px;
+  --radius-m: 12px;
+  --radius-l: 16px;
+  --radius-xl: 20px;
+  --radius-full: 2000px;
+
+  /* Type scale [Proposed, DESIGN.md §3]. */
+  --font-sans: 'Mulish', 'Mulish Fallback', system-ui, sans-serif;
+  --fs-kpi-hero: 56px;
+  --lh-kpi-hero: 64px;
+  --fs-kpi: 40px;
+  --lh-kpi: 48px;
+  --fs-h1: 32px;
+  --lh-h1: 40px;
+  --fs-h2: 24px;
+  --lh-h2: 32px;
+  --fs-h3: 20px;
+  --lh-h3: 28px;
+  --fs-body: 16px;
+  --lh-body: 24px;
+  --fs-small: 14px;
+  --lh-small: 20px;
+  --fs-label: 12px;
+  --lh-label: 16px;
+
+  /* Motion [DESIGN.md §10]. */
+  --ease: 160ms ease-out;
+
+  /* Layout [DESIGN.md §6]. */
+  --nav-width: 248px;
+  --nav-width-rail: 72px;
+  --topbar-height: 64px;
+  --content-max: 1200px;
 }
 
-/* The dark values, written once and applied by both routes below. */
+/* ------------------------------------------------------------------ theme selection */
+:root {
+  color-scheme: light dark;
+}
+:root[data-theme='light'] {
+  color-scheme: light;
+}
 :root[data-theme='dark'] {
   color-scheme: dark;
-
-  --page: #0d0d0d;
-  --surface: #1a1a19;
-  --ink: #f0efec;
-  --ink-2: #c3c2b7;
-  --muted: #a3a29b;
-  --grid: #2c2c2a;
-  --border: rgb(255 255 255 / 10%);
-  --wash: #262624;
-
-  --brand-wash: #3a1d22;
-  --violet: #9085e9;
-  --good-text: #4cc34c;
-  --bad-text: #ff8f8f;
-  --bad-wash: #3a1f1f;
-  --good-wash: #1b2f1f;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme='light']) {
-    color-scheme: dark;
+/* ------------------------------------------------------------------ semantic layer */
+:root {
+  --bg: light-dark(var(--neutral-200), var(--night-100));
+  --surface: light-dark(var(--neutral-100), var(--night-200));
+  --surface-raised: light-dark(var(--neutral-100), var(--night-300));
+  /* Hover rows, tracks, wells: a step away from the surface. */
+  --surface-sunken: light-dark(var(--neutral-200), var(--night-300));
+  --border: light-dark(var(--neutral-300), var(--night-400));
+  --border-strong: light-dark(var(--neutral-400), var(--neutral-500));
+  --text: light-dark(var(--neutral-600), var(--neutral-200));
+  --text-muted: light-dark(var(--neutral-500), var(--neutral-400));
 
-    --page: #0d0d0d;
-    --surface: #1a1a19;
-    --ink: #f0efec;
-    --ink-2: #c3c2b7;
-    --muted: #a3a29b;
-    --grid: #2c2c2a;
-    --border: rgb(255 255 255 / 10%);
-    --wash: #262624;
+  --accent: light-dark(var(--magenta-400), var(--magenta-300));
+  --link: light-dark(var(--magenta-500), var(--magenta-300));
+  --focus: light-dark(var(--blue-500), var(--blue-300));
+  --on-accent: var(--neutral-100);
+  --scrim: light-dark(rgb(41 43 46 / 40%), rgb(0 0 0 / 60%));
 
-    --brand-wash: #3a1d22;
-    --violet: #9085e9;
-    --good-text: #4cc34c;
-    --bad-text: #ff8f8f;
-    --bad-wash: #3a1f1f;
-    --good-wash: #1b2f1f;
-  }
+  /* Selected navigation item and other "chosen" states. */
+  --selected-bg: light-dark(
+    var(--magenta-100),
+    color-mix(in srgb, var(--magenta-300) 16%, var(--night-200))
+  );
+  /* DESIGN.md §6 names Magenta 500 here, but on Magenta 100 it is 4.47:1, under the 4.5:1 of §2.7.
+     Magenta 600 (light) and Magenta 200 (dark) keep the same hue and pass. */
+  --selected-text: light-dark(var(--magenta-600), var(--magenta-200));
+
+  --shadow-float: 0 8px 24px var(--effect-100);
+  --shadow-modal: 0 16px 40px var(--effect-200);
+
+  /* Status: text, background and accent (icon, line). Always used with an icon and a word. */
+  --success-text: light-dark(var(--green-600), var(--green-300));
+  --success-bg: light-dark(
+    var(--green-100),
+    color-mix(in srgb, var(--green-500) 16%, var(--night-200))
+  );
+  --success-accent: light-dark(var(--green-500), var(--green-300));
+  --warning-text: light-dark(var(--amber-600), var(--amber-300));
+  --warning-bg: light-dark(
+    var(--amber-100),
+    color-mix(in srgb, var(--amber-500) 18%, var(--night-200))
+  );
+  --warning-accent: light-dark(var(--amber-500), var(--amber-300));
+  --error-text: light-dark(var(--red-600), var(--red-300));
+  --error-bg: light-dark(var(--red-100), color-mix(in srgb, var(--red-500) 20%, var(--night-200)));
+  --error-accent: light-dark(var(--red-500), var(--red-300));
+  --info-text: light-dark(var(--blue-600), var(--blue-300));
+  --info-bg: light-dark(var(--blue-100), color-mix(in srgb, var(--blue-500) 20%, var(--night-200)));
+  --info-accent: light-dark(var(--blue-500), var(--blue-300));
+  --neutral-text: light-dark(var(--neutral-500), var(--neutral-400));
+  --neutral-bg: light-dark(var(--neutral-200), var(--night-300));
+  --neutral-accent: light-dark(var(--neutral-400), var(--neutral-400));
+
+  /* Chart series, in order (DESIGN.md §8). More than six are grouped as "Otros". */
+  --chart-1: light-dark(var(--magenta-400), var(--magenta-300));
+  --chart-2: light-dark(var(--blue-400), var(--blue-300));
+  --chart-3: var(--amber-400);
+  --chart-4: light-dark(var(--green-500), var(--green-400));
+  --chart-5: var(--purple-300);
+  --chart-6: var(--baby-blue-500);
+  --chart-other: var(--neutral-400);
+  --chart-grid: var(--border);
 }
