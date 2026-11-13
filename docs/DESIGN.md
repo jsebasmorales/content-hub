@@ -396,13 +396,13 @@ Applies to Resumen ejecutivo, Resumen, SLAs and SLAs incumplidos only. The refer
 
 ### 14.1 Filter card
 
-White card, 1 px `--border`, radius 16, padding 20 / 24. Header: funnel icon in a 36 px `--magenta-100` box (radius 12), the title **Filtros** (20 px, weight 400) and, to its right, the tag **"N activos"** (24 px pill with a magenta dot; "1 activo" in the singular; hidden when N is 0). A 1 px divider follows. The controls row is right-aligned and wraps:
+White card, 1 px `--border`, radius 16, padding 20 / 24 (20 on the sides from 1280 px, to fit the row). Header: funnel icon in a 36 px `--magenta-100` box (radius 12), the title **Filtros** (20 px, weight 400) and, to its right, the tag **"N activos"** (24 px pill with a magenta dot; "1 activo" in the singular; hidden when N is 0). A 1 px divider follows. From **1280 px** of window the controls are **one row that never wraps**: the first control starts at the card's left padding (aligned with the icon and the title), and Restablecer and Aplicar are pushed to the right end. Below 1280 px the row wraps, everything left-aligned, with Restablecer and Aplicar at the end of the last row. Nothing in the row shrinks (a clipped label is worse than a wrapped row). Measured at 1440 px with the sidebar open (inner width 1088): chips 250, year 113, dates 313 (one 1 px `--border-strong` box, radius 12, height 44, around the icon, both dates and the duration), types 163, Restablecer 100, Aplicar 103, gaps 8: 8 px free. The fixed note under the controls (Bogotá time, 3-year limit) was removed: it lives in Definiciones ("Período por defecto") and in the notice of a rejected period; only "El período llega hasta hoy." remains, and only when it applies. **The Comparar switch (about 160 px) does not fit on that row** (it overflows by about 168 px at 1440): in phase 1.5b it goes in the header row, to the right of the title, not among the controls.
 
 1. Period chips: **30 días**, **T1**, **T2**, **T3**, **T4** (selected: `--magenta-100` fill, `--magenta-400` border, `--magenta-500` text). They are radios with a visible label.
 2. **Año** select, for the quarters.
 3. Date range field with a calendar icon, "dd/mm/aaaa – dd/mm/aaaa" and the duration ("92 d") on its right.
 4. Request type, multiple choice: "Todos los tipos (5)" or "N de 5 tipos". Wide enough for the full label.
-5. **Comparar** switch (`role="switch"`), with the comparison icon in `--compare`.
+5. **Comparar** switch (`role="switch"`), with the comparison icon in `--compare` (in the header row, see above).
 6. **Restablecer** (tertiary, reset icon) and **Aplicar** (primary gradient). There is one reset and no "Limpiar".
 
 With the comparison on, a **previous-year box** appears under the controls: "Año previo", its date range, "mismo número de días, N d" and "Este color marca los datos del año previo en todo el Hub". The "Aparece en…" note that sits above the card in the design is a canvas annotation, not part of the product. Mobile has no design: the controls wrap and nothing else is promised.

@@ -65,8 +65,8 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: flex-end;
-  gap: var(--space-m);
+  justify-content: flex-start;
+  gap: var(--space-s);
 }
 
 .gfilter-controls fieldset {
@@ -103,7 +103,7 @@
   align-items: center;
   min-width: 44px;
   min-height: 44px;
-  padding: 0 var(--space-l);
+  padding: 0 var(--space-s);
   justify-content: center;
   border: 1px solid transparent;
   border-radius: var(--radius-m);
@@ -129,7 +129,7 @@
   align-items: center;
   gap: var(--space-s);
   min-height: 44px;
-  padding: 0 var(--space-m);
+  padding: 0 var(--space-s) 0 var(--space-m);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-m);
   background: var(--surface);
@@ -181,7 +181,6 @@
 .gfilter-types > summary {
   cursor: pointer;
   list-style: none;
-  min-width: 14rem;
   justify-content: space-between;
 }
 
@@ -232,12 +231,12 @@
   color: var(--text-muted);
 }
 
+/* Restablecer and Aplicar sit at the right end of the row (the end of the last row when it wraps). */
 .gfilter-actions {
   display: flex;
-  flex-basis: 100%;
   align-items: center;
-  justify-content: flex-end;
   gap: var(--space-l);
+  margin-inline-start: auto;
 }
 
 .gfilter-reset {
@@ -267,10 +266,6 @@
     padding: var(--space-l);
   }
 
-  .gfilter-controls {
-    justify-content: flex-start;
-  }
-
   .gfilter-chips {
     flex-wrap: wrap;
   }
@@ -282,16 +277,13 @@
 
 /* Short notice next to the types button (set by the script, announced to screen readers). */
 .gfilter-hint {
-  flex-basis: 100%;
-  margin: 0;
+  margin: var(--space-s) 0 0;
   color: var(--text-muted);
   font-size: var(--fs-label);
-  text-align: right;
 }
 
 .gfilter-hint:empty {
-  display: block;
-  height: 0;
+  display: none;
 }
 
 /* A quarter that has not started cannot be chosen (the script turns this on when the year changes). */
@@ -318,9 +310,64 @@
 /* The range field keeps the width of its content; shrinking it clipped the "30 d" at the border. */
 .gfilter-controls .gfilter-range {
   min-width: min-content;
+  flex-wrap: nowrap;
+  gap: 0;
+  padding: 0 var(--space-m);
+  border: 1px solid var(--border-strong);
+}
+
+.gfilter-controls .gfilter-range:hover {
+  border-color: var(--text-muted);
+}
+
+.gfilter-range > svg {
+  margin-inline-end: var(--space-s);
+}
+
+.gfilter-range > span[aria-hidden] {
+  padding: 0 2px;
+}
+
+.gfilter-range .gfilter-days {
+  margin-inline-start: var(--space-s);
+  padding-inline-start: var(--space-m);
+  white-space: nowrap;
 }
 
 /* A fixed width, so that hiding the browser's own calendar icon (when the script runs) moves nothing. */
 .gfilter-range input[type='date'] {
-  width: 9.5rem;
+  width: 6.2rem;
+  padding: 0 2px;
+}
+
+/* Compact row (DESIGN.md §14.1): everything must fit one line from 1280 px, with room for "Comparar". */
+.gfilter-actions .btn {
+  padding: 0 var(--space-l);
+}
+
+.gfilter-year select {
+  padding-inline: 0 2px;
+}
+
+.gfilter-chips {
+  gap: 2px;
+}
+
+/* Nothing in the row may shrink: a clipped label is worse than a wrapped row. */
+.gfilter-controls > * {
+  flex-shrink: 0;
+}
+
+@media (min-width: 1280px) {
+  .gfilter {
+    padding-inline: var(--space-xl);
+  }
+
+  .gfilter-controls {
+    flex-wrap: nowrap;
+  }
+
+  .gfilter-actions {
+    gap: var(--space-m);
+  }
 }

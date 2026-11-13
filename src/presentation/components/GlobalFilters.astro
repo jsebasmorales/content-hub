@@ -76,7 +76,10 @@ const resetHref = `${action}?${FILTER_PARAMS.reset}=1`;
   {filter.notices.includes('period') && (
     <p class="notice notice-error" role="alert">
       <Icon name="x-circle" />
-      <span>No pudimos usar el período pedido, así que se muestran los últimos 30 días.</span>
+      <span>
+        No pudimos usar el período pedido (las fechas deben ser válidas y el máximo es de 3 años),
+        así que se muestran los últimos 30 días.
+      </span>
     </p>
   )}
   {filter.notices.includes('types-empty') && (
@@ -163,8 +166,6 @@ const resetHref = `${action}?${FILTER_PARAMS.reset}=1`;
       </fieldset>
     </details>
 
-    <p class="gfilter-hint" role="status" data-types-hint></p>
-
     <div class="gfilter-actions">
       <a class="gfilter-reset" href={resetHref}>
         <Icon name="reset" size={16} />
@@ -177,10 +178,8 @@ const resetHref = `${action}?${FILTER_PARAMS.reset}=1`;
     </div>
   </div>
 
-  <p class="gfilter-note">
-    Las fechas se cuentan en hora de Bogotá, hoy incluido. El período máximo es de 3 años.
-    {window.partial && ' El período llega hasta hoy.'}
-  </p>
+  <p class="gfilter-hint" role="status" data-types-hint></p>
+  {window.partial && <p class="gfilter-note">El período llega hasta hoy.</p>}
 </form>
 
 {/* The only script of these pages (D-081): it only adds comfort, the form works without it. */}
