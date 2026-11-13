@@ -1,8 +1,11 @@
 ---
 import { getApp } from '@infrastructure/container';
+import Icon from '../components/Icon.astro';
 import { readTheme } from '../theme';
 import '../styles/tokens.css';
 import '../styles/base.css';
+import '../styles/shell.css';
+import '../styles/components.css';
 
 if (Astro.locals.principal) return Astro.redirect('/', 303);
 
@@ -20,17 +23,32 @@ const failed = Astro.url.searchParams.has('error');
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="color-scheme" content="light dark" />
     <meta name="robots" content="noindex, nofollow" />
+    <link
+      rel="preload"
+      href="/fonts/mulish-latin-wght.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
     <title>Iniciar sesión · Content Hub</title>
   </head>
   <body>
     <main class="center">
       <section class="card login-card">
-        <h1>Content Hub</h1>
+        <div class="login-brand">
+          <span class="brand-mark" aria-hidden="true">
+            H
+          </span>
+          <h1>Content Hub</h1>
+        </div>
         <p class="lede">Acceso solo para el equipo de Holafly con invitación.</p>
         {failed && (
           <p class="notice notice-error" role="alert">
-            No pudimos darte acceso. Revisa que uses tu correo @holafly.com y que un Líder te haya
-            invitado.
+            <Icon name="x-circle" />
+            <span>
+              No pudimos darte acceso. Revisa que uses tu correo @holafly.com y que un Líder te haya
+              invitado.
+            </span>
           </p>
         )}
         {usesRedirect ? (

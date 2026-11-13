@@ -1,9 +1,13 @@
 ---
-import { getApp, getJiraApp } from '@infrastructure/container';
+import { getJiraApp } from '@infrastructure/container';
 import { MAX_SEARCH_LENGTH, TASKS_PER_PAGE, type FilterOption } from '@domain/jira/task-list';
-import BaseLayout from '../layouts/BaseLayout.astro';
-import SyncPanel from '../components/SyncPanel.astro';
+import DataTable from '../components/DataTable.astro';
+import EmptyState from '../components/EmptyState.astro';
+import FilterBar from '../components/FilterBar.astro';
+import PageHeader from '../components/PageHeader.astro';
+import Pager from '../components/Pager.astro';
 import TaskTable from '../components/TaskTable.astro';
+import BaseLayout from '../layouts/BaseLayout.astro';
 import { formatNumber } from '../format-number';
 import { splitForPhone } from '../phone-split';
 import { syncFlashFromQuery } from '../sync-messages';
@@ -23,7 +27,6 @@ const [status, result] = await Promise.all([
 if (!result.ok) return new Response(null, { status: 404 });
 const { filter, options, tasks, totalInCache } = result.value;
 
-const csrfToken = (await getApp()).csrf.tokenFor(principal.sessionId);
 const timeZone = principal.user.timeZone;
 
 const fields: {
@@ -68,102 +71,95 @@ const from = tasks.total === 0 ? 0 : (tasks.page - 1) * TASKS_PER_PAGE + 1;
 const to = tasks.total === 0 ? 0 : from + tasks.items.length - 1;
 ---
 
-<BaseLayout title="Tareas">
-  <h1>Tareas</h1>
-  <p class="lede">
-    Las solicitudes de Contenido guardadas desde Jira, de la más reciente a la más antigua.
-  </p>
-  <SyncPanel
-    status={status}
-    timeZone={timeZone}
-    canSync={principal.permissions.has('action.sync')}
-    csrfToken={csrfToken}
-    back="/tareas"
-    flash={syncFlashFromQuery(Astro.url.searchParams)}
-  />
+<BaseLayout title="Tareas" sync={{ status, flash: syncFlashFromQuery(Astro.url.searchParams) }}>
+  <div class="page">
+    <PageHeader
+      title="Tareas"
+      lede="Las solicitudes de Contenido guardadas desde Jira, de la más reciente a la más antigua."
+    />
 
-  <form class="filters card" method="get" action="/tareas" aria-label="Filtros">
-    <div class="field field-wide">
-      <label for="f-buscar">Buscar por texto o clave</label>
-      <input
-        id="f-buscar"
-        name={TASKS_PARAM_NAMES.text}
-        type="search"
-        maxlength={MAX_SEARCH_LENGTH}
-        value={filter.text ?? ''}
-        placeholder="Por ejemplo: landing, JSMCO-1010, traducción"
-      />
-    </div>
-    {fields.map((field) => (
-      <div class="field">
-        <label for={field.id}>{field.label}</label>
-        <select id={field.id} name={field.name}>
-          <option value="">Todos</option>
-          {field.options.map((option) => (
-            <option value={option.value} selected={option.value === field.chosen}>
-              {option.label} ({formatNumber(option.count)})
-            </option>
-          ))}
-        </select>
+    <FilterBar action="/tareas" label="Filtros" clearHref={filtered ? '/tareas' : undefined}>
+      <div class="field field-wide">
+        <label for="f-buscar">Buscar por texto o clave</label>
+        <input
+          id="f-buscar"
+          name={TASKS_PARAM_NAMES.text}
+          type="search"
+          maxlength={MAX_SEARCH_LENGTH}
+          value={filter.text ?? ''}
+          placeholder="Por ejemplo: landing, JSMCO-1010, traducción"
+        />
       </div>
-    ))}
-    <div class="filter-actions">
-      <button class="btn" type="submit">
-        Filtrar
-      </button>
-      {filtered && <a href="/tareas">Quitar filtros</a>}
-    </div>
-  </form>
+      {fields.map((field) => (
+        <div class="field">
+          <label for={field.id}>{field.label}</label>
+          <select id={field.id} name={field.name}>
+            <option value="">Todos</option>
+            {field.options.map((option) => (
+              <option value={option.value} selected={option.value === field.chosen}>
+                {option.label} ({formatNumber(option.count)})
+              </option>
+            ))}
+          </select>
+        </div>
+      ))}
+    </FilterBar>
 
-  <p class="section-note" role="status">
-    {tasks.total === 0
-      ? totalInCache === 0
-        ? 'Todavía no hay tareas guardadas. Aparecerán cuando termine la primera actualización desde Jira.'
-        : 'Ninguna tarea cumple esos filtros.'
-      : `Mostrando ${formatNumber(from)}–${formatNumber(to)} de ${formatNumber(tasks.total)} tareas${filtered ? ' (con filtros)' : ''}.`}
-  </p>
+    <section class="section" aria-label="Lista de tareas">
+      {tasks.total > 0 && (
+        <p class="list-status" role="status">
+          {`Mostrando ${formatNumber(from)}–${formatNumber(to)} de ${formatNumber(tasks.total)} tareas${filtered ? ' (con filtros)' : ''}.`}
+        </p>
+      )}
 
-  {tasks.items.length > 0 && (
-    <section class="card table-card">
-      <div class="only-wide">
-        <TaskTable rows={tasks.items} ticketUrlOf={jira.ticketUrl} timeZone={timeZone} />
-      </div>
-      <div class="only-narrow">
-        <TaskTable rows={phone.first} ticketUrlOf={jira.ticketUrl} timeZone={timeZone} />
-        {phone.more.length > 0 && (
-          <details class="more-rows">
-            <summary>Ver más ({phone.more.length})</summary>
-            <TaskTable
-              rows={phone.more}
-              ticketUrlOf={jira.ticketUrl}
-              timeZone={timeZone}
-              withHead={false}
-            />
-          </details>
-        )}
-      </div>
+      {tasks.items.length > 0 ? (
+        <DataTable label="Tareas">
+          <div class="only-wide">
+            <TaskTable rows={tasks.items} ticketUrlOf={jira.ticketUrl} timeZone={timeZone} />
+          </div>
+          <div class="only-narrow">
+            <TaskTable rows={phone.first} ticketUrlOf={jira.ticketUrl} timeZone={timeZone} />
+            {phone.more.length > 0 && (
+              <details class="more-rows">
+                <summary>Ver más ({phone.more.length})</summary>
+                <TaskTable
+                  rows={phone.more}
+                  ticketUrlOf={jira.ticketUrl}
+                  timeZone={timeZone}
+                  withHead={false}
+                />
+              </details>
+            )}
+          </div>
+        </DataTable>
+      ) : (
+        <div class="card" role="status">
+          <EmptyState
+            icon="tasks"
+            title={totalInCache === 0 ? 'Todavía no hay tareas' : 'No hay tareas para este filtro'}
+            help={
+              totalInCache === 0
+                ? 'Aparecerán cuando termine la primera actualización desde Jira.'
+                : 'Prueba con otra búsqueda o quita algún filtro.'
+            }
+          >
+            {totalInCache > 0 && (
+              <a class="btn btn-secondary btn-compact" href="/tareas">
+                Limpiar filtros
+              </a>
+            )}
+          </EmptyState>
+        </div>
+      )}
+
+      {tasks.pageCount > 1 && (
+        <Pager
+          page={tasks.page}
+          pageCount={tasks.pageCount}
+          prevHref={tasks.page > 1 ? tasksHref(filter, tasks.page - 1) : null}
+          nextHref={tasks.page < tasks.pageCount ? tasksHref(filter, tasks.page + 1) : null}
+        />
+      )}
     </section>
-  )}
-
-  {tasks.pageCount > 1 && (
-    <nav class="pager" aria-label="Páginas">
-      {tasks.page > 1 ? (
-        <a href={tasksHref(filter, tasks.page - 1)} rel="prev">
-          ← Anterior
-        </a>
-      ) : (
-        <span class="pager-off">← Anterior</span>
-      )}
-      <span>
-        Página {tasks.page} de {tasks.pageCount}
-      </span>
-      {tasks.page < tasks.pageCount ? (
-        <a href={tasksHref(filter, tasks.page + 1)} rel="next">
-          Siguiente →
-        </a>
-      ) : (
-        <span class="pager-off">Siguiente →</span>
-      )}
-    </nav>
-  )}
+  </div>
 </BaseLayout>

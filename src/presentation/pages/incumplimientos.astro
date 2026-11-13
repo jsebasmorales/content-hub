@@ -1,14 +1,19 @@
 ---
-import { getApp, getJiraApp } from '@infrastructure/container';
+import { getJiraApp } from '@infrastructure/container';
 import { quarterLabel } from '@domain/jira/quarter';
 import { SLA_METRICS } from '@domain/jira/sla';
 import { TASKS_PER_PAGE } from '@domain/jira/task-list';
-import BaseLayout from '../layouts/BaseLayout.astro';
-import KpiCard from '../components/KpiCard.astro';
-import PeriodPicker from '../components/PeriodPicker.astro';
-import RequestTypeBars from '../components/RequestTypeBars.astro';
-import SyncPanel from '../components/SyncPanel.astro';
+import BarList from '../components/BarList.astro';
 import BreachTable from '../components/BreachTable.astro';
+import ChartCard from '../components/ChartCard.astro';
+import DataTable from '../components/DataTable.astro';
+import EmptyState from '../components/EmptyState.astro';
+import FilterBar from '../components/FilterBar.astro';
+import KpiCard from '../components/KpiCard.astro';
+import PageHeader from '../components/PageHeader.astro';
+import Pager from '../components/Pager.astro';
+import PeriodPicker from '../components/PeriodPicker.astro';
+import BaseLayout from '../layouts/BaseLayout.astro';
 import { BREACH_PARAMS, breachPageHref, parseBreachQuery, periodParams } from '../breach-query';
 import { formatCalendarDay } from '../format-moment';
 import { formatNumber } from '../format-number';
@@ -31,7 +36,6 @@ if (!result.ok) return new Response(null, { status: 404 });
 const { resolved, quarters, summary, options, filter, rows } = result.value;
 const { period } = resolved;
 
-const csrfToken = (await getApp()).csrf.tokenFor(principal.sessionId);
 const timeZone = principal.user.timeZone;
 
 const periodLabel =
@@ -43,164 +47,160 @@ const filtered =
 const from = rows.total === 0 ? 0 : (rows.page - 1) * TASKS_PER_PAGE + 1;
 const to = rows.total === 0 ? 0 : from + rows.items.length - 1;
 const phone = splitForPhone(rows.items);
-const asRows = (items: readonly { label: string; count: number }[]) =>
-  items.map((item) => ({ requestType: item.label, count: item.count }));
+const periodQuery = new URLSearchParams(periodParams(Astro.url.searchParams));
 ---
 
-<BaseLayout title="SLAs incumplidos">
-  <h1>SLAs incumplidos</h1>
-  <p class="lede">
-    Cada ciclo que no llegó a su meta en el periodo, del mayor retraso al menor. Suma los mismos
-    ciclos que cuenta el cumplimiento de la página de SLAs.
-  </p>
-  <SyncPanel
-    status={status}
-    timeZone={timeZone}
-    canSync={principal.permissions.has('action.sync')}
-    csrfToken={csrfToken}
-    back="/incumplimientos"
-    flash={syncFlashFromQuery(Astro.url.searchParams)}
-  />
-
-  <PeriodPicker
-    quarters={quarters}
-    period={period}
-    ignored={resolved.ignored}
-    basePath="/incumplimientos"
-  />
-
-  <h2 class="section-title">Resumen de {periodLabel}</h2>
-  <div class="kpi-grid">
-    <KpiCard
-      label="Incumplimientos"
-      value={formatNumber(summary.total)}
-      tip="Ciclos de SLA que no llegaron a su meta: los terminados fuera de plazo y los que siguen corriendo ya pasados de su límite."
+<BaseLayout
+  title="SLAs incumplidos"
+  sync={{ status, flash: syncFlashFromQuery(Astro.url.searchParams) }}
+>
+  <div class="page">
+    <PageHeader
+      title="SLAs incumplidos"
+      lede="Cada ciclo que no llegó a su meta en el periodo, del mayor retraso al menor. Suma los mismos ciclos que cuenta el cumplimiento de la página de SLAs."
     />
-    {SLA_METRICS.map((metric) => (
-      <KpiCard
-        label={METRIC_LABEL[metric]}
-        value={formatNumber(summary.byMetric[metric])}
-        tip="Incumplimientos de esta métrica en el periodo."
-      />
-    ))}
-  </div>
 
-  {summary.total > 0 && (
-    <div class="two-columns">
-      <div>
-        <h2 class="section-title">Quién acumula más</h2>
-        <section class="card">
-          <RequestTypeBars items={asRows(summary.byAssignee)} />
-        </section>
+    <PeriodPicker
+      quarters={quarters}
+      period={period}
+      ignored={resolved.ignored}
+      basePath="/incumplimientos"
+      clearHref={period.kind === 'custom' ? '/incumplimientos' : undefined}
+    />
+
+    <section class="section" aria-labelledby="summary-title">
+      <div class="section-head">
+        <h2 id="summary-title">Resumen de {periodLabel}</h2>
       </div>
-      <div>
-        <h2 class="section-title">Qué tipo de solicitud</h2>
-        <section class="card">
-          <RequestTypeBars items={asRows(summary.byRequestType)} />
-        </section>
-      </div>
-    </div>
-  )}
-
-  <h2 class="section-title">Lista</h2>
-  <form class="filters card" method="get" action="/incumplimientos" aria-label="Filtros">
-    {periodParams(Astro.url.searchParams).map(([name, value]) => (
-      <input type="hidden" name={name} value={value} />
-    ))}
-    <div class="field">
-      <label for="b-metrica">Métrica</label>
-      <select id="b-metrica" name={BREACH_PARAMS.metric}>
-        <option value="">Todas</option>
-        {options.metrics.map((option) => (
-          <option value={option.value} selected={option.value === filter.metric}>
-            {METRIC_LABEL[option.value as 'first_response' | 'done']} ({formatNumber(option.count)})
-          </option>
+      <div class="kpi-grid kpi-grid-3">
+        <KpiCard
+          label="Incumplimientos"
+          value={formatNumber(summary.total)}
+          tip="Ciclos de SLA que no llegaron a su meta: los terminados fuera de plazo y los que siguen corriendo ya pasados de su límite."
+        />
+        {SLA_METRICS.map((metric) => (
+          <KpiCard
+            label={METRIC_LABEL[metric]}
+            value={formatNumber(summary.byMetric[metric])}
+            tip="Incumplimientos de esta métrica en el periodo."
+          />
         ))}
-      </select>
-    </div>
-    <div class="field">
-      <label for="b-tipo">Tipo de solicitud</label>
-      <select id="b-tipo" name={BREACH_PARAMS.requestType}>
-        <option value="">Todos</option>
-        {options.requestTypes.map((option) => (
-          <option value={option.value} selected={option.value === filter.requestType}>
-            {option.label} ({formatNumber(option.count)})
-          </option>
-        ))}
-      </select>
-    </div>
-    <div class="field">
-      <label for="b-asignado">Asignado a</label>
-      <select id="b-asignado" name={BREACH_PARAMS.assigneeId}>
-        <option value="">Todos</option>
-        {options.assignees.map((option) => (
-          <option value={option.value} selected={option.value === filter.assigneeId}>
-            {option.label} ({formatNumber(option.count)})
-          </option>
-        ))}
-      </select>
-    </div>
-    <div class="filter-actions">
-      <button class="btn" type="submit">
-        Filtrar
-      </button>
-      {filtered && (
-        <a href={breachPageHref(new URLSearchParams(periodParams(Astro.url.searchParams)), 1)}>
-          Quitar filtros
-        </a>
-      )}
-    </div>
-  </form>
-
-  <p class="section-note" role="status">
-    {rows.total === 0
-      ? summary.total === 0
-        ? 'No hubo incumplimientos en este periodo.'
-        : 'Ningún incumplimiento cumple esos filtros.'
-      : `Mostrando ${formatNumber(from)}–${formatNumber(to)} de ${formatNumber(rows.total)} incumplimientos${filtered ? ' (con filtros)' : ''}.`}
-  </p>
-
-  {rows.items.length > 0 && (
-    <section class="card table-card">
-      <div class="only-wide">
-        <BreachTable rows={rows.items} ticketUrlOf={jira.ticketUrl} timeZone={timeZone} />
-      </div>
-      <div class="only-narrow">
-        <BreachTable rows={phone.first} ticketUrlOf={jira.ticketUrl} timeZone={timeZone} />
-        {phone.more.length > 0 && (
-          <details class="more-rows">
-            <summary>Ver más ({phone.more.length})</summary>
-            <BreachTable
-              rows={phone.more}
-              ticketUrlOf={jira.ticketUrl}
-              timeZone={timeZone}
-              withHead={false}
-            />
-          </details>
-        )}
       </div>
     </section>
-  )}
 
-  {rows.pageCount > 1 && (
-    <nav class="pager" aria-label="Páginas">
-      {rows.page > 1 ? (
-        <a href={breachPageHref(Astro.url.searchParams, rows.page - 1)} rel="prev">
-          ← Anterior
-        </a>
-      ) : (
-        <span class="pager-off">← Anterior</span>
+    {summary.total > 0 && (
+      <div class="two-up">
+        <ChartCard title="Quién acumula más">
+          <BarList items={summary.byAssignee} />
+        </ChartCard>
+        <ChartCard title="Qué tipo de solicitud">
+          <BarList items={summary.byRequestType} />
+        </ChartCard>
+      </div>
+    )}
+
+    <section class="section" aria-labelledby="list-title">
+      <div class="section-head">
+        <h2 id="list-title">Lista</h2>
+      </div>
+      <FilterBar
+        action="/incumplimientos"
+        label="Filtros"
+        hidden={periodParams(Astro.url.searchParams)}
+        clearHref={filtered ? breachPageHref(periodQuery, 1) : undefined}
+      >
+        <div class="field">
+          <label for="b-metrica">Métrica</label>
+          <select id="b-metrica" name={BREACH_PARAMS.metric}>
+            <option value="">Todas</option>
+            {options.metrics.map((option) => (
+              <option value={option.value} selected={option.value === filter.metric}>
+                {METRIC_LABEL[option.value as 'first_response' | 'done']} (
+                {formatNumber(option.count)})
+              </option>
+            ))}
+          </select>
+        </div>
+        <div class="field">
+          <label for="b-tipo">Tipo de solicitud</label>
+          <select id="b-tipo" name={BREACH_PARAMS.requestType}>
+            <option value="">Todos</option>
+            {options.requestTypes.map((option) => (
+              <option value={option.value} selected={option.value === filter.requestType}>
+                {option.label} ({formatNumber(option.count)})
+              </option>
+            ))}
+          </select>
+        </div>
+        <div class="field">
+          <label for="b-asignado">Asignado a</label>
+          <select id="b-asignado" name={BREACH_PARAMS.assigneeId}>
+            <option value="">Todos</option>
+            {options.assignees.map((option) => (
+              <option value={option.value} selected={option.value === filter.assigneeId}>
+                {option.label} ({formatNumber(option.count)})
+              </option>
+            ))}
+          </select>
+        </div>
+      </FilterBar>
+
+      {rows.total > 0 && (
+        <p class="list-status" role="status">
+          {`Mostrando ${formatNumber(from)}–${formatNumber(to)} de ${formatNumber(rows.total)} incumplimientos${filtered ? ' (con filtros)' : ''}.`}
+        </p>
       )}
-      <span>
-        Página {rows.page} de {rows.pageCount}
-      </span>
-      {rows.page < rows.pageCount ? (
-        <a href={breachPageHref(Astro.url.searchParams, rows.page + 1)} rel="next">
-          Siguiente →
-        </a>
+
+      {rows.items.length > 0 ? (
+        <DataTable label="Incumplimientos">
+          <div class="only-wide">
+            <BreachTable rows={rows.items} ticketUrlOf={jira.ticketUrl} timeZone={timeZone} />
+          </div>
+          <div class="only-narrow">
+            <BreachTable rows={phone.first} ticketUrlOf={jira.ticketUrl} timeZone={timeZone} />
+            {phone.more.length > 0 && (
+              <details class="more-rows">
+                <summary>Ver más ({phone.more.length})</summary>
+                <BreachTable
+                  rows={phone.more}
+                  ticketUrlOf={jira.ticketUrl}
+                  timeZone={timeZone}
+                  withHead={false}
+                />
+              </details>
+            )}
+          </div>
+        </DataTable>
       ) : (
-        <span class="pager-off">Siguiente →</span>
+        <div class="card" role="status">
+          <EmptyState
+            icon={summary.total === 0 ? 'check-circle' : 'breach'}
+            title={
+              summary.total === 0
+                ? 'No hubo incumplimientos en este periodo'
+                : 'Ningún incumplimiento cumple esos filtros'
+            }
+            help={
+              summary.total === 0
+                ? 'Todos los ciclos medidos llegaron a su meta.'
+                : 'Prueba con otra métrica, otro tipo de solicitud u otra persona.'
+            }
+          />
+        </div>
       )}
-    </nav>
-  )}
+
+      {rows.pageCount > 1 && (
+        <Pager
+          page={rows.page}
+          pageCount={rows.pageCount}
+          prevHref={rows.page > 1 ? breachPageHref(Astro.url.searchParams, rows.page - 1) : null}
+          nextHref={
+            rows.page < rows.pageCount
+              ? breachPageHref(Astro.url.searchParams, rows.page + 1)
+              : null
+          }
+        />
+      )}
+    </section>
+  </div>
 </BaseLayout>

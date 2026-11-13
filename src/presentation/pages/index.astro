@@ -1,13 +1,16 @@
 ---
-import { getApp, getJiraApp } from '@infrastructure/container';
+import { getJiraApp } from '@infrastructure/container';
 import { quarterLabel } from '@domain/jira/quarter';
-import BaseLayout from '../layouts/BaseLayout.astro';
+import BarList from '../components/BarList.astro';
+import ChartCard from '../components/ChartCard.astro';
+import Icon from '../components/Icon.astro';
 import KpiCard from '../components/KpiCard.astro';
+import PageHeader from '../components/PageHeader.astro';
+import SlaCard from '../components/SlaCard.astro';
 import VolumeChart from '../components/VolumeChart.astro';
-import RequestTypeBars from '../components/RequestTypeBars.astro';
-import SlaMeter from '../components/SlaMeter.astro';
-import SyncPanel from '../components/SyncPanel.astro';
-import { describeChange, formatNumber, monthShortName } from '../format-number';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { describeDelta, formatNumber, monthShortName } from '../format-number';
+import { buildMenu, nextMenuItem } from '../navigation';
 import { METRIC_LABEL, METRIC_TIP } from '../sla-labels';
 import { syncFlashFromQuery } from '../sync-messages';
 
@@ -25,8 +28,6 @@ const [status, result] = await Promise.all([
 if (!result.ok) return new Response(null, { status: 404 });
 const summary = result.value;
 
-const csrfToken = (await getApp()).csrf.tokenFor(principal.sessionId);
-const canSync = principal.permissions.has('action.sync');
 const displayName = principal.user.name ?? principal.user.email;
 
 const now = quarterLabel(summary.quarter);
@@ -38,93 +39,143 @@ const goalText = {
   false: 'Alguna métrica de SLA no llega a la meta del trimestre.',
   null: 'Todavía no hay datos suficientes para valorar la meta de SLA.',
 } as const;
+
+// Links only to what this person may open: a link to a hidden page would reveal that it exists.
+const canSeeDefinitions = principal.permissions.has('section.defs');
+const canSeeSlaPage = principal.permissions.has('section.sla');
+const next = nextMenuItem(buildMenu(principal.permissions), '/');
+const requestTotal = summary.requestTypes.reduce((sum, item) => sum + item.count, 0);
 ---
 
-<BaseLayout title="Resumen ejecutivo">
-  <h1>Resumen ejecutivo</h1>
-  <p class="lede">
-    Hola, {displayName}. Trabajo de Contenido en {now}, frente a {before}.
-  </p>
-  <SyncPanel
-    status={status}
-    timeZone={principal.user.timeZone}
-    canSync={canSync}
-    csrfToken={csrfToken}
-    back="/"
-    flash={syncFlashFromQuery(Astro.url.searchParams)}
-  />
-
-  <h2 class="section-title">Cumplimiento de SLA en {now}</h2>
-  <p class="section-note">{goalText[String(summary.sla.goalMet) as 'true' | 'false' | 'null']}</p>
-  <div class="kpi-grid">
-    {summary.sla.metrics.map((metric) => (
-      <SlaMeter
-        metric={metric}
-        label={METRIC_LABEL[metric.metric]}
-        tip={METRIC_TIP[metric.metric]}
-      />
-    ))}
-  </div>
-  <p class="section-note">
-    <a href="/sla">Ver el detalle de SLAs</a>
-  </p>
-
-  <h2 class="section-title">Actividad en {now}</h2>
-  <p class="section-note">
-    Se compara con el mismo tramo del trimestre anterior: los primeros {summary.elapsedDays} días de{' '}
-    {before}.
-  </p>
-  <div class="kpi-grid">
-    <KpiCard
-      label="Tickets creados"
-      value={formatNumber(summary.created.current ?? 0)}
-      change={describeChange(summary.created.current, summary.created.previous, sameStretch)}
-      tip="Solicitudes nuevas recibidas en el trimestre, según la fecha de creación en hora de Bogotá."
-    />
-    <KpiCard
-      label="Tickets resueltos"
-      value={formatNumber(summary.resolved.current ?? 0)}
-      change={describeChange(summary.resolved.current, summary.resolved.previous, sameStretch)}
-      tip="Solicitudes que pasaron a Hecho dentro del trimestre, sin importar cuándo se crearon."
-    />
-    <KpiCard
-      label="Abiertos hoy"
-      value={formatNumber(summary.openNow)}
-      tip="Solicitudes que todavía no están en Hecho, sea cual sea su antigüedad."
-    />
-    <KpiCard
-      label="Tiempo típico de resolución"
-      value={
-        summary.resolutionDays.current === null
-          ? 'Sin datos'
-          : `${formatNumber(summary.resolutionDays.current)} días`
-      }
-      change={describeChange(
-        summary.resolutionDays.current,
-        summary.resolutionDays.previous,
-        sameStretch,
-        ' días',
+<BaseLayout
+  title="Resumen ejecutivo"
+  sync={{ status, flash: syncFlashFromQuery(Astro.url.searchParams) }}
+>
+  <div class="page">
+    <PageHeader
+      title="Resumen ejecutivo"
+      lede={`Hola, ${displayName}. Trabajo de Contenido en ${now}, frente a ${before}.`}
+    >
+      {canSeeDefinitions && (
+        <a class="btn btn-secondary btn-compact" href="/definiciones">
+          <Icon name="help" size={16} />
+          Cómo se calcula
+        </a>
       )}
-      tip="Mediana de días naturales entre crear y resolver, de las solicitudes resueltas en el trimestre. Se usa la mediana para que unas pocas solicitudes muy antiguas no distorsionen la cifra."
-    />
+    </PageHeader>
+
+    <section class="section" aria-labelledby="sla-title">
+      <div class="section-head">
+        <h2 id="sla-title">Cumplimiento de SLA en {now}</h2>
+        <p>{goalText[String(summary.sla.goalMet) as 'true' | 'false' | 'null']}</p>
+      </div>
+      <div class="kpi-grid kpi-grid-2">
+        {summary.sla.metrics.map((metric) => (
+          <SlaCard
+            metric={metric}
+            label={METRIC_LABEL[metric.metric]}
+            tip={METRIC_TIP[metric.metric]}
+          />
+        ))}
+      </div>
+      {canSeeSlaPage && (
+        <p class="section-link">
+          <a href="/sla">
+            Ver el detalle de SLAs
+            <Icon name="arrow-right" size={16} />
+          </a>
+        </p>
+      )}
+    </section>
+
+    <section class="section" aria-labelledby="activity-title">
+      <div class="section-head">
+        <h2 id="activity-title">Actividad en {now}</h2>
+        <p>
+          Se compara con el mismo tramo del trimestre anterior: los primeros {summary.elapsedDays}{' '}
+          días de {before}.
+        </p>
+      </div>
+      <div class="kpi-grid kpi-grid-4">
+        <KpiCard
+          label="Tickets creados"
+          value={formatNumber(summary.created.current ?? 0)}
+          delta={describeDelta(
+            summary.created.current,
+            summary.created.previous,
+            sameStretch,
+            'neutral',
+          )}
+          tip="Solicitudes nuevas recibidas en el trimestre, según la fecha de creación en hora de Bogotá."
+        />
+        <KpiCard
+          label="Tickets resueltos"
+          value={formatNumber(summary.resolved.current ?? 0)}
+          delta={describeDelta(
+            summary.resolved.current,
+            summary.resolved.previous,
+            sameStretch,
+            'better',
+          )}
+          tip="Solicitudes que pasaron a Hecho dentro del trimestre, sin importar cuándo se crearon."
+        />
+        <KpiCard
+          label="Abiertos hoy"
+          value={formatNumber(summary.openNow)}
+          change="Estado de hoy"
+          tip="Solicitudes que todavía no están en Hecho, sea cual sea su antigüedad."
+        />
+        <KpiCard
+          label="Tiempo típico de resolución"
+          value={
+            summary.resolutionDays.current === null
+              ? 'Sin datos'
+              : `${formatNumber(summary.resolutionDays.current)} días`
+          }
+          delta={describeDelta(
+            summary.resolutionDays.current,
+            summary.resolutionDays.previous,
+            sameStretch,
+            'worse',
+            ' días',
+          )}
+          tip="Mediana de días naturales entre crear y resolver, de las solicitudes resueltas en el trimestre. Se usa la mediana para que unas pocas solicitudes muy antiguas no distorsionen la cifra."
+        />
+      </div>
+    </section>
+
+    <ChartCard title="Creados y resueltos, últimos 6 meses">
+      <VolumeChart
+        items={summary.months.map((m) => ({
+          label: monthShortName(m.month.year, m.month.month),
+          created: m.created,
+          resolved: m.resolved,
+        }))}
+        title="Tickets creados y resueltos por mes"
+        idPrefix="monthly"
+        note="El último mes está en curso."
+      />
+    </ChartCard>
+
+    <ChartCard
+      title={`Qué se pidió en ${now}`}
+      total={`Total: ${formatNumber(requestTotal)} tickets`}
+    >
+      <BarList
+        items={summary.requestTypes.map((item) => ({ label: item.requestType, count: item.count }))}
+      />
+    </ChartCard>
+
+    {next && (
+      <nav class="next-link" aria-label="Página siguiente">
+        <a href={next.href}>
+          <span class="next-link-text">
+            <span class="next-link-kicker">Siguiente</span>
+            <span class="next-link-title">{next.label}</span>
+          </span>
+          <Icon name="arrow-right" />
+        </a>
+      </nav>
+    )}
   </div>
-
-  <h2 class="section-title">Creados y resueltos, últimos 6 meses</h2>
-  <section class="card">
-    <VolumeChart
-      items={summary.months.map((m) => ({
-        label: monthShortName(m.month.year, m.month.month),
-        created: m.created,
-        resolved: m.resolved,
-      }))}
-      title="Tickets creados y resueltos por mes"
-      idPrefix="monthly"
-      note="El último mes está en curso."
-    />
-  </section>
-
-  <h2 class="section-title">Qué se pidió en {now}</h2>
-  <section class="card">
-    <RequestTypeBars items={summary.requestTypes} />
-  </section>
 </BaseLayout>

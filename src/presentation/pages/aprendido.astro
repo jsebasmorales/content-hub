@@ -3,6 +3,8 @@ import { getApp, getLearnedApp } from '@infrastructure/container';
 import { quarterLabel } from '@domain/jira/quarter';
 import { quarterParam } from '@domain/jira/report-period';
 import { LEARNED_FIELD_MAX } from '@domain/learned/learned';
+import Icon from '../components/Icon.astro';
+import PageHeader from '../components/PageHeader.astro';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { formatMoment } from '../format-moment';
 import { learnedFlashFromQuery } from '../learned-messages';
@@ -53,133 +55,150 @@ const moreVersions = olderVersions.slice(PHONE_ROWS);
 ---
 
 <BaseLayout title="Lo aprendido">
-  <h1>Lo aprendido</h1>
-  <p class="lede">
-    Las conclusiones de cada trimestre y el foco del siguiente: la interpretación humana de lo que
-    dicen los números. Lo escribe el Líder.
-  </p>
+  <div class="page">
+    <PageHeader
+      title="Lo aprendido"
+      lede="Las conclusiones de cada trimestre y el foco del siguiente: la interpretación humana de lo que dicen los números. Lo escribe el Líder."
+    />
 
-  {flash && (
-    <p class={`notice notice-${flash.kind}`} role={flash.kind === 'error' ? 'alert' : 'status'}>
-      {flash.text}
-    </p>
-  )}
-  {page.ignoredQuarter && (
-    <p class="notice notice-error" role="alert">
-      No pudimos usar el trimestre pedido, así que se muestra el actual.
-    </p>
-  )}
-
-  <nav class="quick-quarters" aria-label="Trimestres">
-    {page.quarters.map((entry) => {
-      const param = quarterParam(entry.quarter);
-      return (
-        <a
-          class={`chip ${param === current ? 'chip-on' : ''}`}
-          href={`/aprendido?trimestre=${param}`}
-          aria-current={param === current ? 'page' : undefined}
-        >
-          {quarterLabel(entry.quarter)}
-          {entry.written && (
-            <span class="chip-mark" title="Tiene texto guardado">
-              {' '}
-              ✎
-            </span>
-          )}
-        </a>
-      );
-    })}
-  </nav>
-  <p class="section-note">✎ marca los trimestres que ya tienen texto guardado.</p>
-
-  <h2 class="section-title">{label}</h2>
-  <p class="section-note">
-    {page.latest
-      ? `Última versión: ${formatMoment(page.latest.createdAt, timeZone)}, por ${page.latest.authorName}.`
-      : 'Todavía no hay nada escrito para este trimestre.'}
-  </p>
-
-  {canEdit ? (
-    <form class="card learned-form" method="post" action="/api/learned">
-      <input type="hidden" name="_csrf" value={csrfToken} />
-      <input type="hidden" name="trimestre" value={current} />
-      {boxes.map((box) => (
-        <div class="field">
-          <label for={`l-${box.id}`}>{box.title}</label>
-          <p class="field-help" id={`l-${box.id}-help`}>
-            {box.help}
-          </p>
-          <textarea
-            id={`l-${box.id}`}
-            name={box.id}
-            rows="7"
-            maxlength={LEARNED_FIELD_MAX}
-            aria-describedby={`l-${box.id}-help`}
-          >{box.value}</textarea>
-        </div>
-      ))}
-      <button class="btn" type="submit">
-        Guardar nueva versión
-      </button>
-      <p class="section-note">
-        Cada guardado crea una versión nueva con tu nombre y la fecha. Las anteriores se conservan y
-        se pueden ver abajo.
+    {flash && (
+      <p class={`notice notice-${flash.kind}`} role={flash.kind === 'error' ? 'alert' : 'status'}>
+        <Icon name={flash.kind === 'error' ? 'x-circle' : 'check-circle'} />
+        <span>{flash.text}</span>
       </p>
-    </form>
-  ) : (
-    <section class="card">
-      {boxes.map((box) => (
-        <div class="learned-read">
-          <h3>{box.title}</h3>
-          <p class="learned-text">{box.value === '' ? 'Sin texto.' : box.value}</p>
-        </div>
-      ))}
+    )}
+    {page.ignoredQuarter && (
+      <p class="notice notice-error" role="alert">
+        <Icon name="x-circle" />
+        <span>No pudimos usar el trimestre pedido, así que se muestra el actual.</span>
+      </p>
+    )}
+
+    <section class="section" aria-label="Trimestre">
+      <nav class="quick-quarters" aria-label="Trimestres">
+        {page.quarters.map((entry) => {
+          const param = quarterParam(entry.quarter);
+          return (
+            <a
+              class={`chip ${param === current ? 'chip-on' : ''}`}
+              href={`/aprendido?trimestre=${param}`}
+              aria-current={param === current ? 'page' : undefined}
+            >
+              {quarterLabel(entry.quarter)}
+              {entry.written && (
+                <>
+                  <Icon name="edit" size={16} class="chip-mark" />
+                  <span class="chip-note">con texto</span>
+                </>
+              )}
+            </a>
+          );
+        })}
+      </nav>
+      <p class="list-status">El lápiz marca los trimestres que ya tienen texto guardado.</p>
     </section>
-  )}
 
-  {olderVersions.length > 0 && (
-    <>
-      <h2 class="section-title">Versiones anteriores</h2>
-      <p class="section-note">
-        De la más reciente a la más antigua. La que ves arriba es la última.
-      </p>
-      <section class="card">
-        {shownVersions.map((version) => (
-          <details class="more">
-            <summary>
-              {formatMoment(version.createdAt, timeZone)} · {version.authorName}
-            </summary>
-            {boxes.map((box) => (
-              <div class="learned-read">
-                <h3>{box.title}</h3>
-                <p class="learned-text">
-                  {version[box.id] === '' ? 'Sin texto.' : version[box.id]}
-                </p>
-              </div>
-            ))}
-          </details>
-        ))}
-        {moreVersions.length > 0 && (
-          <details class="more-rows">
-            <summary>Ver más ({moreVersions.length})</summary>
-            {moreVersions.map((version) => (
-              <details class="more">
-                <summary>
+    <section class="section" aria-labelledby="quarter-title">
+      <div class="section-head">
+        <h2 id="quarter-title">{label}</h2>
+        <p>
+          {page.latest
+            ? `Última versión: ${formatMoment(page.latest.createdAt, timeZone)}, por ${page.latest.authorName}.`
+            : 'Todavía no hay nada escrito para este trimestre.'}
+        </p>
+      </div>
+
+      {canEdit ? (
+        <form class="learned-form" method="post" action="/api/learned">
+          <input type="hidden" name="_csrf" value={csrfToken} />
+          <input type="hidden" name="trimestre" value={current} />
+          {boxes.map((box) => (
+            <div class="card learned-box">
+              <label for={`l-${box.id}`}>{box.title}</label>
+              <p class="field-help" id={`l-${box.id}-help`}>
+                {box.help}
+              </p>
+              <textarea
+                id={`l-${box.id}`}
+                name={box.id}
+                rows="7"
+                maxlength={LEARNED_FIELD_MAX}
+                aria-describedby={`l-${box.id}-help`}
+              >{box.value}</textarea>
+            </div>
+          ))}
+          <div class="learned-actions">
+            <button class="btn" type="submit">
+              Guardar nueva versión
+            </button>
+            <p class="list-status">
+              Cada guardado crea una versión nueva con tu nombre y la fecha. Las anteriores se
+              conservan y se pueden ver abajo.
+            </p>
+          </div>
+        </form>
+      ) : (
+        <section class="card">
+          {boxes.map((box) => (
+            <div class="learned-read">
+              <h3>{box.title}</h3>
+              <p class="learned-text">{box.value === '' ? 'Sin texto.' : box.value}</p>
+            </div>
+          ))}
+        </section>
+      )}
+    </section>
+
+    {olderVersions.length > 0 && (
+      <section class="section" aria-labelledby="versions-title">
+        <div class="section-head">
+          <h2 id="versions-title">Versiones anteriores</h2>
+          <p>De la más reciente a la más antigua. La que ves arriba es la última.</p>
+        </div>
+        <div class="card versions">
+          {shownVersions.map((version) => (
+            <details class="version">
+              <summary>
+                <span>
                   {formatMoment(version.createdAt, timeZone)} · {version.authorName}
-                </summary>
-                {boxes.map((box) => (
-                  <div class="learned-read">
-                    <h3>{box.title}</h3>
-                    <p class="learned-text">
-                      {version[box.id] === '' ? 'Sin texto.' : version[box.id]}
-                    </p>
-                  </div>
-                ))}
-              </details>
-            ))}
-          </details>
-        )}
+                </span>
+                <Icon name="chevron-down" size={16} />
+              </summary>
+              {boxes.map((box) => (
+                <div class="learned-read">
+                  <h3>{box.title}</h3>
+                  <p class="learned-text">
+                    {version[box.id] === '' ? 'Sin texto.' : version[box.id]}
+                  </p>
+                </div>
+              ))}
+            </details>
+          ))}
+          {moreVersions.length > 0 && (
+            <details class="more-rows">
+              <summary>Ver más ({moreVersions.length})</summary>
+              {moreVersions.map((version) => (
+                <details class="version">
+                  <summary>
+                    <span>
+                      {formatMoment(version.createdAt, timeZone)} · {version.authorName}
+                    </span>
+                    <Icon name="chevron-down" size={16} />
+                  </summary>
+                  {boxes.map((box) => (
+                    <div class="learned-read">
+                      <h3>{box.title}</h3>
+                      <p class="learned-text">
+                        {version[box.id] === '' ? 'Sin texto.' : version[box.id]}
+                      </p>
+                    </div>
+                  ))}
+                </details>
+              ))}
+            </details>
+          )}
+        </div>
       </section>
-    </>
-  )}
+    )}
+  </div>
 </BaseLayout>

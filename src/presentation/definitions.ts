@@ -74,7 +74,7 @@ const dataGroup: DefinitionGroup = {
     {
       id: 'zona-horaria',
       term: 'Hora y zona horaria',
-      meaning: `Cada persona elige en su perfil (arriba, a la izquierda) la zona en la que ve las horas: ${SUPPORTED_TIME_ZONES.map((zone) => zone.label).join(', ')}. Por defecto es la de Bogotá. Es una preferencia personal: solo cambia cómo ves las horas, no las cifras.`,
+      meaning: `Cada persona elige en su perfil (tu nombre, al pie del menú) la zona en la que ve las horas: ${SUPPORTED_TIME_ZONES.map((zone) => zone.label).join(', ')}. Por defecto es la de Bogotá. Es una preferencia personal: solo cambia cómo ves las horas, no las cifras.`,
       how: 'Para agrupar por mes y por trimestre se usa siempre la hora de Bogotá, de modo que los totales sean los mismos para todo el equipo, la veas en la zona que la veas.',
       seenIn: [SLA, BREACHES, STATUS],
     },
@@ -102,17 +102,25 @@ const ticketsGroup: DefinitionGroup = {
     },
     {
       id: 'completados',
-      term: 'Completados (resueltos)',
+      term: 'Completados en el periodo (resueltos)',
       meaning:
-        'Tickets que pasaron a Hecho dentro del periodo, sin importar cuándo se crearon. Un ticket creado en un trimestre y cerrado en el siguiente cuenta como creado en el primero y completado en el segundo.',
+        'Tickets que pasaron a Hecho dentro del periodo, sin importar cuándo se crearon. Un ticket creado en un trimestre y cerrado en el siguiente cuenta como creado en el primero y completado en el segundo. Por eso puede haber más completados que creados.',
       how: 'La fecha de finalización es el momento en que el ticket entró en la categoría Hecho de Jira. Se usa esa fecha porque el flujo de Jira no rellena el campo "Resolución". Si un ticket se reabre, deja de contar como completado hasta que vuelva a cerrarse.',
       seenIn: [EXEC, SUMMARY, QUARTERS],
     },
     {
       id: 'porcentaje-completadas',
-      term: '% completadas',
-      meaning: 'De los tickets creados en el periodo, el porcentaje que ya está completado hoy.',
-      how: 'Creados en el periodo que hoy están en Hecho, divididos entre los creados en el periodo. En un periodo reciente el porcentaje es más bajo simplemente porque los tickets han tenido menos tiempo para cerrarse.',
+      term: '% de lo creado ya completado',
+      meaning:
+        'De los tickets creados en el periodo, el porcentaje que ya está completado hoy. No cuenta los tickets creados antes, aunque se hayan completado dentro del periodo.',
+      how: 'Creados en el periodo que hoy están en Hecho, divididos entre los creados en el periodo. En un periodo reciente el porcentaje es más bajo simplemente porque los tickets han tenido menos tiempo para cerrarse. Ejemplo: un tipo con 2 creados (los dos siguen abiertos) y 5 completados en el periodo (todos creados antes) muestra 0 %: los 5 completados salieron de trabajo anterior.',
+      seenIn: [SUMMARY],
+    },
+    {
+      id: 'tipos-obsoletos',
+      term: 'Tipos de solicitud obsoletos',
+      meaning:
+        'Tipos que Jira marca como retirados. No aparecen en la tabla por tipo ni en el filtro, pero sus tickets sí cuentan en los totales, así que la suma de la tabla puede ser menor que el total.',
       seenIn: [SUMMARY],
     },
     {
@@ -334,4 +342,34 @@ export function visibleLinks(
     const route = findRoute(link.href);
     return route !== undefined && decideAccess(route.access, { permissions }) === 'allow';
   });
+}
+
+/** Lower case without accents, so "tiempo tipico" finds "Tiempo típico". */
+const plain = (text: string): string => text.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+
+/** The longest search the page takes. */
+export const MAX_DEFINITION_SEARCH = 80;
+
+/**
+ * Keeps the definitions whose term, meaning or method contains every word of `query`. A group with
+ * no match disappears. An empty search keeps everything. Works on the page's own static text:
+ * nothing about tickets or people is searched.
+ */
+export function filterDefinitionGroups(
+  groups: readonly DefinitionGroup[],
+  query: string,
+): readonly DefinitionGroup[] {
+  const words = plain(query.slice(0, MAX_DEFINITION_SEARCH))
+    .split(/\s+/)
+    .filter((word) => word.length > 0);
+  if (words.length === 0) return groups;
+  return groups
+    .map((group) => ({
+      ...group,
+      items: group.items.filter((item) => {
+        const text = plain(`${item.term} ${item.meaning} ${item.how ?? ''}`);
+        return words.every((word) => text.includes(word));
+      }),
+    }))
+    .filter((group) => group.items.length > 0);
 }

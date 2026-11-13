@@ -4,7 +4,11 @@ import { COLLABORATOR_ROLE_NAME, DEFAULT_ROLE_GRANTS, LEADER_ROLE_NAME } from '@
 import { SUPPORTED_TIME_ZONES } from '@domain/access/time-zone';
 import { BALANCE_TOLERANCE, TEAM_MEMBERS } from '@domain/jira/capacity';
 import { SLA_TARGET_PERCENT } from '@domain/jira/sla-compliance';
-import { buildDefinitionGroups, visibleLinks } from '@presentation/definitions';
+import {
+  buildDefinitionGroups,
+  filterDefinitionGroups,
+  visibleLinks,
+} from '@presentation/definitions';
 import { ROUTES } from '@presentation/routes';
 
 const groups = buildDefinitionGroups();
@@ -56,8 +60,9 @@ describe('the definitions are well formed', () => {
     for (const expected of [
       'Fecha de corte',
       'Creados',
-      'Completados (resueltos)',
-      '% completadas',
+      'Completados en el periodo (resueltos)',
+      '% de lo creado ya completado',
+      'Tipos de solicitud obsoletos',
       'Tiempo típico de resolución',
       'Meta de SLA',
       'Cumplido / incumplido',
@@ -127,5 +132,27 @@ describe('visibleLinks', () => {
   it('shows nothing to someone with no permissions, and ignores unknown pages', () => {
     expect(visibleLinks([slaLink], PermissionSet.EMPTY)).toEqual([]);
     expect(visibleLinks([{ label: 'Nada', href: '/no-existe' }], leader)).toEqual([]);
+  });
+});
+
+describe('searching the definitions', () => {
+  it('finds a term without caring about accents or case', () => {
+    const found = filterDefinitionGroups(groups, 'TIEMPO tipico');
+    const terms = found.flatMap((group) => group.items.map((item) => item.term));
+    expect(terms).toContain('Tiempo típico de resolución');
+  });
+
+  it('needs every word, looks in the meaning and the method, and drops empty groups', () => {
+    const found = filterDefinitionGroups(groups, 'reabre completado');
+    expect(found.flatMap((group) => group.items.map((item) => item.id))).toContain('completados');
+    expect(found.every((group) => group.items.length > 0)).toBe(true);
+    expect(filterDefinitionGroups(groups, 'palabra que no existe en ninguna definicion')).toEqual(
+      [],
+    );
+  });
+
+  it('keeps everything for an empty search and ignores a very long one gracefully', () => {
+    expect(filterDefinitionGroups(groups, '   ')).toBe(groups);
+    expect(() => filterDefinitionGroups(groups, 'x'.repeat(5000))).not.toThrow();
   });
 });
