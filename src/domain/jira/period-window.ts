@@ -22,6 +22,13 @@ export type PeriodPreset =
   | { readonly kind: 'quarter'; readonly quarter: Quarter }
   | { readonly kind: 'custom'; readonly from: YearMonthDay; readonly to: YearMonthDay };
 
+/**
+ * Fewer cases than this on the side a figure is set against make a percentage change misleading
+ * (twelve tickets last year against a hundred now is not "+800 %"): the change is then shown as a
+ * plain difference with a note. A fact of the data, not of the calendar: no date is involved.
+ */
+export const MIN_RELIABLE_SAMPLE = 30;
+
 export const DEFAULT_PRESET: PeriodPreset = { kind: 'rolling', days: ROLLING_DAYS };
 
 /** A run of whole calendar days in the reporting time zone, both ends included. */
@@ -215,6 +222,8 @@ const sameDay = (a: YearMonthDay, b: YearMonthDay): boolean =>
  * - Both `from` and `to` present and not both equal to `shownFrom` / `shownTo`: the person typed
  *   dates, so it is a custom range and the chip and the year are stale. If the page did not send
  *   what it had drawn, any pair of dates counts as typed.
+ * - With no chip at all, the dates are the period: the page shows no chip when the period is a custom
+ *   range, so applying again without touching anything must keep that range.
  * - A lone date is ignored. Otherwise the chip decides: `'30d'` is the rolling default and `'T1'`
  *   to `'T4'` is that quarter of `year` (the current year when `year` is null).
  * - Anything unusable (no chip, an unknown chip, a year outside 2000-2100) is the default.
@@ -231,7 +240,7 @@ export function presetFromSubmission(
   if (from !== null && to !== null) {
     const untouched =
       shownFrom !== null && shownTo !== null && sameDay(from, shownFrom) && sameDay(to, shownTo);
-    if (!untouched) return { kind: 'custom', from, to };
+    if (!untouched || chip === null) return { kind: 'custom', from, to };
   }
 
   const match = chip === null ? null : QUARTER_CHIP.exec(chip);

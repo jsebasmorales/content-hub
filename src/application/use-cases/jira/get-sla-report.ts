@@ -1,42 +1,43 @@
 import type { PermissionSet } from '@domain/access/permission-set';
-import type { Quarter } from '@domain/jira/quarter';
-import {
-  recentQuarters,
-  resolvePeriod,
-  type RawPeriod,
-  type ResolvedPeriod,
-} from '@domain/jira/report-period';
+import type { RawGlobalFilter } from '@domain/jira/global-filter';
+import type { Granularity } from '@domain/jira/period-window';
 import { buildSlaReport, type SlaReport } from '@domain/jira/sla-report';
 import { err, ok, type Result } from '@shared/result';
-import type { IssueRepository } from '../../ports/jira';
-import type { Clock } from '../../ports/services';
+import { planChart, prepareReport, type FilterPanel, type ReportDeps } from './report-context';
 
 export interface SlaPage {
   /** The moment the report was built, for "vence en…" style texts. */
   readonly now: Date;
-  readonly resolved: ResolvedPeriod;
+  readonly panel: FilterPanel;
   readonly report: SlaReport;
-  /** The quarters offered as quick choices, newest first. */
-  readonly quarters: readonly Quarter[];
+  readonly granularity: Granularity;
 }
 
 /** Data for /sla: compliance over the chosen period, its breakdowns and the clocks running now. */
 export class GetSlaReport {
-  constructor(private readonly deps: { readonly issues: IssueRepository; readonly clock: Clock }) {}
+  constructor(private readonly deps: ReportDeps) {}
 
-  async execute(permissions: PermissionSet, raw: RawPeriod): Promise<Result<SlaPage, 'forbidden'>> {
+  async execute(
+    permissions: PermissionSet,
+    raw: RawGlobalFilter,
+  ): Promise<Result<SlaPage, 'forbidden'>> {
     if (!permissions.has('section.sla')) return err('forbidden');
-    const now = this.deps.clock.now();
-    const resolved = resolvePeriod(raw, now);
-    const [tickets, records] = await Promise.all([
-      this.deps.issues.listTickets(),
-      this.deps.issues.listSlaCycles(),
-    ]);
+    const context = await prepareReport(this.deps, raw);
+    const { window } = context.panel.filter;
+    // A percentage over a single day of one to three cycles is noise, so weeks are the finest bar.
+    const chart = planChart(window, 'weekly');
     return ok({
-      now,
-      resolved,
-      report: buildSlaReport({ tickets, records, range: resolved.period.range, now }),
-      quarters: recentQuarters(now),
+      now: context.now,
+      panel: context.panel,
+      report: buildSlaReport({
+        tickets: context.tickets,
+        records: context.records,
+        range: window.range,
+        buckets: chart.buckets,
+        trimLeadingEmpty: true,
+        now: context.now,
+      }),
+      granularity: chart.granularity,
     });
   }
 }

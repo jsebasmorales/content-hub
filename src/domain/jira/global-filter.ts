@@ -68,7 +68,8 @@ export type TypeSelection =
 
 export const ALL_TYPES: TypeSelection = { all: true };
 
-export type FilterNotice = 'period' | 'types';
+/** `types-empty`: the types box came back empty. `types-unknown`: a type asked for does not exist. */
+export type FilterNotice = 'period' | 'types-empty' | 'types-unknown';
 
 export interface ResolvedFilter {
   /** Always usable: when the request could not be, this is the default period. */
@@ -130,15 +131,16 @@ export function resolveTypes(
   requested: readonly string[],
   known: readonly string[],
   typesInForm: boolean,
-): { types: TypeSelection; notice: boolean } {
+): { types: TypeSelection; notice: Exclude<FilterNotice, 'period'> | null } {
   const wanted = new Set(requested.slice(0, MAX_SELECTED_TYPES));
   const names = known.filter((name) => wanted.has(name));
   const dropped = [...wanted].some((name) => !known.includes(name));
-  if (wanted.size === 0) return { types: ALL_TYPES, notice: typesInForm };
-  if (names.length === 0) return { types: ALL_TYPES, notice: true };
+  if (wanted.size === 0) return { types: ALL_TYPES, notice: typesInForm ? 'types-empty' : null };
+  if (names.length === 0) return { types: ALL_TYPES, notice: 'types-unknown' };
   // Choosing every current type is the same as choosing none: a type created tomorrow is included.
-  if (names.length === known.length) return { types: ALL_TYPES, notice: dropped };
-  return { types: { all: false, names }, notice: dropped };
+  const notice = dropped ? 'types-unknown' : null;
+  if (names.length === known.length) return { types: ALL_TYPES, notice };
+  return { types: { all: false, names }, notice };
 }
 
 /** Pure: turns a request into the filter the pages work with, falling back to the defaults. */
@@ -162,7 +164,7 @@ export function resolveGlobalFilter(
   const notices: FilterNotice[] = [];
   if (asked && (requested === null || periodRequestIsBroken(raw, submitted)))
     notices.push('period');
-  if (types.notice) notices.push('types');
+  if (types.notice) notices.push(types.notice);
 
   const periodChanged = window.preset.kind !== 'rolling' || window.preset.days !== 30;
   const activeCount = [periodChanged, !types.types.all, compare].filter(Boolean).length;

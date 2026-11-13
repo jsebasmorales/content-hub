@@ -1,12 +1,5 @@
-import {
-  REPORTING_TIME_ZONE,
-  addMonths,
-  intersectRanges,
-  monthOf,
-  startOfMonth,
-  type TimeRange,
-  type YearMonth,
-} from './quarter';
+import type { Bucket } from './chart-buckets';
+import { addMonths, monthOf, type TimeRange, type YearMonth } from './quarter';
 import { cycleOutcome, type SlaCycle, type SlaMetric } from './sla';
 import { cycleInPeriod, slaCompliance, type SlaCompliance } from './sla-compliance';
 import { isDone, isObsoleteRequestType, type Ticket } from './ticket';
@@ -17,8 +10,9 @@ export interface SlaCycleRecord {
   readonly cycle: SlaCycle;
 }
 
-export interface MonthCompliance {
-  readonly month: YearMonth;
+/** Compliance over the days of one bar of the chart (a week or a month; never a single day). */
+export interface BucketCompliance {
+  readonly bucket: Bucket;
   readonly compliance: SlaCompliance;
 }
 
@@ -42,7 +36,8 @@ export interface OngoingCycle {
 
 export interface SlaReport {
   readonly overall: SlaCompliance;
-  readonly byMonth: readonly MonthCompliance[];
+  /** One entry per bar of the chart, oldest first. */
+  readonly byBucket: readonly BucketCompliance[];
   readonly byRequestType: readonly RequestTypeCompliance[];
   /**
    * Running clocks of tickets that are still open, most urgent first. Independent of the chosen
@@ -74,32 +69,23 @@ export function monthsIn(range: TimeRange, zone: string): YearMonth[] {
   return months.slice(-MAX_MONTHS_SHOWN);
 }
 
-const monthIndex = (month: YearMonth): number => month.year * 12 + month.month;
-
 /**
- * One row per month the period touches, but only from the first month with something measured
- * up to the current one: months before the data begins and months that have not happened yet
- * would only draw empty space and push the real data out of sight.
+ * One entry per bar the period is split into, from the first one with something measured. Bars
+ * before the data begins would only draw empty space and push the real data out of sight; a chart
+ * that must line up with another period keeps them all (`trimLeadingEmpty: false`).
  */
-function byMonth(
+function byBucket(
   records: readonly SlaCycleRecord[],
-  range: TimeRange,
+  buckets: readonly Bucket[],
   now: Date,
-  zone: string,
-): MonthCompliance[] {
-  const current = monthIndex(monthOf(now, zone));
-  const upToNow = monthsIn(range, zone).filter((month) => monthIndex(month) <= current);
-  const rows = upToNow.map((month) => {
-    const monthRange = {
-      from: startOfMonth(month, zone),
-      to: startOfMonth(addMonths(month, 1), zone),
-    };
-    // A month cut by the start or end of the period only counts the days inside it.
-    const inside = intersectRanges(monthRange, range);
-    const cycles = records.map((r) => r.cycle).filter((c) => cycleInPeriod(c, inside, now));
-    return { month, compliance: slaCompliance(cycles, now) };
+  trimLeadingEmpty: boolean,
+): BucketCompliance[] {
+  const rows = buckets.map((bucket) => {
+    const cycles = records.map((r) => r.cycle).filter((c) => cycleInPeriod(c, bucket.range, now));
+    return { bucket, compliance: slaCompliance(cycles, now) };
   });
-  const measured = (row: MonthCompliance): boolean =>
+  if (!trimLeadingEmpty) return rows;
+  const measured = (row: BucketCompliance): boolean =>
     row.compliance.metrics.some((m) => m.total > 0);
   const firstWithData = rows.findIndex(measured);
   return firstWithData === -1 ? [] : rows.slice(firstWithData);
@@ -168,16 +154,15 @@ function ongoingCycles(
 }
 
 /** Pure: the same data at the same moment always gives the same report. */
-export function buildSlaReport(
-  input: {
-    tickets: readonly Ticket[];
-    records: readonly SlaCycleRecord[];
-    range: TimeRange;
-    now: Date;
-  },
-  zone: string = REPORTING_TIME_ZONE,
-): SlaReport {
-  const { tickets, records, range, now } = input;
+export function buildSlaReport(input: {
+  tickets: readonly Ticket[];
+  records: readonly SlaCycleRecord[];
+  range: TimeRange;
+  buckets: readonly Bucket[];
+  trimLeadingEmpty?: boolean;
+  now: Date;
+}): SlaReport {
+  const { tickets, records, range, buckets, now } = input;
   const byKey = new Map(tickets.map((ticket) => [ticket.key, ticket]));
   const inPeriod = records.filter((r) => cycleInPeriod(r.cycle, range, now));
   return {
@@ -185,7 +170,7 @@ export function buildSlaReport(
       inPeriod.map((r) => r.cycle),
       now,
     ),
-    byMonth: byMonth(records, range, now, zone),
+    byBucket: byBucket(records, buckets, now, input.trimLeadingEmpty ?? false),
     byRequestType: byRequestType(inPeriod, byKey, now),
     ...ongoingCycles(records, byKey, now),
   };

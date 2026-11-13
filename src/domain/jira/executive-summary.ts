@@ -1,15 +1,6 @@
-import {
-  REPORTING_TIME_ZONE,
-  addMonths,
-  monthOf,
-  previousQuarter,
-  quarterOf,
-  quarterRange,
-  startOfMonth,
-  type Quarter,
-  type TimeRange,
-  type YearMonth,
-} from './quarter';
+import type { Bucket } from './chart-buckets';
+import type { DayWindow } from './period-window';
+import { addMonths, startOfMonth, type TimeRange, type YearMonth } from './quarter';
 import type { SlaCycle } from './sla';
 import { cycleInPeriod, slaCompliance, type SlaCompliance } from './sla-compliance';
 import { isDone, type Ticket } from './ticket';
@@ -17,7 +8,7 @@ import { isDone, type Ticket } from './ticket';
 const DAY_MS = 86_400_000;
 export const MONTHS_IN_TREND = 6;
 
-/** A figure for this quarter next to the same figure for the previous one. */
+/** A figure for the period next to the same figure for the one it is set against. */
 export interface Comparison {
   readonly current: number | null;
   readonly previous: number | null;
@@ -29,33 +20,37 @@ export interface MonthPoint {
   readonly resolved: number;
 }
 
+/** What one bar of the volume chart shows: tickets created and resolved over its days. */
+export interface FlowPoint {
+  readonly bucket: Bucket;
+  readonly created: number;
+  readonly resolved: number;
+}
+
 export interface RequestTypeCount {
   readonly requestType: string;
   readonly count: number;
 }
 
 /**
- * What the executive page shows (SDD §5): the current quarter, set against the one before.
- * Volumes (`created`, `resolved`, `resolutionDays`) compare the quarter so far with the SAME
- * stretch of the previous quarter, not with all of it: six weeks of T4 against three full months
- * of T3 would always read as a collapse that never happened.
+ * What the executive page shows (SDD §5): the period chosen in the global filter, set against
+ * another window of the same length (the one the caller passes as `previous`). Volumes are always
+ * compared over the same number of days, so a short period is never set against a long one.
  */
 export interface ExecutiveSummary {
-  readonly quarter: Quarter;
-  readonly previousQuarter: Quarter;
-  /** Days of the current quarter that have passed, which is also the stretch compared. */
-  readonly elapsedDays: number;
+  /** Days of the period. */
+  readonly days: number;
   readonly created: Comparison;
   readonly resolved: Comparison;
-  /** Tickets not yet done as of now. */
+  /** Tickets not yet done as of now: a photo of today, not of the period. */
   readonly openNow: number;
-  /** Median days from creation to resolution of the tickets resolved in the quarter. */
+  /** Median days from creation to resolution of the tickets resolved in the period. */
   readonly resolutionDays: Comparison;
   readonly sla: SlaCompliance;
   readonly previousSla: SlaCompliance;
-  /** Oldest month first, ending with the current one. */
-  readonly months: readonly MonthPoint[];
-  /** Tickets created in the quarter, most frequent first. */
+  /** One entry per bar of the chart, oldest first. */
+  readonly flow: readonly FlowPoint[];
+  /** Tickets created in the period, most frequent first. */
   readonly requestTypes: readonly RequestTypeCount[];
 }
 
@@ -95,6 +90,28 @@ export function monthPoint(tickets: readonly Ticket[], month: YearMonth, zone: s
   };
 }
 
+/**
+ * Created and resolved per bar. `trimLeadingEmpty` drops the bars before the first one with
+ * activity, which is what the monthly charts always did so a long period does not open with empty
+ * space; a chart that must line up with another period keeps every bar. A period with no activity
+ * at all has no bars.
+ */
+export function flowPoints(
+  tickets: readonly Ticket[],
+  buckets: readonly Bucket[],
+  trimLeadingEmpty: boolean,
+): FlowPoint[] {
+  const points = buckets.map((bucket) => ({
+    bucket,
+    created: createdIn(tickets, bucket.range).length,
+    resolved: resolvedIn(tickets, bucket.range).length,
+  }));
+  const first = points.findIndex((point) => point.created > 0 || point.resolved > 0);
+  // Nothing happened in the whole period: no bars at all, so the page can say so instead of drawing zeros.
+  if (first === -1) return [];
+  return trimLeadingEmpty ? points.slice(first) : points;
+}
+
 function requestTypeCounts(created: readonly Ticket[]): RequestTypeCount[] {
   const counts = new Map<string, number>();
   for (const ticket of created) {
@@ -112,46 +129,38 @@ function complianceIn(cycles: readonly SlaCycle[], range: TimeRange, now: Date):
   );
 }
 
-/** Pure: the same tickets and cycles at the same moment always give the same summary. */
-export function buildExecutiveSummary(
-  input: { tickets: readonly Ticket[]; cycles: readonly SlaCycle[]; now: Date },
-  zone: string = REPORTING_TIME_ZONE,
-): ExecutiveSummary {
-  const { tickets, cycles, now } = input;
-  const quarter = quarterOf(now, zone);
-  const before = previousQuarter(quarter);
-  const range = quarterRange(quarter, zone);
-  const beforeRange = quarterRange(before, zone);
-  const current = monthOf(now, zone);
-  const elapsedMs = now.getTime() - range.from.getTime();
-  // The same stretch of the previous quarter (its first `elapsedMs`), never past its end.
-  const sameStretch: TimeRange = {
-    from: beforeRange.from,
-    to: new Date(Math.min(beforeRange.to.getTime(), beforeRange.from.getTime() + elapsedMs)),
-  };
-
+/**
+ * Pure: the same tickets, cycles and windows at the same moment always give the same summary.
+ * `tickets` and `cycles` arrive already narrowed to the request types of the filter.
+ */
+export function buildExecutiveSummary(input: {
+  tickets: readonly Ticket[];
+  cycles: readonly SlaCycle[];
+  current: DayWindow;
+  previous: DayWindow;
+  buckets: readonly Bucket[];
+  trimLeadingEmpty?: boolean;
+  now: Date;
+}): ExecutiveSummary {
+  const { tickets, cycles, current, previous, buckets, now } = input;
   return {
-    quarter,
-    previousQuarter: before,
-    elapsedDays: Math.max(1, Math.ceil(elapsedMs / DAY_MS)),
+    days: current.days,
     created: {
-      current: createdIn(tickets, range).length,
-      previous: createdIn(tickets, sameStretch).length,
+      current: createdIn(tickets, current.range).length,
+      previous: createdIn(tickets, previous.range).length,
     },
     resolved: {
-      current: resolvedIn(tickets, range).length,
-      previous: resolvedIn(tickets, sameStretch).length,
+      current: resolvedIn(tickets, current.range).length,
+      previous: resolvedIn(tickets, previous.range).length,
     },
     openNow: tickets.filter((ticket) => !isDone(ticket)).length,
     resolutionDays: {
-      current: medianResolutionDays(resolvedIn(tickets, range)),
-      previous: medianResolutionDays(resolvedIn(tickets, sameStretch)),
+      current: medianResolutionDays(resolvedIn(tickets, current.range)),
+      previous: medianResolutionDays(resolvedIn(tickets, previous.range)),
     },
-    sla: complianceIn(cycles, range, now),
-    previousSla: complianceIn(cycles, beforeRange, now),
-    months: Array.from({ length: MONTHS_IN_TREND }, (_, i) =>
-      monthPoint(tickets, addMonths(current, i - (MONTHS_IN_TREND - 1)), zone),
-    ),
-    requestTypes: requestTypeCounts(createdIn(tickets, range)),
+    sla: complianceIn(cycles, current.range, now),
+    previousSla: complianceIn(cycles, previous.range, now),
+    flow: flowPoints(tickets, buckets, input.trimLeadingEmpty ?? false),
+    requestTypes: requestTypeCounts(createdIn(tickets, current.range)),
   };
 }

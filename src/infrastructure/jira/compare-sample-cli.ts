@@ -177,7 +177,7 @@ function quarterlyAgreement(
   for (const quarter of recentQuarters(now)) {
     const range = quarterRange(quarter);
     const fromJira = rawCompliance(raw, fields, range, now);
-    const hub = buildSlaReport({ tickets, records, range, now }).overall.metrics;
+    const hub = buildSlaReport({ tickets, records, range, buckets: [], now }).overall.metrics;
     for (const metric of hub) {
       const theirs = fromJira[metric.metric];
       const agree = theirs.met === metric.met && theirs.breached === metric.breached;

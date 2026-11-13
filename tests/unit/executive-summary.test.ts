@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
+import { bucketsOf } from '@domain/jira/chart-buckets';
 import { buildExecutiveSummary, medianResolutionDays } from '@domain/jira/executive-summary';
+import {
+  granularityFor,
+  previousPeriodWindow,
+  resolveWindow,
+  type PeriodPreset,
+} from '@domain/jira/period-window';
 import {
   addMonths,
   previousQuarter,
@@ -109,29 +116,56 @@ describe('buildExecutiveSummary', () => {
     doneCycle('2026-11-05T12:00:00Z', true),
     doneCycle('2026-09-20T12:00:00Z', false),
   ];
-  const summary = buildExecutiveSummary({ tickets, cycles, now });
 
-  it('compares the quarter so far with the same stretch of the previous one', () => {
-    expect(summary.quarter).toEqual({ year: 2026, quarter: 4 });
-    expect(summary.previousQuarter).toEqual({ year: 2026, quarter: 3 });
+  /** The summary the page builds for a preset, set against the window the filter picks for it. */
+  function summaryOf(
+    preset: PeriodPreset,
+    data: { tickets: readonly Ticket[]; cycles: readonly SlaCycle[] } = { tickets, cycles },
+    at_: Date = now,
+  ) {
+    const current = resolveWindow(preset, at_);
+    if (!current) throw new Error('a window was expected');
+    return buildExecutiveSummary({
+      ...data,
+      current,
+      previous: previousPeriodWindow(current),
+      buckets: bucketsOf(current, granularityFor(current.days)),
+      now: at_,
+    });
+  }
+  const quarter = (year: number, q: 1 | 2 | 3 | 4): PeriodPreset => ({
+    kind: 'quarter',
+    quarter: { year, quarter: q },
+  });
+  const summary = summaryOf(quarter(2026, 4));
+
+  it('compares a quarter so far with the same stretch of the previous one', () => {
     // 12 Nov is 43 days into T4, so T3 is read only up to 12 Aug. D (created 10 Aug) and F count;
     // E (created 30 Sep) and D's resolution (20 Sep) fall after that point and do not.
-    expect(summary.elapsedDays).toBe(43);
+    expect(summary.days).toBe(43);
     expect(summary.created).toEqual({ current: 3, previous: 2 });
     expect(summary.resolved).toEqual({ current: 2, previous: 1 });
     expect(summary.resolutionDays).toEqual({ current: 11.5, previous: 10 });
   });
 
+  it('compares 30 days with the 30 days right before them', () => {
+    const rolling = summaryOf({ kind: 'rolling', days: 30 }); // 14 Oct - 12 Nov against 14 Sep - 13 Oct
+    expect(rolling.days).toBe(30);
+    expect(rolling.created).toEqual({ current: 2, previous: 2 }); // B, C against A, E
+    expect(rolling.resolved).toEqual({ current: 2, previous: 1 }); // A, B against D
+    expect(rolling.previousSla.metrics.find((m) => m.metric === 'done')?.ratePercent).toBe(100);
+  });
+
   it('never reads past the end of the previous quarter into the current one', () => {
-    // T3 has 92 days and T2 only 91. On the last day of T3 (91.6 days in) the compared stretch of T2
-    // would run past its end, so it is capped there. A ticket created on 1 July belongs to T3.
+    // T3 has 92 days and T2 only 91. On the last day of T3 the compared stretch of T2 would run past
+    // its end, so it is capped there. A ticket created on 1 July belongs to T3.
     const inQ2 = ticket('G', '2026-06-30T20:00:00Z', null);
     const inQ3 = ticket('H', '2026-07-01T12:00:00Z', null);
-    const result = buildExecutiveSummary({
-      tickets: [inQ2, inQ3],
-      cycles: [],
-      now: at('2026-09-30T20:00:00Z'),
-    });
+    const result = summaryOf(
+      quarter(2026, 3),
+      { tickets: [inQ2, inQ3], cycles: [] },
+      at('2026-09-30T20:00:00Z'),
+    );
     expect(result.created).toEqual({ current: 1, previous: 1 });
   });
 
@@ -144,25 +178,18 @@ describe('buildExecutiveSummary', () => {
     expect(done).toMatchObject({ met: 2, breached: 1, total: 3, ratePercent: 66.7 });
     expect(done?.meetsTarget).toBe(false);
     expect(summary.sla.goalMet).toBe(false);
-    expect(summary.previousSla.metrics.find((m) => m.metric === 'done')?.ratePercent).toBe(100);
+    // The 20 September cycle is outside the compared stretch (1 Jul - 12 Aug): nothing measured.
+    expect(summary.previousSla.metrics.find((m) => m.metric === 'done')?.ratePercent).toBeNull();
   });
 
-  it('gives six months ending with the current one', () => {
-    expect(summary.months.map((m) => m.month)).toEqual([
-      { year: 2026, month: 6 },
-      { year: 2026, month: 7 },
-      { year: 2026, month: 8 },
-      { year: 2026, month: 9 },
-      { year: 2026, month: 10 },
-      { year: 2026, month: 11 },
-    ]);
-    const byMonth = (n: number) => summary.months.find((m) => m.month.month === n);
-    expect(byMonth(9)).toMatchObject({ created: 1, resolved: 1 });
-    expect(byMonth(10)).toMatchObject({ created: 2, resolved: 1 });
-    expect(byMonth(11)).toMatchObject({ created: 1, resolved: 1 });
+  it('splits the period into weekly bars that add up to the period', () => {
+    expect(summary.flow).toHaveLength(7); // 43 days: six full weeks and a short one
+    expect(summary.flow.reduce((sum, p) => sum + p.created, 0)).toBe(3);
+    expect(summary.flow.reduce((sum, p) => sum + p.resolved, 0)).toBe(2);
+    expect(summary.flow[0]).toMatchObject({ created: 1, resolved: 0 }); // A, created 5 Oct
   });
 
-  it('ranks the request types created this quarter', () => {
+  it('ranks the request types created in the period', () => {
     expect(summary.requestTypes).toEqual([
       { requestType: 'Translate', count: 2 },
       { requestType: 'Edit', count: 1 },
@@ -170,7 +197,7 @@ describe('buildExecutiveSummary', () => {
   });
 
   it('has nothing to compare when there are no tickets', () => {
-    const empty = buildExecutiveSummary({ tickets: [], cycles: [], now });
+    const empty = summaryOf(quarter(2026, 4), { tickets: [], cycles: [] });
     expect(empty.created).toEqual({ current: 0, previous: 0 });
     expect(empty.resolutionDays).toEqual({ current: null, previous: null });
     expect(empty.sla.goalMet).toBeNull();

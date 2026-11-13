@@ -1,13 +1,20 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { PermissionSet } from '@domain/access/permission-set';
+import { EMPTY_RAW_FILTER, type RawGlobalFilter } from '@domain/jira/global-filter';
 import type { IssueSnapshot } from '@application/ports/jira';
 import { at, snapshot } from '../support/jira-fixtures';
 import { createSyncHarness, type SyncHarness } from '../support/jira-sync-harness';
 import { APP_KINDS } from '../support/test-app';
 
-/** /incumplimientos: needs `section.breach`, lists missed cycles and honours period and filters. */
+/** /incumplimientos: needs `section.breach`, lists missed cycles and honours the global filter. */
 
 const allowed = PermissionSet.of(['section.breach']);
+const raw = (patch: Partial<RawGlobalFilter> = {}): RawGlobalFilter => ({
+  ...EMPTY_RAW_FILTER,
+  ...patch,
+});
+/** Every breach of these tests is in T4 of 2026. */
+const t4 = { period: 'T4', year: '2026' };
 
 /** A ticket whose only SLA cycle ended late (a breach) at the given time. */
 function late(key: string, stoppedAt: string, patch: Partial<IssueSnapshot['ticket']> = {}) {
@@ -45,13 +52,13 @@ for (const kind of APP_KINDS) {
 
     const run = async (
       input: Partial<{
-        period: Record<string, string>;
+        global: Partial<RawGlobalFilter>;
         filter: Record<string, string>;
         page: number;
       }> = {},
     ) => {
       const result = await t.app.slaBreaches.execute(allowed, {
-        period: input.period ?? {},
+        global: raw(input.global ?? t4),
         filter: input.filter ?? {},
         page: input.page ?? 1,
       });
@@ -60,18 +67,16 @@ for (const kind of APP_KINDS) {
     };
 
     it('refuses people without the section permission', async () => {
-      const none = await t.app.slaBreaches.execute(PermissionSet.EMPTY, {
-        period: {},
-        filter: {},
-        page: 1,
+      const input = { global: raw(), filter: {}, page: 1 };
+      expect(await t.app.slaBreaches.execute(PermissionSet.EMPTY, input)).toEqual({
+        ok: false,
+        error: 'forbidden',
       });
-      expect(none).toEqual({ ok: false, error: 'forbidden' });
       const other = PermissionSet.of(['section.sla']);
-      const refused = await t.app.slaBreaches.execute(other, { period: {}, filter: {}, page: 1 });
-      expect(refused.ok).toBe(false);
+      expect((await t.app.slaBreaches.execute(other, input)).ok).toBe(false);
     });
 
-    it('lists the breaches of the current quarter, worst delay first', async () => {
+    it('lists the breaches of the period, worst delay first', async () => {
       await t.app.issues.upsertMany([
         late('JSMCO-1', '2026-10-12T10:00:00Z'),
         late('JSMCO-2', '2026-10-20T10:00:00Z'),
@@ -83,16 +88,27 @@ for (const kind of APP_KINDS) {
       expect(page.summary.byMetric).toEqual({ first_response: 0, done: 2 });
     });
 
-    it('honours the period, and says when it ignored one', async () => {
-      await t.app.issues.upsertMany([late('JSMCO-1', '2026-10-12T10:00:00Z')]);
-      expect((await run({ period: { quarter: '2026-T3' } })).summary.total).toBe(0);
-      expect((await run({ period: { from: '2026-10-01', to: '2026-10-31' } })).summary.total).toBe(
-        1,
-      );
-      expect((await run({ period: { from: 'ayer', to: 'hoy' } })).resolved.ignored).toBe(true);
+    it('looks at the last 30 days when nothing was asked', async () => {
+      await t.app.issues.upsertMany([
+        late('JSMCO-1', '2026-09-12T10:00:00Z'),
+        late('JSMCO-2', '2026-11-05T10:00:00Z'),
+      ]);
+      const page = await run({ global: {} });
+      expect(page.panel.filter.window.days).toBe(30);
+      expect(page.rows.items.map((r) => r.ticketKey)).toEqual(['JSMCO-2']);
     });
 
-    it('filters by assignee and type, ignoring values that do not exist', async () => {
+    it('honours the period, and says when it ignored one', async () => {
+      await t.app.issues.upsertMany([late('JSMCO-1', '2026-10-12T10:00:00Z')]);
+      expect((await run({ global: { period: 'T3', year: '2026' } })).summary.total).toBe(0);
+      expect((await run({ global: { from: '2026-10-01', to: '2026-10-31' } })).summary.total).toBe(
+        1,
+      );
+      const bogus = await run({ global: { from: 'ayer', to: 'hoy' } });
+      expect(bogus.panel.filter.notices).toContain('period');
+    });
+
+    it('filters by assignee, ignoring values that do not exist', async () => {
       await t.app.issues.upsertMany([
         late('JSMCO-1', '2026-10-12T10:00:00Z', { requestType: 'Edit' }),
         late('JSMCO-2', '2026-10-13T10:00:00Z', {
@@ -101,13 +117,23 @@ for (const kind of APP_KINDS) {
           assigneeName: null,
         }),
       ]);
-      const translate = await run({ filter: { requestType: 'Translate' } });
-      expect(translate.rows.items.map((r) => r.ticketKey)).toEqual(['JSMCO-2']);
       const unassigned = await run({ filter: { assigneeId: '__unassigned__' } });
       expect(unassigned.rows.items.map((r) => r.ticketKey)).toEqual(['JSMCO-2']);
-      const bogus = await run({ filter: { requestType: 'Made up' } });
+      const bogus = await run({ filter: { assigneeId: 'nadie' } });
       expect(bogus.rows.total).toBe(2);
-      expect(bogus.filter.requestType).toBeNull();
+      expect(bogus.filter.assigneeId).toBeNull();
+    });
+
+    it('narrows the summary and the list to the request types of the global filter', async () => {
+      await t.app.issues.upsertMany([
+        late('JSMCO-1', '2026-10-12T10:00:00Z', { requestType: 'Edit' }),
+        late('JSMCO-2', '2026-10-13T10:00:00Z', { requestType: 'Translate' }),
+      ]);
+      const page = await run({ global: { ...t4, types: ['Translate'] } });
+      expect(page.rows.items.map((r) => r.ticketKey)).toEqual(['JSMCO-2']);
+      // The totals above the list follow the types too, so the page never disagrees with itself.
+      expect(page.summary.total).toBe(1);
+      expect(page.panel.filter.activeCount).toBe(2);
     });
 
     it('pages a long list', async () => {

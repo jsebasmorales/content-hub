@@ -11,7 +11,8 @@ import {
 import type { SlaCycleRecord } from '@domain/jira/sla-report';
 import { UNASSIGNED } from '@domain/jira/task-list';
 import type { Ticket } from '@domain/jira/ticket';
-import { breachPageHref, parseBreachQuery, periodParams } from '@presentation/breach-query';
+import { EMPTY_RAW_FILTER } from '@domain/jira/global-filter';
+import { breachPageHref, parseBreachQuery } from '@presentation/breach-query';
 
 const at = (iso: string): Date => new Date(iso);
 const now = at('2026-11-12T15:00:00Z');
@@ -167,47 +168,45 @@ describe('breach filters', () => {
     return keys(report.rows.filter((row) => matchesBreachFilter(row, filter)));
   };
 
-  it('offers what exists among the period breaches, without the retired type', () => {
-    expect(report.options.requestTypes.map((o) => o.value)).toEqual(['Edit', 'Translate']);
+  it('offers the people that have a breach in the period; the request type is global now', () => {
+    expect(report.options).not.toHaveProperty('requestTypes');
     expect(report.options.assignees.map((o) => o.label)).toEqual(['Sin asignar', 'Ana', 'Beto']);
   });
 
-  it('filters by metric, type and assignee, and combines them', () => {
+  it('filters by metric and assignee, and combines them', () => {
     expect(run({ metric: 'first_response' })).toEqual(['D-1', 'B-1']);
-    expect(run({ requestType: 'Translate' })).toEqual(['B-1']);
     expect(run({ assigneeId: UNASSIGNED })).toEqual(['C-1']);
     expect(run({ assigneeId: 'id-Ana', metric: 'done' })).toEqual(['A-1']);
   });
 
   it('drops values that do not exist instead of emptying the list', () => {
-    expect(
-      sanitizeBreachFilter({ metric: 'nope', requestType: 'x', assigneeId: 'y' }, report.options),
-    ).toEqual(NO_BREACH_FILTER);
+    expect(sanitizeBreachFilter({ metric: 'nope', assigneeId: 'y' }, report.options)).toEqual(
+      NO_BREACH_FILTER,
+    );
     expect(run({ metric: 'nope' })).toHaveLength(5);
   });
 });
 
 describe('the address of /incumplimientos', () => {
-  it('reads the period, the filters and the page', () => {
+  it('reads the filters of the list and the page, and hands the global filter on untouched', () => {
     const query = parseBreachQuery(
-      new URLSearchParams('trimestre=2026-T3&metrica=done&tipo=Edit&asignado=x&pagina=2'),
+      new URLSearchParams('metrica=done&asignado=x&pagina=2&periodo=T3'),
+      EMPTY_RAW_FILTER,
     );
-    expect(query.period).toMatchObject({ quarter: '2026-T3' });
-    expect(query.filter).toEqual({ metric: 'done', requestType: 'Edit', assigneeId: 'x' });
+    expect(query.filter).toEqual({ metric: 'done', assigneeId: 'x' });
     expect(query.page).toBe(2);
+    expect(query.global).toBe(EMPTY_RAW_FILTER);
   });
 
   it('treats malformed values as no filter and the first page', () => {
-    expect(parseBreachQuery(new URLSearchParams('pagina=abc')).page).toBe(1);
-    expect(parseBreachQuery(new URLSearchParams(`tipo=${'x'.repeat(300)}`)).filter).toEqual({});
+    expect(parseBreachQuery(new URLSearchParams('pagina=abc'), EMPTY_RAW_FILTER).page).toBe(1);
+    expect(
+      parseBreachQuery(new URLSearchParams(`metrica=${'x'.repeat(300)}`), EMPTY_RAW_FILTER).filter,
+    ).toEqual({});
   });
 
-  it('keeps the period through filters and pages, and drops one-shot messages', () => {
+  it('keeps every filter through the pages, and drops one-shot messages', () => {
     const params = new URLSearchParams('desde=2026-01-01&hasta=2026-03-31&metrica=done&sync=wait');
-    expect(periodParams(params)).toEqual([
-      ['desde', '2026-01-01'],
-      ['hasta', '2026-03-31'],
-    ]);
     expect(breachPageHref(params, 3)).toBe(
       '/incumplimientos?desde=2026-01-01&hasta=2026-03-31&metrica=done&pagina=3',
     );

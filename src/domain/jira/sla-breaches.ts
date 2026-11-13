@@ -24,17 +24,16 @@ export interface BreachRow {
   readonly ticketClosed: boolean;
 }
 
+/** The filters of the list itself. The request type is part of the global filter, not of the list. */
 export interface BreachFilter {
   readonly metric: SlaMetric | null;
-  readonly requestType: string | null;
   readonly assigneeId: string | null;
 }
 
-export const NO_BREACH_FILTER: BreachFilter = { metric: null, requestType: null, assigneeId: null };
+export const NO_BREACH_FILTER: BreachFilter = { metric: null, assigneeId: null };
 
 export interface BreachOptions {
   readonly metrics: readonly FilterOption[];
-  readonly requestTypes: readonly FilterOption[];
   readonly assignees: readonly FilterOption[];
 }
 
@@ -127,12 +126,6 @@ function optionsOf(rows: readonly BreachRow[]): BreachOptions {
       label: metric,
       count: rows.filter((r) => r.metric === metric).length,
     })),
-    // A retired type is not offered as a choice, though its tickets stay in the list.
-    requestTypes: tally(
-      rows
-        .filter((r) => !isObsoleteRequestType(r.requestType))
-        .map((r) => ({ value: r.requestType, label: r.requestType })),
-    ),
     assignees:
       unassigned > 0
         ? [{ value: UNASSIGNED, label: UNASSIGNED_LABEL, count: unassigned }, ...assignees]
@@ -140,7 +133,10 @@ function optionsOf(rows: readonly BreachRow[]): BreachOptions {
   };
 }
 
-/** Pure: the breaches of a period, their summary and the choices the filters offer. */
+/**
+ * Pure: the breaches of a period, their summary and the choices the filters offer. `records` arrive
+ * already narrowed to the request types of the global filter.
+ */
 export function buildBreachReport(input: {
   tickets: readonly Ticket[];
   records: readonly SlaCycleRecord[];
@@ -183,14 +179,12 @@ export function sanitizeBreachFilter(
   const metric = known(raw.metric, options.metrics);
   return {
     metric: SLA_METRICS.find((candidate) => candidate === metric) ?? null,
-    requestType: known(raw.requestType, options.requestTypes),
     assigneeId: known(raw.assigneeId, options.assignees),
   };
 }
 
 export function matchesBreachFilter(row: BreachRow, filter: BreachFilter): boolean {
   if (filter.metric !== null && row.metric !== filter.metric) return false;
-  if (filter.requestType !== null && row.requestType !== filter.requestType) return false;
   if (filter.assigneeId === UNASSIGNED) return row.assigneeId === null;
   return filter.assigneeId === null || row.assigneeId === filter.assigneeId;
 }

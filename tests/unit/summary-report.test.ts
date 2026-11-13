@@ -1,12 +1,25 @@
 import { describe, expect, it } from 'vitest';
-import { quarterRange } from '@domain/jira/quarter';
+import { bucketsOf } from '@domain/jira/chart-buckets';
+import { granularityFor, resolveWindow, type PeriodPreset } from '@domain/jira/period-window';
 import { buildSummaryReport, summaryTypeOptions } from '@domain/jira/summary-report';
 import type { StatusCategory, Ticket } from '@domain/jira/ticket';
-import { parseSummaryQuery } from '@presentation/summary-query';
 
 const at = (iso: string): Date => new Date(iso);
 const now = at('2026-11-12T15:00:00Z');
-const q4 = quarterRange({ year: 2026, quarter: 4 });
+
+/** The report the page builds for a preset, with the bars the chart would draw. */
+function reportFor(preset: PeriodPreset, data: readonly Ticket[] = tickets) {
+  const window = resolveWindow(preset, now);
+  if (!window) throw new Error('a window was expected');
+  const granularity = granularityFor(window.days);
+  return buildSummaryReport({
+    tickets: data,
+    range: window.range,
+    buckets: bucketsOf(window, granularity),
+    trimLeadingEmpty: granularity === 'monthly',
+  });
+}
+const q4: PeriodPreset = { kind: 'quarter', quarter: { year: 2026, quarter: 4 } };
 
 function ticket(
   key: string,
@@ -43,7 +56,7 @@ const tickets = [
 ];
 
 describe('buildSummaryReport: created, completed and open', () => {
-  const report = buildSummaryReport({ tickets, range: q4, now });
+  const report = reportFor(q4);
 
   it('counts what was created and what was completed in the period', () => {
     expect(report.created).toBe(4);
@@ -68,38 +81,53 @@ describe('buildSummaryReport: created, completed and open', () => {
   });
 
   it('has no percentage when nothing was created', () => {
-    const quiet = buildSummaryReport({
-      tickets,
-      range: quarterRange({ year: 2025, quarter: 1 }),
-      now,
-    });
+    const quiet = reportFor({ kind: 'quarter', quarter: { year: 2026, quarter: 1 } });
     expect(quiet).toMatchObject({ created: 0, resolved: 0, completionPercent: null });
-    expect(quiet.months).toEqual([]);
+    expect(quiet.flow).toEqual([]);
   });
 });
 
-describe('buildSummaryReport: month by month', () => {
-  it('lists the months from the first with activity up to the current one', () => {
-    const { months } = buildSummaryReport({ tickets, range: q4, now });
-    expect(months.map((m) => m.month.month)).toEqual([10, 11]);
-    expect(months[0]).toMatchObject({ created: 3, resolved: 2 });
-    expect(months[1]).toMatchObject({ created: 1, resolved: 0 });
+describe('buildSummaryReport: bar by bar', () => {
+  it('draws one bar per week from the first day of the period, and they add up to the period', () => {
+    const { flow } = reportFor(q4); // 1 Oct - 12 Nov: 43 days
+    expect(flow).toHaveLength(7);
+    expect(flow.reduce((sum, point) => sum + point.created, 0)).toBe(4);
+    expect(flow.reduce((sum, point) => sum + point.resolved, 0)).toBe(2);
+    expect(flow[0]).toMatchObject({ created: 1, resolved: 1 }); // A created on 5 Oct, C resolved on 3 Oct
   });
 
-  it('counts only the days inside a period that cuts a month', () => {
-    const { months } = buildSummaryReport({
-      tickets,
-      range: { from: at('2026-10-08T05:00:00Z'), to: at('2026-10-25T05:00:00Z') },
-      now,
+  it('draws one bar per day for a short period', () => {
+    const { flow } = reportFor({
+      kind: 'custom',
+      from: { year: 2026, month: 10, day: 8 },
+      to: { year: 2026, month: 10, day: 14 },
     });
-    // Only B (10 Oct) and E (20 Oct) were created inside; A and C were completed before the 8th or after.
-    expect(months).toHaveLength(1);
-    expect(months[0]).toMatchObject({ created: 2, resolved: 1 });
+    expect(flow).toHaveLength(7);
+    expect(flow.find((point) => point.bucket.from.day === 10)).toMatchObject({ created: 1 }); // B
+  });
+
+  it('draws months, from the first with activity, for a long period', () => {
+    const { flow } = reportFor({
+      kind: 'custom',
+      from: { year: 2026, month: 1, day: 1 },
+      to: { year: 2026, month: 11, day: 12 },
+    });
+    expect(flow.map((point) => point.bucket.from.month)).toEqual([9, 10, 11]);
+    expect(flow[1]).toMatchObject({ created: 3, resolved: 2 });
+  });
+
+  it('has no bars when nothing happened in the period', () => {
+    const quiet = reportFor({
+      kind: 'custom',
+      from: { year: 2026, month: 1, day: 1 },
+      to: { year: 2026, month: 3, day: 31 },
+    });
+    expect(quiet.flow).toEqual([]);
   });
 });
 
 describe('buildSummaryReport: by request type', () => {
-  const { byType } = buildSummaryReport({ tickets, range: q4, now });
+  const { byType } = reportFor(q4);
 
   it('shows each type with its own figures, most created first', () => {
     expect(byType).toEqual([
@@ -110,7 +138,7 @@ describe('buildSummaryReport: by request type', () => {
 
   it('leaves a retired type out of the table but not out of the totals', () => {
     expect(byType.map((row) => row.requestType)).not.toContain("Translate - Moi - DON'T USE");
-    expect(buildSummaryReport({ tickets, range: q4, now }).created).toBe(4);
+    expect(reportFor(q4).created).toBe(4);
   });
 });
 
@@ -120,20 +148,5 @@ describe('summaryTypeOptions', () => {
       { value: 'Edit', label: 'Edit', count: 2 },
       { value: 'Translate', label: 'Translate', count: 2 },
     ]);
-  });
-});
-
-describe('the address of /resumen', () => {
-  it('reads the period and the request type', () => {
-    expect(parseSummaryQuery(new URLSearchParams('trimestre=2026-T3&tipo=Edit'))).toEqual({
-      period: { quarter: '2026-T3', from: undefined, to: undefined },
-      requestType: 'Edit',
-    });
-  });
-
-  it('drops an oversized type', () => {
-    expect(
-      parseSummaryQuery(new URLSearchParams(`tipo=${'x'.repeat(300)}`)).requestType,
-    ).toBeUndefined();
   });
 });
