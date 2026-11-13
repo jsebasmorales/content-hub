@@ -32,6 +32,8 @@ export interface RouteDefinition {
   /** Heading and icon of the menu entry; both are required whenever `menuLabel` is set. */
   readonly menuGroup?: MenuGroup;
   readonly menuIcon?: IconName;
+  /** The page shows and applies the global filter (period, request types), so menu links carry it. */
+  readonly globalFilter?: true;
 }
 
 const MINUTE = 60_000;
@@ -49,6 +51,7 @@ export const ROUTES: readonly RouteDefinition[] = [
     menuLabel: 'Resumen ejecutivo',
     menuGroup: 'Resumen',
     menuIcon: 'dashboard',
+    globalFilter: true,
   },
   {
     pattern: '/resumen',
@@ -58,6 +61,7 @@ export const ROUTES: readonly RouteDefinition[] = [
     menuLabel: 'Resumen',
     menuGroup: 'Resumen',
     menuIcon: 'list',
+    globalFilter: true,
   },
   {
     pattern: '/tareas',
@@ -76,6 +80,7 @@ export const ROUTES: readonly RouteDefinition[] = [
     menuLabel: 'SLAs',
     menuGroup: 'Trabajo',
     menuIcon: 'clock',
+    globalFilter: true,
   },
   {
     pattern: '/incumplimientos',
@@ -85,6 +90,7 @@ export const ROUTES: readonly RouteDefinition[] = [
     menuLabel: 'SLAs incumplidos',
     menuGroup: 'Trabajo',
     menuIcon: 'breach',
+    globalFilter: true,
   },
   {
     pattern: '/capacidad',

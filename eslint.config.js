@@ -134,6 +134,11 @@ export default defineConfig(
     rules: { 'no-restricted-properties': 'off' },
   },
   {
+    // The one script the browser runs (D-081): it lives in the page, not in Node.
+    files: ['public/js/**/*.js'],
+    languageOptions: { globals: { ...globals.browser } },
+  },
+  {
     // Developer tools run from a terminal: they print their results and read the shell's variables.
     files: ['scripts/capture-pages.mjs', 'scripts/check-design.mjs', 'scripts/recount-type.mjs'],
     rules: { 'no-console': 'off', 'no-restricted-properties': 'off' },

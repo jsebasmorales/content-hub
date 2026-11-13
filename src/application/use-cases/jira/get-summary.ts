@@ -1,62 +1,39 @@
 import type { PermissionSet } from '@domain/access/permission-set';
-import type { Quarter } from '@domain/jira/quarter';
-import {
-  recentQuarters,
-  resolvePeriod,
-  type RawPeriod,
-  type ResolvedPeriod,
-} from '@domain/jira/report-period';
-import {
-  buildSummaryReport,
-  summaryTypeOptions,
-  type SummaryReport,
-} from '@domain/jira/summary-report';
-import type { FilterOption } from '@domain/jira/task-list';
+import type { RawGlobalFilter } from '@domain/jira/global-filter';
+import type { Granularity } from '@domain/jira/period-window';
+import { buildSummaryReport, type SummaryReport } from '@domain/jira/summary-report';
 import { err, ok, type Result } from '@shared/result';
-import type { IssueRepository } from '../../ports/jira';
-import type { Clock } from '../../ports/services';
-
-export interface SummaryInput {
-  readonly period: RawPeriod;
-  /** As the address bar sent it: not trusted until checked against the types that exist. */
-  readonly requestType: string | null | undefined;
-}
+import { planChart, prepareReport, type FilterPanel, type ReportDeps } from './report-context';
 
 export interface SummaryPage {
   readonly now: Date;
-  readonly resolved: ResolvedPeriod;
-  readonly quarters: readonly Quarter[];
-  readonly typeOptions: readonly FilterOption[];
-  /** The request type being shown, or null for all of them. */
-  readonly requestType: string | null;
+  readonly panel: FilterPanel;
   readonly report: SummaryReport;
+  readonly granularity: Granularity;
 }
 
 /** Data for /resumen: the base view of tickets, open to every role that may see the section. */
 export class GetSummary {
-  constructor(private readonly deps: { readonly issues: IssueRepository; readonly clock: Clock }) {}
+  constructor(private readonly deps: ReportDeps) {}
 
   async execute(
     permissions: PermissionSet,
-    input: SummaryInput,
+    raw: RawGlobalFilter,
   ): Promise<Result<SummaryPage, 'forbidden'>> {
     if (!permissions.has('section.summary')) return err('forbidden');
-    const now = this.deps.clock.now();
-    const resolved = resolvePeriod(input.period, now);
-    const tickets = await this.deps.issues.listTickets();
-    const typeOptions = summaryTypeOptions(tickets);
-    // A type that does not exist is dropped instead of producing an empty page nobody can explain.
-    const requestType =
-      typeOptions.find((option) => option.value === input.requestType)?.value ?? null;
-    const shown =
-      requestType === null ? tickets : tickets.filter((t) => t.requestType === requestType);
+    const context = await prepareReport(this.deps, raw);
+    const { window } = context.panel.filter;
+    const chart = planChart(window);
     return ok({
-      now,
-      resolved,
-      quarters: recentQuarters(now),
-      typeOptions,
-      requestType,
-      report: buildSummaryReport({ tickets: shown, range: resolved.period.range, now }),
+      now: context.now,
+      panel: context.panel,
+      report: buildSummaryReport({
+        tickets: context.tickets,
+        range: window.range,
+        buckets: chart.buckets,
+        trimLeadingEmpty: chart.trimLeadingEmpty,
+      }),
+      granularity: chart.granularity,
     });
   }
 }

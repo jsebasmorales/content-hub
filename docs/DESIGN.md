@@ -174,7 +174,7 @@ One primary button per view region. Labels in Spanish, sentence case, verb first
 ### 7.2 Inputs, selects and filters
 
 Height 44, 12 px radius, 1 px #CCD0D7 border, white background, 16 px text. Hover: border #56575A. Focus: 2 px #2065CE ring. Error: border #C83D1E plus an error icon and message below in #841C05. Placeholder: neutral.500. Labels above the field, 12 px / 600.
-Filter bar: chips and compact selects in a single row on a neutral.200 strip; a "Limpiar" text button resets all filters.
+List filters (a table's own selects, such as the tasks list): chips and compact selects in a single row, with a "Limpiar" text button that resets only that list. The period, request type and comparison filter of the four report pages is a different component: see §14.
 
 ### 7.3 Content Ecosystem search (custom to this product)
 
@@ -234,7 +234,7 @@ Indented tree: Company objective → Marketing objective → Team epic → ticke
 
 ## 8. Data visualization [Proposed, from Volare colors]
 
-- Series order: Magenta 400 `#E6485C`, Blue 400 `#327DF0`, Amber 400 `#F8BA3D`, Green 500 `#32A45E`, Purple 300 `#BD78B8`, Baby blue 500 `#90C6DE`. Use no more than six series; group the rest as "Otros" in neutral.400.
+- Series order: Magenta 400 `#E6485C`, Blue 400 `#327DF0`, Amber 400 `#F8BA3D`, Green 500 `#32A45E`, Baby blue 500 `#90C6DE`. Use no more than five series; group the rest as "Otros" in neutral.400. **Purple is not a series color**: it is reserved for the previous year (§14), so a chart never uses it for something else.
 - Never encode meaning with color alone: add direct labels, markers, or patterns. The 90 % SLA target is a dashed neutral.500 line with a label.
 - Chart types allowed: horizontal and vertical bars, lines, simple area, donut for part-to-whole with up to five parts, and stacked bars. No 3D, no gradients inside charts.
 - Gridlines: 1 px #E4E6EA, horizontal only. Axis text 12 px neutral.500. Tooltips follow the tooltip component.
@@ -250,7 +250,7 @@ All pages share the shell (section 6). Content to preserve comes from the screen
 | --------------------- | --------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
 | Resumen ejecutivo     | Period findings at a glance                               | 3–4 hero KPI cards with ⓘ tooltips, a traffic-light status, a leader's message card, 2 insight cards |
 | Content Ecosystem     | Find any text and see what depends on it                  | Search bar (7.3), result list and detail panel (7.4)                                                 |
-| Resumen               | Tickets created, completed and in progress                | Filter bar (type, date range), KPI row, trend chart, table                                           |
+| Resumen               | Tickets created, completed and in progress                | Global filter (§14), KPI row, trend chart, table                                                     |
 | Tareas                | % completed, tasks by type and by status, one filter      | Single filter bar, KPI row, two charts, table                                                        |
 | SLAs                  | Time to response and Time to done against the 90 % target | One card per SLA with big percentage and target line, trend chart, table                             |
 | SLAs incumplidos      | Breaches and reasons                                      | KPI row, ranked table with breach chips                                                              |
@@ -267,10 +267,11 @@ All pages share the shell (section 6). Content to preserve comes from the screen
 ## 10. Interaction, motion and accessibility
 
 - Motion: 150–200 ms ease-out for hover, dropdowns and tooltips; no decorative animation; respect `prefers-reduced-motion`.
+- Progressive enhancement: nothing depends on JavaScript. The one script of the Hub (the global filter, section 14, at most 2 KB gzip) only adds comfort on top of a form that already works.
 - Keyboard: every control reachable; visible focus ring; the search combobox supports arrows, Enter and Esc; dropdowns and trees follow standard ARIA patterns.
 - Touch targets at least 44 × 44 px.
 - Contrast per section 2.7; do not rely on color alone; provide text alternatives for charts (a data table toggle or a summary sentence).
-- Language is Spanish; dates as "12 nov 2026", numbers with a thousands separator, percentages with no decimals unless needed.
+- Language is Spanish; dates as "12 nov 2026" (the global filter writes them as dd/mm/aaaa, as in its approved design), numbers with a thousands separator, percentages with no decimals unless needed.
 
 ---
 
@@ -324,7 +325,12 @@ Don't
   --red-100: #ffefec;
   --red-500: #c83d1e;
   --red-600: #841c05;
+  --purple-100: #ffeefe;
+  --purple-200: #e2bee0;
   --purple-300: #bd78b8;
+  --purple-400: #643560;
+  --purple-500: #4d2b49;
+  --purple-600: #3c263a;
   --baby-blue-500: #90c6de;
   --gradient-primary: linear-gradient(135deg, #e12b57, #c8094e);
   --effect-100: rgb(41 43 46 / 12%);
@@ -383,6 +389,50 @@ Don't
 7. Screenshots of real Volare components (button, input, table, chip, tabs, navigation) to align shapes and states.
 
 ---
+
+## 14. Filtros globales y comparación
+
+Applies to Resumen ejecutivo, Resumen, SLAs and SLAs incumplidos only. The reference images are `docs/designs/filtros-globales/`; where this text and the image differ, the image wins.
+
+### 14.1 Filter card
+
+White card, 1 px `--border`, radius 16, padding 20 / 24 (20 on the sides from 1280 px, to fit the row). Header: funnel icon in a 36 px `--magenta-100` box (radius 12), the title **Filtros** (20 px, weight 400) and, to its right, the tag **"N activos"** (24 px pill with a magenta dot; "1 activo" in the singular; hidden when N is 0). A 1 px divider follows. From **1280 px** of window the controls are **one row that never wraps**: the first control starts at the card's left padding (aligned with the icon and the title), and Restablecer and Aplicar are pushed to the right end. Below 1280 px the row wraps, everything left-aligned, with Restablecer and Aplicar at the end of the last row. Nothing in the row shrinks (a clipped label is worse than a wrapped row). Measured at 1440 px with the sidebar open (inner width 1088): chips 250, year 113, dates 313 (one 1 px `--border-strong` box, radius 12, height 44, around the icon, both dates and the duration), types 163, Restablecer 100, Aplicar 103, gaps 8: 8 px free. The fixed note under the controls (Bogotá time, 3-year limit) was removed: it lives in Definiciones ("Período por defecto") and in the notice of a rejected period; only "El período llega hasta hoy." remains, and only when it applies. **The Comparar switch (about 160 px) does not fit on that row** (it overflows by about 168 px at 1440): in phase 1.5b it goes in the header row, to the right of the title, not among the controls.
+
+1. Period chips: **30 días**, **T1**, **T2**, **T3**, **T4** (selected: `--magenta-100` fill, `--magenta-400` border, `--magenta-500` text). They are radios with a visible label.
+2. **Año** select, for the quarters: same trigger (caption "Año" over the year, chevron). Where the browser supports `appearance: base-select` (Chromium: Chrome and Edge 135+) its list is drawn like the types panel, with the active year ticked on the right; Firefox and Safari keep the native list, with the same trigger. No script is involved.
+3. Date range field with a calendar icon, "dd/mm/aaaa – dd/mm/aaaa" and the duration ("92 d") on its right.
+4. **Tipo de tarea**, multiple choice, drawn after the Volare multi-select: the trigger has a 12 px caption ("Tipo de tarea") over the value ("Todos seleccionados", "1 seleccionado", "N seleccionados"), a small chevron that points up while open, and a darker border when open. The panel is white, 1 px `--border`, radius 12, soft shadow, 4 px under the trigger, **340 px wide** (never wider than the window; below 1280 px it hangs from the card's left edge), 44 px rows with a thin divider, `--surface-sunken` (#F8F8FB) on hover, regular 14 px text, the count on the right in grey. Checkboxes are 20 px, radius 4, white with a neutral border; checked = `--green-500` with a white tick. At most 8 rows tall (about 362 px): the 7 types plus "Seleccionar todos" fit with no scroll bar; with more it scrolls under a 6 px rounded bar and a soft fade at the foot. A name never takes more than 2 lines (then an ellipsis). The names are shown **short**: the ending in parentheses is dropped (`typeDisplayLabel`: "Edit or Change Content (Characteristics, Content)" reads "Edit or Change Content"), and if two names would look alike both keep the full name. Only the display is short: the address, the cookie, the validation and the domain keep the full Jira name, which is also the row's `title` and the checkbox's `aria-label`.
+5. **Comparar** switch (`role="switch"`), with the comparison icon in `--compare` (in the header row, see above).
+6. **Restablecer** (tertiary, reset icon) and **Aplicar** (primary gradient). There is one reset and no "Limpiar".
+
+With the comparison on, a **previous-year box** appears under the controls: "Año previo", its date range, "mismo número de días, N d" and "Este color marca los datos del año previo en todo el Hub". The "Aparece en…" note that sits above the card in the design is a canvas annotation, not part of the product. Mobile has no design: the controls wrap and nothing else is promised.
+
+**"Seleccionar todos"** is the first row of the types panel, shown only with the script (without it the row is hidden and the list works as before). It is ticked when every type is chosen, shows a dash when only some are and is never empty. Clicking it when not all are chosen chooses them all; clicking it when all are chosen does nothing, because one type must always be left. It has no name, so it never travels with the form.
+
+**Behavior with the script on** (without it, all of this still works from the plain form): the request-type dropdown closes with Esc (focus returns to its button), on a click outside and when focus leaves it, only one is open at a time, and the last type cannot be unchecked (a short notice in a `role="status"` region says why); its label ("Todos los tipos (5)", "2 de 5 tipos") updates as you choose. A click anywhere on the date field opens the browser calendar, and the dates can still be typed. When the year changes, the quarter chips of quarters that have not started are disabled. The date format follows the browser language and cannot be forced; Firefox keeps its own calendar icon beside the design's.
+
+An active filter counts 1 each: a period other than the default, a type selection other than "todos", and the comparison on.
+
+### 14.2 Comparison color
+
+The previous year is always the same Volare purple tint, on every page. It is not the brand magenta, the second chart series blue or a status color.
+
+| Token              | Light                | Dark [Proposed]      | Use                                        |
+| ------------------ | -------------------- | -------------------- | ------------------------------------------ |
+| `--compare`        | Purple 400 `#643560` | Purple 200 `#E2BEE0` | Text, icons, switch on, lines, bar outline |
+| `--compare-fill`   | Purple 300 `#BD78B8` | Purple 300 `#BD78B8` | Fill of bars and markers                   |
+| `--compare-bg`     | Purple 100 `#FFEEFE` | Purple 600 `#3C263A` | Background of the box and of chips         |
+| `--compare-border` | Purple 200 `#E2BEE0` | Purple 500 `#4D2B49` | Border of the box                          |
+
+Contrast, computed by `scripts/check-design.mjs`: `--compare` on white and on `--compare-bg` clears 4.5:1; `--compare-fill` on white clears 3:1. **The stripe (`--compare-fill` on `--compare-bg`) is 2.89:1 in the light theme**, under the 3:1 graphics threshold, so every previous-year bar also has a 1.5 px outline in `--compare`, which carries the shape.
+
+Rules:
+
+- The previous year never depends on color alone. Bars use a diagonal stripe (`--compare-fill` over `--compare-bg`) plus the outline; lines are dashed with a marker whose shape differs by metric; every chart has a legend with the words "Año previo"; tooltips and text alternatives include the previous values.
+- With the comparison off, the box, the purple, the previous series and the "vs año previo" deltas disappear.
+- With it on, the "vs año previo" delta **replaces** the "vs período anterior" one; the two are never shown together.
+- A small previous sample is flagged, not hidden: below 30 cases the delta is absolute and the note reads "Pocos datos del año previo (n = X)".
+- No previous data reads "Sin datos del año previo", never a zero. A zero denominator reads "—".
 
 ## Decisions taken in the repo on top of this file
 

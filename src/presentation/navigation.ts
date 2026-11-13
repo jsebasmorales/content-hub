@@ -8,6 +8,8 @@ export interface MenuItem {
   readonly label: string;
   readonly group: MenuGroup;
   readonly icon: IconName;
+  /** The page shows the global filter, so a link to it carries the filter along. */
+  readonly globalFilter: boolean;
 }
 
 export interface MenuSection {
@@ -31,6 +33,7 @@ export function buildMenu(permissions: PermissionSet): MenuItem[] {
             label: route.menuLabel,
             group: route.menuGroup,
             icon: route.menuIcon,
+            globalFilter: route.globalFilter === true,
           },
         ]
       : [],

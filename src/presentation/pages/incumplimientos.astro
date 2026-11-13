@@ -1,6 +1,6 @@
 ---
-import { getJiraApp } from '@infrastructure/container';
-import { quarterLabel } from '@domain/jira/quarter';
+import { getApp, getJiraApp } from '@infrastructure/container';
+import { filterToParams } from '@domain/jira/global-filter';
 import { SLA_METRICS } from '@domain/jira/sla';
 import { TASKS_PER_PAGE } from '@domain/jira/task-list';
 import BarList from '../components/BarList.astro';
@@ -9,14 +9,16 @@ import ChartCard from '../components/ChartCard.astro';
 import DataTable from '../components/DataTable.astro';
 import EmptyState from '../components/EmptyState.astro';
 import FilterBar from '../components/FilterBar.astro';
+import GlobalFilters from '../components/GlobalFilters.astro';
 import KpiCard from '../components/KpiCard.astro';
 import PageHeader from '../components/PageHeader.astro';
 import Pager from '../components/Pager.astro';
-import PeriodPicker from '../components/PeriodPicker.astro';
 import BaseLayout from '../layouts/BaseLayout.astro';
-import { BREACH_PARAMS, breachPageHref, parseBreachQuery, periodParams } from '../breach-query';
-import { formatCalendarDay } from '../format-moment';
+import { BREACH_PARAMS, breachPageHref, parseBreachQuery } from '../breach-query';
+import { otherParams } from '../filter-query';
+import { clearFilterCookie, filterQuery, readFilterRequest, settleFilter } from '../filter-request';
 import { formatNumber } from '../format-number';
+import { describeWindow } from '../period-labels';
 import { splitForPhone } from '../phone-split';
 import { METRIC_LABEL } from '../sla-labels';
 import { syncFlashFromQuery } from '../sync-messages';
@@ -24,49 +26,54 @@ import { syncFlashFromQuery } from '../sync-messages';
 const principal = Astro.locals.principal;
 if (!principal) return new Response(null, { status: 404 });
 
+const secure = (await getApp()).settings.secureCookies;
+const request = readFilterRequest(Astro.url, Astro.cookies, secure);
+if (request.reset) {
+  clearFilterCookie(Astro.cookies, secure);
+  return Astro.redirect(Astro.url.pathname, 303);
+}
+
 const jira = await getJiraApp();
 // Opening the page refreshes stale data in the background; it never waits for Jira.
 await jira.requestSync.lazy();
 
 const [status, result] = await Promise.all([
   jira.syncStatus.execute(),
-  jira.slaBreaches.execute(principal.permissions, parseBreachQuery(Astro.url.searchParams)),
+  jira.slaBreaches.execute(
+    principal.permissions,
+    parseBreachQuery(Astro.url.searchParams, request.raw),
+  ),
 ]);
 if (!result.ok) return new Response(null, { status: 404 });
-const { resolved, quarters, summary, options, filter, rows } = result.value;
-const { period } = resolved;
+const { panel, summary, options, filter, rows } = result.value;
+
+const tidy = settleFilter(Astro.url, Astro.cookies, secure, request, panel.filter);
+if (tidy) return Astro.redirect(tidy, 303);
 
 const timeZone = principal.user.timeZone;
 
-const periodLabel =
-  period.kind === 'quarter'
-    ? quarterLabel(period.quarter)
-    : `${formatCalendarDay(period.from)} – ${formatCalendarDay(period.to)}`;
-const filtered =
-  filter.metric !== null || filter.requestType !== null || filter.assigneeId !== null;
+const periodLabel = describeWindow(panel.filter.window);
+const filtered = filter.metric !== null || filter.assigneeId !== null;
 const from = rows.total === 0 ? 0 : (rows.page - 1) * TASKS_PER_PAGE + 1;
 const to = rows.total === 0 ? 0 : from + rows.items.length - 1;
 const phone = splitForPhone(rows.items);
-const periodQuery = new URLSearchParams(periodParams(Astro.url.searchParams));
+// The list's own filters travel next to the global ones; the global filter is what the list form keeps.
+const globalParams = filterToParams(panel.filter);
+const listParams = otherParams(Astro.url.searchParams, [BREACH_PARAMS.page, 'sync']);
 ---
 
 <BaseLayout
   title="SLAs incumplidos"
   sync={{ status, flash: syncFlashFromQuery(Astro.url.searchParams) }}
+  filterQuery={filterQuery(panel.filter)}
 >
   <div class="page">
     <PageHeader
       title="SLAs incumplidos"
-      lede="Cada ciclo que no llegó a su meta en el periodo, del mayor retraso al menor. Suma los mismos ciclos que cuenta el cumplimiento de la página de SLAs."
+      lede="Cada ciclo que no llegó a su meta en el período, del mayor retraso al menor. Suma los mismos ciclos que cuenta el cumplimiento de la página de SLAs."
     />
 
-    <PeriodPicker
-      quarters={quarters}
-      period={period}
-      ignored={resolved.ignored}
-      basePath="/incumplimientos"
-      clearHref={period.kind === 'custom' ? '/incumplimientos' : undefined}
-    />
+    <GlobalFilters action="/incumplimientos" panel={panel} carry={listParams} />
 
     <section class="section" aria-labelledby="summary-title">
       <div class="section-head">
@@ -82,7 +89,7 @@ const periodQuery = new URLSearchParams(periodParams(Astro.url.searchParams));
           <KpiCard
             label={METRIC_LABEL[metric]}
             value={formatNumber(summary.byMetric[metric])}
-            tip="Incumplimientos de esta métrica en el periodo."
+            tip="Incumplimientos de esta métrica en el período."
           />
         ))}
       </div>
@@ -105,9 +112,9 @@ const periodQuery = new URLSearchParams(periodParams(Astro.url.searchParams));
       </div>
       <FilterBar
         action="/incumplimientos"
-        label="Filtros"
-        hidden={periodParams(Astro.url.searchParams)}
-        clearHref={filtered ? breachPageHref(periodQuery, 1) : undefined}
+        label="Filtros de la lista"
+        hidden={globalParams}
+        clearHref={filtered ? breachPageHref(new URLSearchParams(globalParams), 1) : undefined}
       >
         <div class="field">
           <label for="b-metrica">Métrica</label>
@@ -117,17 +124,6 @@ const periodQuery = new URLSearchParams(periodParams(Astro.url.searchParams));
               <option value={option.value} selected={option.value === filter.metric}>
                 {METRIC_LABEL[option.value as 'first_response' | 'done']} (
                 {formatNumber(option.count)})
-              </option>
-            ))}
-          </select>
-        </div>
-        <div class="field">
-          <label for="b-tipo">Tipo de solicitud</label>
-          <select id="b-tipo" name={BREACH_PARAMS.requestType}>
-            <option value="">Todos</option>
-            {options.requestTypes.map((option) => (
-              <option value={option.value} selected={option.value === filter.requestType}>
-                {option.label} ({formatNumber(option.count)})
               </option>
             ))}
           </select>
@@ -177,13 +173,13 @@ const periodQuery = new URLSearchParams(periodParams(Astro.url.searchParams));
             icon={summary.total === 0 ? 'check-circle' : 'breach'}
             title={
               summary.total === 0
-                ? 'No hubo incumplimientos en este periodo'
+                ? 'No hubo incumplimientos en este período'
                 : 'Ningún incumplimiento cumple esos filtros'
             }
             help={
               summary.total === 0
                 ? 'Todos los ciclos medidos llegaron a su meta.'
-                : 'Prueba con otra métrica, otro tipo de solicitud u otra persona.'
+                : 'Prueba con otra métrica u otra persona.'
             }
           />
         </div>

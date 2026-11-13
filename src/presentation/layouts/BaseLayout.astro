@@ -11,6 +11,7 @@ import '../styles/tokens.css';
 import '../styles/base.css';
 import '../styles/shell.css';
 import '../styles/components.css';
+import '../styles/filters.css';
 
 interface Props {
   title: string;
@@ -20,9 +21,14 @@ interface Props {
    * Pages not yet migrated leave it out and keep their own sync panel.
    */
   sync?: { status: SyncStatus; flash: Flash | null } | undefined;
+  /**
+   * The global filter as a query string ("?periodo=T4&anio=2026", or empty). The four pages that
+   * show the filter pass it so the menu links to each of them keep it; every other page leaves it out.
+   */
+  filterQuery?: string | undefined;
 }
 
-const { title, sync } = Astro.props;
+const { title, sync, filterQuery = '' } = Astro.props;
 const principal = Astro.locals.principal;
 const menu = principal ? buildMenu(principal.permissions) : [];
 const csrfToken = principal ? (await getApp()).csrf.tokenFor(principal.sessionId) : '';
@@ -62,6 +68,7 @@ const timeZone = principal?.user.timeZone;
           csrfToken={csrfToken}
           theme={theme}
           back={back}
+          filterQuery={filterQuery}
         />
         <div class="main-col">
           <TopBar

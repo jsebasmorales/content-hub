@@ -1,0 +1,199 @@
+---
+import type { FilterPanel } from '@application/use-cases/jira/report-context';
+import { FILTER_PARAMS, shownDays } from '@domain/jira/global-filter';
+import { dayParam } from '@domain/jira/report-period';
+import { typeDisplayLabels } from '../type-label';
+import Icon from './Icon.astro';
+
+interface Props {
+  /** The page the form leads back to. */
+  action: string;
+  panel: FilterPanel;
+  /** Choices of the page itself (a list's own filters) that must survive pressing "Aplicar". */
+  carry?: readonly [string, string][];
+}
+
+const { action, panel, carry = [] } = Astro.props;
+const { filter, typeOptions, years } = panel;
+const { window } = filter;
+
+const CHIPS = [
+  { value: '30d', label: '30 días' },
+  { value: 'T1', label: 'T1' },
+  { value: 'T2', label: 'T2' },
+  { value: 'T3', label: 'T3' },
+  { value: 'T4', label: 'T4' },
+] as const;
+
+// A custom range has no chip: nothing is checked, and the dates carry the period.
+const chosen =
+  window.preset.kind === 'rolling'
+    ? '30d'
+    : window.preset.kind === 'quarter'
+      ? `T${String(window.preset.quarter.quarter)}`
+      : null;
+const chosenYear = window.preset.kind === 'quarter' ? window.preset.quarter.year : years[0];
+const yearChoices =
+  chosenYear !== undefined && !years.includes(chosenYear) ? [chosenYear, ...years] : years;
+
+const shown = shownDays(filter);
+const total = typeOptions.length;
+const selected = filter.types.all ? total : filter.types.names.length;
+const typeLabel = filter.types.all
+  ? 'Todos seleccionados'
+  : `${String(selected)} ${selected === 1 ? 'seleccionado' : 'seleccionados'}`;
+// The short names are for drawing only: the value that travels is always the full Jira name.
+const shortNames = typeDisplayLabels(typeOptions.map((option) => option.value));
+const activeLabel = `${String(filter.activeCount)} ${filter.activeCount === 1 ? 'activo' : 'activos'}`;
+const resetHref = `${action}?${FILTER_PARAMS.reset}=1`;
+---
+
+<form
+  class="gfilter"
+  method="get"
+  action={action}
+  aria-label="Filtros del período y los tipos"
+  data-today={dayParam(panel.today)}
+>
+  {carry.map(([name, value]) => (
+    <input type="hidden" name={name} value={value} />
+  ))}
+  {/* What the page was drawn with: the only way, with no script, to tell typed dates from untouched ones. */}
+  <input type="hidden" name={FILTER_PARAMS.shownFrom} value={shown.from} />
+  <input type="hidden" name={FILTER_PARAMS.shownTo} value={shown.to} />
+  <input type="hidden" name={FILTER_PARAMS.typesInForm} value="1" />
+
+  <header class="gfilter-head">
+    <span class="gfilter-icon" aria-hidden="true">
+      <Icon name="filter" />
+    </span>
+    <h2 class="gfilter-title">Filtros</h2>
+    {filter.activeCount > 0 && (
+      <span class="gfilter-tag">
+        <span class="gfilter-dot" aria-hidden="true"></span>
+        {activeLabel}
+      </span>
+    )}
+  </header>
+
+  {filter.notices.includes('period') && (
+    <p class="notice notice-error" role="alert">
+      <Icon name="x-circle" />
+      <span>
+        No pudimos usar el período pedido (las fechas deben ser válidas y el máximo es de 3 años),
+        así que se muestran los últimos 30 días.
+      </span>
+    </p>
+  )}
+  {filter.notices.includes('types-empty') && (
+    <p class="notice notice-info" role="status">
+      <Icon name="info" />
+      <span>Hay que elegir al menos un tipo de solicitud. Se muestran todos.</span>
+    </p>
+  )}
+
+  {filter.notices.includes('types-unknown') && (
+    <p class="notice notice-info" role="status">
+      <Icon name="info" />
+      <span>Alguno de los tipos de solicitud pedidos ya no existe, así que se ignoró.</span>
+    </p>
+  )}
+
+  <div class="gfilter-controls">
+    <fieldset class="gfilter-chips">
+      <legend class="sr-only">Período</legend>
+      {CHIPS.map((chip) => (
+        <label class="gfilter-chip">
+          <input
+            type="radio"
+            name={FILTER_PARAMS.period}
+            value={chip.value}
+            checked={chip.value === chosen}
+          />
+          <span>{chip.label}</span>
+        </label>
+      ))}
+    </fieldset>
+
+    <label class="gfilter-control gfilter-year">
+      <span class="gfilter-field-label">Año</span>
+      <select name={FILTER_PARAMS.year} aria-label="Año de los trimestres">
+        {yearChoices.map((year) => (
+          <option value={String(year)} selected={year === chosenYear}>
+            {year}
+          </option>
+        ))}
+      </select>
+    </label>
+
+    <fieldset class="gfilter-control gfilter-range">
+      <legend class="sr-only">Rango de fechas</legend>
+      <Icon name="calendar" />
+      <input
+        type="date"
+        name={FILTER_PARAMS.from}
+        value={dayParam(window.from)}
+        aria-label="Desde"
+        required
+      />
+      <span aria-hidden="true">–</span>
+      <input
+        type="date"
+        name={FILTER_PARAMS.to}
+        value={dayParam(window.to)}
+        aria-label="Hasta (incluido)"
+        required
+      />
+      <span class="gfilter-days">{window.days} d</span>
+    </fieldset>
+
+    <details class="gfilter-types">
+      <summary class="gfilter-control">
+        <span class="gfilter-field-text">
+          <span class="gfilter-field-label">Tipo de tarea</span>
+          <span class="gfilter-field-value" data-types-label>
+            {typeLabel}
+          </span>
+        </span>
+        <Icon name="chevron-down" size={16} />
+      </summary>
+      <div class="gfilter-types-panel" role="group" aria-label="Tipos de solicitud">
+        {/* Only the script shows this row; it has no name, so it never travels with the form. */}
+        <label class="gfilter-check gfilter-all" hidden data-select-all>
+          <input type="checkbox" checked={filter.types.all} />
+          <span class="gfilter-check-name">Seleccionar todos</span>
+        </label>
+        {typeOptions.map((option) => (
+          <label class="gfilter-check" title={option.value}>
+            <input
+              type="checkbox"
+              name={FILTER_PARAMS.types}
+              value={option.value}
+              aria-label={option.value}
+              checked={filter.types.all || filter.types.names.includes(option.value)}
+            />
+            <span class="gfilter-check-name">{shortNames.get(option.value) ?? option.label}</span>
+            <span class="gfilter-count">{option.count}</span>
+          </label>
+        ))}
+      </div>
+    </details>
+
+    <div class="gfilter-actions">
+      <a class="gfilter-reset" href={resetHref}>
+        <Icon name="reset" size={16} />
+        Restablecer
+      </a>
+      <button class="btn" type="submit">
+        <Icon name="check" size={16} />
+        Aplicar
+      </button>
+    </div>
+  </div>
+
+  <p class="gfilter-hint" role="status" data-types-hint></p>
+  {window.partial && <p class="gfilter-note">El período llega hasta hoy.</p>}
+</form>
+
+{/* The only script of these pages (D-081): it only adds comfort, the form works without it. */}
+<script is:inline type="module" src="/js/global-filter.js"></script>

@@ -1,23 +1,14 @@
-import { createdIn, medianResolutionDays, resolvedIn } from './executive-summary';
+import type { Bucket } from './chart-buckets';
 import {
-  REPORTING_TIME_ZONE,
-  addMonths,
-  intersectRanges,
-  monthOf,
-  startOfMonth,
-  type TimeRange,
-  type YearMonth,
-} from './quarter';
-import { monthsIn } from './sla-report';
+  createdIn,
+  flowPoints,
+  medianResolutionDays,
+  resolvedIn,
+  type FlowPoint,
+} from './executive-summary';
+import type { TimeRange } from './quarter';
 import type { FilterOption } from './task-list';
 import { isDone, isObsoleteRequestType, type Ticket } from './ticket';
-
-/** One month of the period: what was created and completed in it. Edge months count only their days inside. */
-export interface MonthFlow {
-  readonly month: YearMonth;
-  readonly created: number;
-  readonly resolved: number;
-}
 
 export interface TypeSummary {
   readonly requestType: string;
@@ -49,8 +40,8 @@ export interface SummaryReport {
   /** Median days from creation to completion of what was completed in the period. */
   readonly resolutionDays: number | null;
   readonly openNow: OpenNow;
-  /** One entry per month, from the first one with activity to the current one. */
-  readonly months: readonly MonthFlow[];
+  /** One entry per bar of the chart (day, week or month), oldest first. */
+  readonly flow: readonly FlowPoint[];
   /** Most created first. Retired request types are left out of this table (not out of the totals). */
   readonly byType: readonly TypeSummary[];
 }
@@ -72,31 +63,6 @@ function openNowOf(tickets: readonly Ticket[]): OpenNow {
       .map(([status, count]) => ({ status, count }))
       .sort((a, b) => b.count - a.count || a.status.localeCompare(b.status, 'es')),
   };
-}
-
-function monthFlows(
-  tickets: readonly Ticket[],
-  range: TimeRange,
-  now: Date,
-  zone: string,
-): MonthFlow[] {
-  const current = monthOf(now, zone);
-  const currentIndex = current.year * 12 + current.month;
-  const flows = monthsIn(range, zone)
-    .filter((month) => month.year * 12 + month.month <= currentIndex)
-    .map((month) => {
-      const inside = intersectRanges(
-        { from: startOfMonth(month, zone), to: startOfMonth(addMonths(month, 1), zone) },
-        range,
-      );
-      return {
-        month,
-        created: createdIn(tickets, inside).length,
-        resolved: resolvedIn(tickets, inside).length,
-      };
-    });
-  const first = flows.findIndex((flow) => flow.created > 0 || flow.resolved > 0);
-  return first === -1 ? [] : flows.slice(first);
 }
 
 function typeSummaries(tickets: readonly Ticket[], range: TimeRange): TypeSummary[] {
@@ -132,14 +98,17 @@ export function summaryTypeOptions(tickets: readonly Ticket[]): FilterOption[] {
 
 /**
  * Pure: the base view of tickets for a period: how many were created and completed, how many are
- * open now, month by month and by request type. `tickets` is already filtered by type when the
- * person chose one, so every figure on the page agrees with the filter.
+ * open now, bar by bar and by request type. `tickets` is already narrowed to the request types of
+ * the global filter, so every figure on the page agrees with it.
  */
-export function buildSummaryReport(
-  input: { tickets: readonly Ticket[]; range: TimeRange; now: Date },
-  zone: string = REPORTING_TIME_ZONE,
-): SummaryReport {
-  const { tickets, range, now } = input;
+export function buildSummaryReport(input: {
+  tickets: readonly Ticket[];
+  range: TimeRange;
+  buckets: readonly Bucket[];
+  /** Drop the bars before the first with activity (long periods drawn month by month). */
+  trimLeadingEmpty?: boolean;
+}): SummaryReport {
+  const { tickets, range } = input;
   const created = createdIn(tickets, range);
   const resolved = resolvedIn(tickets, range);
   const createdAndCompleted = created.filter(isDone).length;
@@ -150,7 +119,7 @@ export function buildSummaryReport(
     completionPercent: percentOf(createdAndCompleted, created.length),
     resolutionDays: medianResolutionDays(resolved),
     openNow: openNowOf(tickets),
-    months: monthFlows(tickets, range, now, zone),
+    flow: flowPoints(tickets, input.buckets, input.trimLeadingEmpty ?? false),
     byType: typeSummaries(tickets, range),
   };
 }

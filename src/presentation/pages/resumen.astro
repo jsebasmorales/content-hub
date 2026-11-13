@@ -1,24 +1,29 @@
 ---
-import { getJiraApp } from '@infrastructure/container';
-import { quarterLabel } from '@domain/jira/quarter';
+import { getApp, getJiraApp } from '@infrastructure/container';
 import BarList from '../components/BarList.astro';
 import ChartCard from '../components/ChartCard.astro';
 import DataTable from '../components/DataTable.astro';
 import EmptyState from '../components/EmptyState.astro';
+import GlobalFilters from '../components/GlobalFilters.astro';
 import KpiCard from '../components/KpiCard.astro';
 import PageHeader from '../components/PageHeader.astro';
-import PeriodPicker from '../components/PeriodPicker.astro';
 import SummaryTypeTable from '../components/SummaryTypeTable.astro';
 import VolumeChart from '../components/VolumeChart.astro';
 import BaseLayout from '../layouts/BaseLayout.astro';
-import { periodParams } from '../breach-query';
-import { formatCalendarDay } from '../format-moment';
-import { formatNumber, formatPercent, monthShortName } from '../format-number';
-import { parseSummaryQuery, SUMMARY_TYPE_PARAM } from '../summary-query';
+import { clearFilterCookie, filterQuery, readFilterRequest, settleFilter } from '../filter-request';
+import { formatNumber, formatPercent } from '../format-number';
+import { bucketLabel, describeWindow, granularityNoun } from '../period-labels';
 import { syncFlashFromQuery } from '../sync-messages';
 
 const principal = Astro.locals.principal;
 if (!principal) return new Response(null, { status: 404 });
+
+const secure = (await getApp()).settings.secureCookies;
+const request = readFilterRequest(Astro.url, Astro.cookies, secure);
+if (request.reset) {
+  clearFilterCookie(Astro.cookies, secure);
+  return Astro.redirect(Astro.url.pathname, 303);
+}
 
 const jira = await getJiraApp();
 // Opening the page refreshes stale data in the background; it never waits for Jira.
@@ -26,60 +31,36 @@ await jira.requestSync.lazy();
 
 const [status, result] = await Promise.all([
   jira.syncStatus.execute(),
-  jira.summary.execute(principal.permissions, parseSummaryQuery(Astro.url.searchParams)),
+  jira.summary.execute(principal.permissions, request.raw),
 ]);
 if (!result.ok) return new Response(null, { status: 404 });
-const { resolved, quarters, typeOptions, requestType, report } = result.value;
-const { period } = resolved;
+const { panel, report, granularity } = result.value;
 
-const periodLabel =
-  period.kind === 'quarter'
-    ? quarterLabel(period.quarter)
-    : `${formatCalendarDay(period.from)} – ${formatCalendarDay(period.to)}`;
-const carry: [string, string][] = requestType === null ? [] : [[SUMMARY_TYPE_PARAM, requestType]];
-const clearable = requestType !== null || period.kind === 'custom';
+const tidy = settleFilter(Astro.url, Astro.cookies, secure, request, panel.filter);
+if (tidy) return Astro.redirect(tidy, 303);
+
+const { window, types } = panel.filter;
+const periodLabel = describeWindow(window);
+const sentence = periodLabel.charAt(0).toUpperCase() + periodLabel.slice(1);
+const heading = types.all ? sentence : `${sentence} · ${types.names.join(', ')}`;
 const statusRows = report.openNow.byStatus.map((row) => ({
   label: row.status,
   count: row.count,
 }));
-const heading = requestType === null ? periodLabel : `${periodLabel} · ${requestType}`;
 ---
 
-<BaseLayout title="Resumen" sync={{ status, flash: syncFlashFromQuery(Astro.url.searchParams) }}>
+<BaseLayout
+  title="Resumen"
+  sync={{ status, flash: syncFlashFromQuery(Astro.url.searchParams) }}
+  filterQuery={filterQuery(panel.filter)}
+>
   <div class="page">
     <PageHeader
       title="Resumen"
       lede="La vista base de los tickets: cuántos se crean, cuántos se completan y cuántos siguen en curso. Se alimenta solo de Jira."
     />
 
-    <PeriodPicker
-      quarters={quarters}
-      period={period}
-      ignored={resolved.ignored}
-      basePath="/resumen"
-      carry={carry}
-      clearHref={clearable ? '/resumen' : undefined}
-    >
-      <form method="get" action="/resumen">
-        {periodParams(Astro.url.searchParams).map(([name, value]) => (
-          <input type="hidden" name={name} value={value} />
-        ))}
-        <div class="field">
-          <label for="r-tipo">Tipo de solicitud</label>
-          <select id="r-tipo" name={SUMMARY_TYPE_PARAM}>
-            <option value="">Todos</option>
-            {typeOptions.map((option) => (
-              <option value={option.value} selected={option.value === requestType}>
-                {option.label} ({formatNumber(option.count)})
-              </option>
-            ))}
-          </select>
-        </div>
-        <button class="btn btn-secondary" type="submit">
-          Filtrar
-        </button>
-      </form>
-    </PeriodPicker>
+    <GlobalFilters action="/resumen" panel={panel} />
 
     <section class="section" aria-labelledby="kpi-title">
       <div class="section-head">
@@ -89,63 +70,63 @@ const heading = requestType === null ? periodLabel : `${periodLabel} · ${reques
         <KpiCard
           label="Creados"
           value={formatNumber(report.created)}
-          tip="Tickets nuevos del periodo, según su fecha de creación en hora de Bogotá."
+          tip="Tickets nuevos del período, según su fecha de creación en hora de Bogotá."
         />
         <KpiCard
-          label="Completados en el periodo"
+          label="Completados en el período"
           value={formatNumber(report.resolved)}
-          tip="Tickets que pasaron a Hecho dentro del periodo, sin importar cuándo se crearon. Incluye trabajo creado antes, por eso puede ser mayor que Creados."
+          tip="Tickets que pasaron a Hecho dentro del período, sin importar cuándo se crearon. Incluye trabajo creado antes, por eso puede ser mayor que Creados."
         />
         <KpiCard
           label="% de lo creado ya completado"
           value={formatPercent(report.completionPercent)}
-          tip="Solo mira lo creado en el periodo: cuántos de esos tickets ya están completados hoy. No cuenta lo creado antes, aunque se haya completado en el periodo. En un periodo reciente es menor porque hubo menos tiempo para completarse."
+          tip="Solo mira lo creado en el período: cuántos de esos tickets ya están completados hoy. No cuenta lo creado antes, aunque se haya completado en el período. En un período reciente es menor porque hubo menos tiempo para completarse."
         />
         <KpiCard
           label="Tiempo típico (días)"
           value={report.resolutionDays === null ? 'Sin datos' : formatNumber(report.resolutionDays)}
-          tip="Mediana de días naturales entre crear y completar, de los tickets completados en el periodo."
+          tip="Mediana de días naturales entre crear y completar, de los tickets completados en el período."
         />
         <KpiCard
           label="En curso hoy"
           value={formatNumber(report.openNow.inProgress)}
-          tip="Tickets abiertos que Jira agrupa como en curso: alguien trabaja en ellos o esperan algo (aprobación, traducción…). Es el estado de hoy, no del periodo."
+          tip="Tickets abiertos que Jira agrupa como en curso: alguien trabaja en ellos o esperan algo (aprobación, traducción…). Es el estado de hoy, no del período."
         />
         <KpiCard
           label="Sin empezar hoy"
           value={formatNumber(report.openNow.notStarted)}
-          tip="Tickets abiertos que nadie ha empezado todavía. Es el estado de hoy, no del periodo."
+          tip="Tickets abiertos que nadie ha empezado todavía. Es el estado de hoy, no del período."
         />
       </div>
     </section>
 
-    <ChartCard title="Mes a mes">
-      {report.months.length === 0 ? (
+    <ChartCard title={`Creados y completados, ${granularityNoun(granularity)}`}>
+      {report.flow.length === 0 ? (
         <EmptyState
           icon="info"
-          title="Sin actividad en este periodo"
-          help="No hubo tickets creados ni completados en este periodo."
+          title="Sin actividad en este período"
+          help="No hubo tickets creados ni completados en este período."
         />
       ) : (
         <VolumeChart
-          items={report.months.map((m) => ({
-            label: `${monthShortName(m.month.year, m.month.month)} ${String(m.month.year).slice(2)}`,
-            created: m.created,
-            resolved: m.resolved,
+          items={report.flow.map((point) => ({
+            label: bucketLabel(point.bucket, granularity),
+            created: point.created,
+            resolved: point.resolved,
           }))}
-          title="Tickets creados y completados por mes"
+          title={`Tickets creados y completados ${granularityNoun(granularity)}`}
           idPrefix="summary-monthly"
-          resolvedLabel="Completados en el mes"
-          note="El último mes puede estar en curso."
+          resolvedLabel="Completados"
+          note="La última barra llega hasta hoy."
         />
       )}
     </ChartCard>
 
-    {requestType === null && report.byType.length > 0 && (
+    {report.byType.length > 0 && (
       <section class="section" aria-labelledby="by-type-title">
         <div class="section-head">
           <h2 id="by-type-title">Por tipo de solicitud</h2>
-          <p>De más a menos creados. "Abiertos hoy" es el estado de hoy, no del periodo.</p>
+          <p>De más a menos creados. "Abiertos hoy" es el estado de hoy, no del período.</p>
         </div>
         <DataTable
           label="Tickets por tipo de solicitud"

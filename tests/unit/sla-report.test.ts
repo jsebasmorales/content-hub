@@ -1,10 +1,33 @@
 import { describe, expect, it } from 'vitest';
-import { quarterRange } from '@domain/jira/quarter';
+import { quarterRange, type TimeRange } from '@domain/jira/quarter';
 import type { SlaCycle, SlaMetric } from '@domain/jira/sla';
-import { buildSlaReport, monthsIn, type SlaCycleRecord } from '@domain/jira/sla-report';
+import { bucketsOf } from '@domain/jira/chart-buckets';
+import { dayOf, daysBetween } from '@domain/jira/period-window';
+import {
+  buildSlaReport as buildReport,
+  monthsIn,
+  type SlaCycleRecord,
+} from '@domain/jira/sla-report';
 import type { Ticket } from '@domain/jira/ticket';
 
 const at = (iso: string): Date => new Date(iso);
+
+/** The report with its bars drawn month by month, the way these tests have always read it. */
+function buildSlaReport(input: {
+  tickets: readonly Ticket[];
+  records: readonly SlaCycleRecord[];
+  range: TimeRange;
+  now: Date;
+}) {
+  const from = dayOf(input.range.from);
+  // The filter cuts a period at today, so the bars never run past it.
+  const end = new Date(Math.min(input.range.to.getTime() - 1, input.now.getTime()));
+  const to = dayOf(end);
+  const window = { from, to, days: daysBetween(from, to), range: input.range };
+  return buildReport({ ...input, buckets: bucketsOf(window, 'monthly'), trimLeadingEmpty: true });
+}
+const monthOfBar = (row: { bucket: { from: { year: number; month: number } } } | undefined) =>
+  row && { year: row.bucket.from.year, month: row.bucket.from.month };
 const now = at('2026-11-12T15:00:00Z');
 const q4 = quarterRange({ year: 2026, quarter: 4 });
 
@@ -106,10 +129,10 @@ describe('buildSlaReport: the period as a whole', () => {
   });
 });
 
-describe('buildSlaReport: by month', () => {
+describe('buildSlaReport: by bar (months here)', () => {
   it('has one row per month so far, leaving out months that have not happened', () => {
     // The quarter runs to December, but today is 12 November.
-    expect(report.byMonth.map((m) => m.month)).toEqual([
+    expect(report.byBucket.map((m) => monthOfBar(m))).toEqual([
       { year: 2026, month: 10 },
       { year: 2026, month: 11 },
     ]);
@@ -123,8 +146,8 @@ describe('buildSlaReport: by month', () => {
       now,
     });
     // Sep 2026 has a cycle (A-1, 20 Sep); the 20 months before it have none.
-    expect(long.byMonth[0]?.month).toEqual({ year: 2026, month: 9 });
-    expect(long.byMonth[long.byMonth.length - 1]?.month).toEqual({ year: 2026, month: 11 });
+    expect(monthOfBar(long.byBucket[0])).toEqual({ year: 2026, month: 9 });
+    expect(monthOfBar(long.byBucket[long.byBucket.length - 1])).toEqual({ year: 2026, month: 11 });
   });
 
   it('keeps an empty month that falls between months with data', () => {
@@ -137,12 +160,12 @@ describe('buildSlaReport: by month', () => {
       range: { from: at('2026-08-01T05:00:00Z'), to: at('2026-11-01T05:00:00Z') },
       now,
     });
-    expect(gap.byMonth.map((m) => m.month.month)).toEqual([8, 9, 10]);
-    expect(rate(gap.byMonth[1]?.compliance, 'done')?.ratePercent).toBeNull();
+    expect(gap.byBucket.map((m) => m.bucket.from.month)).toEqual([8, 9, 10]);
+    expect(rate(gap.byBucket[1]?.compliance, 'done')?.ratePercent).toBeNull();
   });
 
   it('puts each cycle in the month it ended, and running ones in the current month', () => {
-    const [october, november, december] = report.byMonth;
+    const [october, november, december] = report.byBucket;
     expect(rate(october?.compliance, 'done')).toMatchObject({ met: 1, breached: 0 });
     expect(rate(october?.compliance, 'first_response')).toMatchObject({ met: 1, breached: 1 });
     expect(rate(november?.compliance, 'done')).toMatchObject({ met: 0, breached: 2 });
@@ -156,10 +179,10 @@ describe('buildSlaReport: by month', () => {
       range: { from: at('2026-10-10T05:00:00Z'), to: at('2026-10-20T05:00:00Z') },
       now,
     });
-    expect(custom.byMonth).toHaveLength(1);
+    expect(custom.byBucket).toHaveLength(1);
     // Only A-1's done (15 Oct) is inside 10-20 Oct; the 2 Oct and 20 Oct cycles are not.
-    expect(rate(custom.byMonth[0]?.compliance, 'done')?.total).toBe(1);
-    expect(rate(custom.byMonth[0]?.compliance, 'first_response')?.total).toBe(0);
+    expect(rate(custom.byBucket[0]?.compliance, 'done')?.total).toBe(1);
+    expect(rate(custom.byBucket[0]?.compliance, 'first_response')?.total).toBe(0);
   });
 
   it('shows at most 36 months, the latest ones', () => {
@@ -278,6 +301,6 @@ describe('buildSlaReport: nothing yet', () => {
     expect(empty.overall.goalMet).toBeNull();
     expect(empty.byRequestType).toEqual([]);
     expect(empty.ongoing).toEqual([]);
-    expect(empty.byMonth).toEqual([]);
+    expect(empty.byBucket).toEqual([]);
   });
 });

@@ -140,5 +140,5 @@ Todas las acciones están fijadas por hash de commit (D-029).
 
 - Una prueba de integración contra Postgres real (no PGlite) con dos degradaciones simultáneas
   de Líderes. Va con D-031.
-- Lighthouse y presupuesto de JavaScript: **hechos** (D-065). `pnpm perf` mide cada página (JS ≤ 30 KB gzip; rendimiento ≥ 90, accesibilidad ≥ 95, buenas prácticas ≥ 90, LCP ≤ 1,5 s, CLS ≤ 0,05) y el job `performance` del CI lo ejecuta. Con `pnpm perf <url>` se puede medir otra instancia.
+- Lighthouse y presupuesto de JavaScript: **hechos** (D-065). `pnpm perf` mide cada página (JS ≤ 30 KB gzip, 0 KB en las páginas sin filtro y ≤ 2 KB en las cuatro con filtro (D-081); rendimiento ≥ 90, accesibilidad ≥ 95, buenas prácticas ≥ 90, LCP ≤ 1,5 s, CLS ≤ 0,05) y el job `performance` del CI lo ejecuta. Con `pnpm perf <url>` se puede medir otra instancia.
 - Publicación de imágenes, que se suma en fases posteriores.

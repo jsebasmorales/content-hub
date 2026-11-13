@@ -413,7 +413,7 @@ describe('rawCompliance (the recount made straight from Jira’s answers)', () =
       },
     ];
     const tickets = ['B-1', 'B-3'].map((key) => ticket(key));
-    const hub = buildSlaReport({ tickets, records, range: q4, now }).overall.metrics;
+    const hub = buildSlaReport({ tickets, records, range: q4, buckets: [], now }).overall.metrics;
     const theirs = rawCompliance(issues, FIELDS, q4, now);
     const pick = (metric: SlaMetric) => hub.find((m) => m.metric === metric);
     expect(pick('first_response')).toMatchObject(theirs.first_response);
