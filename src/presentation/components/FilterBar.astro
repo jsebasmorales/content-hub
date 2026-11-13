@@ -1,0 +1,35 @@
+---
+interface Props {
+  /** Where the form leads: the page itself. */
+  action: string;
+  /** Names the filters for screen readers. */
+  label: string;
+  /** Choices of the page that must survive pressing "Filtrar" (the period, for instance). */
+  hidden?: readonly [string, string][];
+  /** Where "Limpiar" leads. Left out when there is nothing to clear. */
+  clearHref?: string | undefined;
+}
+
+const { action, label, hidden = [], clearHref } = Astro.props;
+---
+
+<!--
+  The filter bar of DESIGN.md §7.2: fields in one card and a plain GET form, so it works without script
+  and the address always says what is being shown.
+-->
+<form class="filter-bar" method="get" action={action} aria-label={label}>
+  {hidden.map(([name, value]) => (
+    <input type="hidden" name={name} value={value} />
+  ))}
+  <slot />
+  <div class="filter-actions">
+    <button class="btn btn-secondary" type="submit">
+      Filtrar
+    </button>
+    {clearHref && (
+      <a class="filter-clear" href={clearHref}>
+        Limpiar
+      </a>
+    )}
+  </div>
+</form>

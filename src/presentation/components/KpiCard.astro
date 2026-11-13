@@ -1,23 +1,52 @@
 ---
-import InfoTip from './InfoTip.astro';
+import type { Delta } from '../format-number';
+import type { IconName } from '../icons';
+import Icon from './Icon.astro';
+import type { StatusKind } from '../status-kind';
+import StatusChip from './StatusChip.astro';
+import Tooltip from './Tooltip.astro';
 
 interface Props {
   label: string;
-  /** Already formatted: "12", "11,5 días". */
-  value: string;
-  /** How it moved, already worded ("▲ +2 frente a T3 2026"). */
+  /** Already formatted: "12", "11,5 días". Left out when the card shows a status instead of a figure. */
+  value?: string | undefined;
+  /** Hero cards (56 px) lead a section; the others (40 px) support it. */
+  hero?: boolean;
+  /** How it moved against the previous period, as direction, tone and words. */
+  delta?: Delta | undefined;
+  /** Plain-text note under the figure, when there is nothing to compare ("Carga actual activa"). */
   change?: string | undefined;
+  /** A status shown with an icon and a word, never with color alone. */
+  status?: { kind: StatusKind; label: string } | undefined;
   tip: string;
 }
 
-const { label, value, change, tip } = Astro.props;
+const { label, value, hero = false, delta, change, status, tip } = Astro.props;
+
+const DELTA_ICON: Record<Delta['direction'], IconName | null> = {
+  up: 'arrow-up',
+  down: 'arrow-down',
+  flat: 'minus',
+  none: null,
+};
+const deltaIcon = delta ? DELTA_ICON[delta.direction] : null;
 ---
 
-<article class="kpi">
-  <h3 class="kpi-label">
-    {label}
-    <InfoTip text={tip} label={label} />
-  </h3>
-  <p class="kpi-value">{value}</p>
+<article class={hero ? 'kpi kpi-hero' : 'kpi'} data-tone={status?.kind}>
+  <div class="kpi-head">
+    <h3 class="kpi-label">
+      {label}
+      <Tooltip text={tip} label={label} />
+    </h3>
+    {status && <StatusChip kind={status.kind} label={status.label} />}
+  </div>
+  {value !== undefined && <p class="kpi-value">{value}</p>}
+  {delta && (
+    <p class="kpi-delta" data-tone={delta.tone}>
+      {deltaIcon && <Icon name={deltaIcon} size={16} />}
+      <span>{delta.text}</span>
+    </p>
+  )}
   {change && <p class="kpi-change">{change}</p>}
+  <slot />
 </article>

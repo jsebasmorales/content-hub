@@ -1,37 +1,50 @@
 ---
 import type { TypeSummary } from '@domain/jira/summary-report';
 import { formatNumber, formatPercent } from '../format-number';
+import Tooltip from './Tooltip.astro';
 
 interface Props {
   rows: readonly TypeSummary[];
 }
 
 const { rows } = Astro.props;
+
+// The two names of the columns whose figures are easy to misread side by side (D-073).
+const RESOLVED_LABEL = 'Completados en el periodo';
+const PERCENT_LABEL = '% de lo creado ya completado';
+const RESOLVED_TIP =
+  'Tickets de este tipo que pasaron a Hecho dentro del periodo, sin importar cuándo se crearon. Incluye trabajo creado antes, por eso puede ser mayor que Creados.';
+const PERCENT_TIP =
+  'Solo mira lo creado en el periodo: cuántos de esos tickets ya están completados hoy. No cuenta lo creado antes, aunque se haya completado en el periodo. Por eso una fila puede tener más completados que creados y, aun así, 0 %.';
 ---
 
-<div class="table-scroll">
-  <table class="data-table">
-    <thead>
+<table class="data-table">
+  <thead>
+    <tr>
+      <th scope="col">Tipo de solicitud</th>
+      <th scope="col">Creados</th>
+      <th scope="col">
+        {RESOLVED_LABEL}
+        <Tooltip text={RESOLVED_TIP} label={RESOLVED_LABEL} align="end" />
+      </th>
+      <th scope="col">
+        {PERCENT_LABEL}
+        <Tooltip text={PERCENT_TIP} label={PERCENT_LABEL} align="end" />
+      </th>
+      <th scope="col">Abiertos hoy</th>
+    </tr>
+  </thead>
+  <tbody>
+    {rows.map((row) => (
       <tr>
-        <th scope="col">Tipo de solicitud</th>
-        <th scope="col">Creados</th>
-        <th scope="col">Completados</th>
-        <th scope="col">% completadas</th>
-        <th scope="col">Abiertos hoy</th>
+        <th scope="row" data-label="Tipo de solicitud">
+          {row.requestType}
+        </th>
+        <td data-label="Creados">{formatNumber(row.created)}</td>
+        <td data-label={RESOLVED_LABEL}>{formatNumber(row.resolved)}</td>
+        <td data-label={PERCENT_LABEL}>{formatPercent(row.completionPercent)}</td>
+        <td data-label="Abiertos hoy">{formatNumber(row.openNow)}</td>
       </tr>
-    </thead>
-    <tbody>
-      {rows.map((row) => (
-        <tr>
-          <th scope="row" data-label="Tipo de solicitud">
-            {row.requestType}
-          </th>
-          <td data-label="Creados">{formatNumber(row.created)}</td>
-          <td data-label="Completados">{formatNumber(row.resolved)}</td>
-          <td data-label="% completadas">{formatPercent(row.completionPercent)}</td>
-          <td data-label="Abiertos hoy">{formatNumber(row.openNow)}</td>
-        </tr>
-      ))}
-    </tbody>
-  </table>
-</div>
+    ))}
+  </tbody>
+</table>

@@ -1,0 +1,25 @@
+---
+interface Props {
+  title: string;
+  /** One line that says what the chart shows. */
+  subtitle?: string | undefined;
+  /** Small print at the top right of the header, e.g. "Total: 149 tickets". */
+  total?: string | undefined;
+  /** Small print at the bottom, e.g. the data cut-off or a note. */
+  footnote?: string | undefined;
+}
+
+const { title, subtitle, total, footnote } = Astro.props;
+---
+
+<section class="card chart-card">
+  <header class="chart-head">
+    <div>
+      <h2 class="chart-title">{title}</h2>
+      {subtitle && <p class="chart-sub">{subtitle}</p>}
+    </div>
+    {total && <p class="chart-total">{total}</p>}
+  </header>
+  <slot />
+  {footnote && <p class="chart-foot">{footnote}</p>}
+</section>

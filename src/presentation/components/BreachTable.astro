@@ -3,6 +3,7 @@ import type { SupportedTimeZone } from '@domain/access/time-zone';
 import type { BreachRow } from '@domain/jira/sla-breaches';
 import { formatMomentPlain, formatSpan, zoneLabel } from '../format-moment';
 import { METRIC_LABEL } from '../sla-labels';
+import StatusChip from './StatusChip.astro';
 import TicketLink from './TicketLink.astro';
 
 interface Props {
@@ -51,9 +52,16 @@ function endedText(row: BreachRow): string {
         </td>
         <td data-label="Terminó">{endedText(row)}</td>
         <td data-label="Retraso">
-          <span class="verdict verdict-bad">
-            {row.overdueMs === null ? '—' : formatSpan(row.overdueMs)}
-          </span>
+          {row.overdueMs === null ? (
+            '—'
+          ) : (
+            <StatusChip
+              kind="error"
+              icon="alert-triangle"
+              label={formatSpan(row.overdueMs)}
+              hint="SLA incumplido"
+            />
+          )}
         </td>
       </tr>
     ))}

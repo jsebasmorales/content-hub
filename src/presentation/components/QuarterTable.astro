@@ -5,6 +5,7 @@ import { quarterLabel } from '@domain/jira/quarter';
 import type { QuarterStats } from '@domain/jira/quarterly';
 import { formatNumber, formatPercent } from '../format-number';
 import { METRIC_LABEL } from '../sla-labels';
+import StatusChip from './StatusChip.astro';
 
 interface Props {
   /** Newest first. */
@@ -12,14 +13,6 @@ interface Props {
 }
 
 const { rows } = Astro.props;
-
-/** Mark and class for one verdict: words and a symbol, never color alone. */
-function verdict(meets: boolean | null): { mark: string; cls: string; text: string } {
-  if (meets === null) return { mark: '', cls: 'verdict', text: 'Sin datos' };
-  return meets
-    ? { mark: '✔ ', cls: 'verdict verdict-ok', text: 'Cumple' }
-    : { mark: '✖ ', cls: 'verdict verdict-bad', text: 'No cumple' };
-}
 ---
 
 <div class="table-scroll">
@@ -40,7 +33,6 @@ function verdict(meets: boolean | null): { mark: string; cls: string; text: stri
     </thead>
     <tbody>
       {rows.map((row) => {
-        const goal = verdict(row.sla.goalMet);
         return (
           <tr>
             <th scope="row" data-label="Trimestre">
@@ -53,13 +45,17 @@ function verdict(meets: boolean | null): { mark: string; cls: string; text: stri
               {row.resolutionDays === null ? '—' : formatNumber(row.resolutionDays)}
             </td>
             {row.sla.metrics.map((metric) => {
-              const result = verdict(metric.meetsTarget);
               return (
                 <td data-label={METRIC_LABEL[metric.metric]}>
-                  <span class={result.cls}>
-                    {result.mark}
-                    {formatPercent(metric.ratePercent)}
-                  </span>
+                  {metric.meetsTarget === null ? (
+                    formatPercent(metric.ratePercent)
+                  ) : (
+                    <StatusChip
+                      kind={metric.meetsTarget ? 'success' : 'error'}
+                      label={formatPercent(metric.ratePercent)}
+                      hint={metric.meetsTarget ? 'cumple la meta' : 'no cumple la meta'}
+                    />
+                  )}
                   {metric.total > 0 && (
                     <span class="cell-note">
                       {formatNumber(metric.met)} de {formatNumber(metric.total)}
@@ -69,10 +65,14 @@ function verdict(meets: boolean | null): { mark: string; cls: string; text: stri
               );
             })}
             <td data-label="Meta de SLA">
-              <span class={goal.cls}>
-                {goal.mark}
-                {goal.text}
-              </span>
+              {row.sla.goalMet === null ? (
+                'Sin datos'
+              ) : (
+                <StatusChip
+                  kind={row.sla.goalMet ? 'success' : 'error'}
+                  label={row.sla.goalMet ? 'Cumple' : 'No cumple'}
+                />
+              )}
             </td>
           </tr>
         );

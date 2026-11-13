@@ -1,0 +1,75 @@
+---
+import type { MetricCompliance } from '@domain/jira/sla-compliance';
+import { SLA_TARGET_PERCENT } from '@domain/jira/sla-compliance';
+import { formatNumber, formatPercent } from '../format-number';
+import type { StatusKind } from '../status-kind';
+import StatusChip from './StatusChip.astro';
+import Tooltip from './Tooltip.astro';
+
+interface Props {
+  metric: MetricCompliance;
+  label: string;
+  tip: string;
+}
+
+const { metric, label, tip } = Astro.props;
+const rate = Math.min(100, Math.max(0, metric.ratePercent ?? 0));
+
+const status: { kind: StatusKind; label: string; tone: StatusKind } =
+  metric.meetsTarget === null
+    ? { kind: 'neutral', label: 'Sin datos suficientes', tone: 'neutral' }
+    : metric.meetsTarget
+      ? {
+          kind: 'success',
+          label: `Cumple la meta · meta ${String(SLA_TARGET_PERCENT)} %`,
+          tone: 'success',
+        }
+      : {
+          kind: 'error',
+          label: `No cumple la meta · meta ${String(SLA_TARGET_PERCENT)} %`,
+          tone: 'error',
+        };
+---
+
+<article class="kpi kpi-hero" data-tone={status.tone}>
+  <div class="kpi-head">
+    <h3 class="kpi-label">
+      {label}
+      <Tooltip text={tip} label={label} />
+    </h3>
+    <StatusChip kind={status.kind} label={status.label} />
+  </div>
+  <p class="kpi-value">{formatPercent(metric.ratePercent)}</p>
+  <div>
+    <svg
+      class="meter"
+      width="100%"
+      height="10"
+      role="img"
+      aria-label={`${label}: ${formatPercent(metric.ratePercent)}. Meta ${String(SLA_TARGET_PERCENT)} %.`}
+    >
+      <rect class="meter-track" x="0" y="0" width="100%" height="10" rx="5"></rect>
+      <rect
+        class={metric.meetsTarget === false ? 'meter-fill meter-fill-bad' : 'meter-fill'}
+        x="0"
+        y="0"
+        width={`${String(rate)}%`}
+        height="10"
+        rx="5"
+      ></rect>
+      <line
+        class="meter-goal"
+        x1={`${String(SLA_TARGET_PERCENT)}%`}
+        x2={`${String(SLA_TARGET_PERCENT)}%`}
+        y1="-3"
+        y2="13"
+      ></line>
+    </svg>
+    <p class="meter-meta">
+      <span>
+        {formatNumber(metric.met)} cumplidos de {formatNumber(metric.total)} medidos
+      </span>
+      <span class="meter-goal-label">Meta {SLA_TARGET_PERCENT} %</span>
+    </p>
+  </div>
+</article>

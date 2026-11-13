@@ -1,0 +1,54 @@
+---
+import { formatNumber } from '../format-number';
+
+interface Item {
+  /** What the bar is for: a request type, a status. */
+  label: string;
+  count: number;
+}
+
+interface Props {
+  items: readonly Item[];
+  /** Rows shown; the rest are added up in "Otros". */
+  limit?: number;
+  /** Said when there is nothing to draw. */
+  empty?: string;
+}
+
+const {
+  items,
+  limit = 6,
+  empty = 'Todavía no hay tickets creados en este trimestre.',
+} = Astro.props;
+
+const shown = items.slice(0, limit);
+const rest = items.slice(limit).reduce((sum, item) => sum + item.count, 0);
+const rows = rest > 0 ? [...shown, { label: 'Otros', count: rest }] : shown;
+const top = Math.max(1, ...rows.map((row) => row.count));
+---
+
+{rows.length === 0 ? (
+  <p class="empty">{empty}</p>
+) : (
+  <ul class="bar-list">
+    {rows.map((row) => (
+      <li class="bar-row">
+        <div class="bar-line">
+          <span class="bar-name">{row.label}</span>
+          <span class="bar-count">{formatNumber(row.count)}</span>
+        </div>
+        <svg class="bar-track" width="100%" height="12" aria-hidden="true">
+          <rect class="bar-track-rail" x="0" y="0" width="100%" height="12" rx="6"></rect>
+          <rect
+            class="bar-track-fill"
+            x="0"
+            y="0"
+            width={`${String((row.count / top) * 100)}%`}
+            height="12"
+            rx="6"
+          ></rect>
+        </svg>
+      </li>
+    ))}
+  </ul>
+)}

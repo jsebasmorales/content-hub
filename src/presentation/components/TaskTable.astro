@@ -2,6 +2,8 @@
 import type { SupportedTimeZone } from '@domain/access/time-zone';
 import type { Ticket } from '@domain/jira/ticket';
 import { formatDay } from '../format-moment';
+import { TICKET_STATUS_CHIP } from '../ticket-status';
+import StatusChip from './StatusChip.astro';
 import TicketLink from './TicketLink.astro';
 
 interface Props {
@@ -39,7 +41,11 @@ const { rows, ticketUrlOf, timeZone, withHead = true } = Astro.props;
         <td data-label="Resumen">{task.summary}</td>
         <td data-label="Tipo">{task.requestType}</td>
         <td data-label="Estado">
-          <span class={`badge badge-${task.statusCategory}`}>{task.status}</span>
+          <StatusChip
+            kind={TICKET_STATUS_CHIP[task.statusCategory].kind}
+            icon={TICKET_STATUS_CHIP[task.statusCategory].icon}
+            label={task.status}
+          />
         </td>
         <td data-label="Solicitante">{task.requesterName ?? '—'}</td>
         <td data-label="Asignado a">{task.assigneeName ?? 'Sin asignar'}</td>

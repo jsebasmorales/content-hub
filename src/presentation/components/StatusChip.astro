@@ -1,0 +1,32 @@
+---
+import type { IconName } from '../icons';
+import type { StatusKind } from '../status-kind';
+import Icon from './Icon.astro';
+
+interface Props {
+  kind: StatusKind;
+  /** The word that says what the status is. Color alone never does (DESIGN.md §7.7). */
+  label: string;
+  /** Leave out to use the icon that goes with the kind. */
+  icon?: IconName | undefined;
+  /** Extra words for screen readers only, e.g. "cumple la meta". */
+  hint?: string | undefined;
+}
+
+const DEFAULT_ICON: Record<StatusKind, IconName> = {
+  success: 'check-circle',
+  warning: 'alert-triangle',
+  error: 'x-circle',
+  info: 'info',
+  neutral: 'minus',
+};
+
+const { kind, label, icon: chosenIcon, hint } = Astro.props;
+const icon = chosenIcon ?? DEFAULT_ICON[kind];
+---
+
+<span class="status-chip" data-kind={kind}>
+  <Icon name={icon} size={16} />
+  {label}
+  {hint && <span class="sr-only"> ({hint})</span>}
+</span>

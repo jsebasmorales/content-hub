@@ -1,0 +1,41 @@
+---
+import Icon from './Icon.astro';
+
+interface Props {
+  page: number;
+  pageCount: number;
+  /** Address of the previous and next page; null when there is none. */
+  prevHref: string | null;
+  nextHref: string | null;
+}
+
+const { page, pageCount, prevHref, nextHref } = Astro.props;
+---
+
+<nav class="pager" aria-label="Páginas">
+  {prevHref ? (
+    <a class="pager-link" href={prevHref} rel="prev">
+      <Icon name="arrow-right" size={16} class="flip" />
+      Anterior
+    </a>
+  ) : (
+    <span class="pager-link pager-off">
+      <Icon name="arrow-right" size={16} class="flip" />
+      Anterior
+    </span>
+  )}
+  <span class="pager-state">
+    Página {page} de {pageCount}
+  </span>
+  {nextHref ? (
+    <a class="pager-link" href={nextHref} rel="next">
+      Siguiente
+      <Icon name="arrow-right" size={16} />
+    </a>
+  ) : (
+    <span class="pager-link pager-off">
+      Siguiente
+      <Icon name="arrow-right" size={16} />
+    </span>
+  )}
+</nav>

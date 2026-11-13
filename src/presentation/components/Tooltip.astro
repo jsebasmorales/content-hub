@@ -1,0 +1,25 @@
+---
+import Icon from './Icon.astro';
+
+interface Props {
+  /** What the figure means, in plain words. */
+  text: string;
+  /** Names the figure for screen readers: "Qué significa Creados". */
+  label: string;
+  /** Which edge of the ⓘ the panel lines up with. Use `end` near the right side of a table. */
+  align?: 'start' | 'end';
+}
+
+const { text, label, align = 'start' } = Astro.props;
+---
+
+<!--
+  A <details>: it opens with a click, a tap or Enter and needs no script, so it also works on a phone
+  (a hover-only tip would not). The panel is the tooltip of DESIGN.md §7.8.
+-->
+<details class={align === 'end' ? 'tip tip-end' : 'tip'}>
+  <summary aria-label={`Qué significa ${label}`}>
+    <Icon name="info" size={16} />
+  </summary>
+  <p>{text}</p>
+</details>
