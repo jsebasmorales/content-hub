@@ -153,7 +153,7 @@ describe('buildExecutiveSummary', () => {
     expect(rolling.days).toBe(30);
     expect(rolling.created).toEqual({ current: 2, previous: 2 }); // B, C against A, E
     expect(rolling.resolved).toEqual({ current: 2, previous: 1 }); // A, B against D
-    expect(rolling.previousSla.metrics.find((m) => m.metric === 'done')?.ratePercent).toBe(100);
+    expect(rolling.previousSla?.metrics.find((m) => m.metric === 'done')?.ratePercent).toBe(100);
   });
 
   it('never reads past the end of the previous quarter into the current one', () => {
@@ -179,7 +179,7 @@ describe('buildExecutiveSummary', () => {
     expect(done?.meetsTarget).toBe(false);
     expect(summary.sla.goalMet).toBe(false);
     // The 20 September cycle is outside the compared stretch (1 Jul - 12 Aug): nothing measured.
-    expect(summary.previousSla.metrics.find((m) => m.metric === 'done')?.ratePercent).toBeNull();
+    expect(summary.previousSla?.metrics.find((m) => m.metric === 'done')?.ratePercent).toBeNull();
   });
 
   it('splits the period into weekly bars that add up to the period', () => {

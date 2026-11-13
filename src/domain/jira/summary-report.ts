@@ -2,6 +2,7 @@ import type { Bucket } from './chart-buckets';
 import {
   createdIn,
   flowPoints,
+  flowPointsCompared,
   medianResolutionDays,
   resolvedIn,
   type FlowPoint,
@@ -44,7 +45,17 @@ export interface SummaryReport {
   readonly flow: readonly FlowPoint[];
   /** Most created first. Retired request types are left out of this table (not out of the totals). */
   readonly byType: readonly TypeSummary[];
+  /**
+   * The same figures one year earlier (the comparison is on and the data reaches it), or null. The
+   * open-now figures and the bars of the chart are not repeated there: they are not compared.
+   */
+  readonly previous: PreviousSummary | null;
 }
+
+export type PreviousSummary = Pick<
+  SummaryReport,
+  'created' | 'resolved' | 'createdAndCompleted' | 'completionPercent' | 'resolutionDays' | 'byType'
+>;
 
 const oneDecimal = (value: number): number => Math.round(value * 10) / 10;
 
@@ -96,6 +107,20 @@ export function summaryTypeOptions(tickets: readonly Ticket[]): FilterOption[] {
     .sort((a, b) => a.label.localeCompare(b.label, 'es'));
 }
 
+function previousFigures(tickets: readonly Ticket[], range: TimeRange): PreviousSummary {
+  const created = createdIn(tickets, range);
+  const resolved = resolvedIn(tickets, range);
+  const createdAndCompleted = created.filter(isDone).length;
+  return {
+    created: created.length,
+    resolved: resolved.length,
+    createdAndCompleted,
+    completionPercent: percentOf(createdAndCompleted, created.length),
+    resolutionDays: medianResolutionDays(resolved),
+    byType: typeSummaries(tickets, range),
+  };
+}
+
 /**
  * Pure: the base view of tickets for a period: how many were created and completed, how many are
  * open now, bar by bar and by request type. `tickets` is already narrowed to the request types of
@@ -107,6 +132,11 @@ export function buildSummaryReport(input: {
   buckets: readonly Bucket[];
   /** Drop the bars before the first with activity (long periods drawn month by month). */
   trimLeadingEmpty?: boolean;
+  /**
+   * The previous year, when the comparison is on: its days, and its bars to line up with these. Its
+   * bars are all kept (a bar dropped would shift the positions). Null when the data does not reach it.
+   */
+  year?: { range: TimeRange; buckets: readonly Bucket[] } | null;
 }): SummaryReport {
   const { tickets, range } = input;
   const created = createdIn(tickets, range);
@@ -119,7 +149,11 @@ export function buildSummaryReport(input: {
     completionPercent: percentOf(createdAndCompleted, created.length),
     resolutionDays: medianResolutionDays(resolved),
     openNow: openNowOf(tickets),
-    flow: flowPoints(tickets, input.buckets, input.trimLeadingEmpty ?? false),
+    flow:
+      input.year === undefined
+        ? flowPoints(tickets, input.buckets, input.trimLeadingEmpty ?? false)
+        : flowPointsCompared(tickets, input.buckets, input.year?.buckets ?? []),
     byType: typeSummaries(tickets, range),
+    previous: input.year ? previousFigures(tickets, input.year.range) : null,
   };
 }

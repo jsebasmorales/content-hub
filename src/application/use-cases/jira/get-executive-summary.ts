@@ -1,7 +1,9 @@
 import type { PermissionSet } from '@domain/access/permission-set';
+import { bucketsOf } from '@domain/jira/chart-buckets';
+import type { ComparisonPlan } from '@domain/jira/comparison';
 import { buildExecutiveSummary, type ExecutiveSummary } from '@domain/jira/executive-summary';
 import type { RawGlobalFilter } from '@domain/jira/global-filter';
-import { previousPeriodWindow, type DayWindow, type Granularity } from '@domain/jira/period-window';
+import type { DayWindow, Granularity } from '@domain/jira/period-window';
 import { err, ok, type Result } from '@shared/result';
 import { planChart, prepareReport, type FilterPanel, type ReportDeps } from './report-context';
 
@@ -9,8 +11,9 @@ export interface ExecutivePage {
   readonly now: Date;
   readonly panel: FilterPanel;
   readonly summary: ExecutiveSummary;
-  /** The days the figures are set against. */
+  /** The days the figures are set against: the previous period, or with the switch on, the year before. */
   readonly previous: DayWindow;
+  readonly comparison: ComparisonPlan;
   readonly granularity: Granularity;
 }
 
@@ -29,7 +32,8 @@ export class GetExecutiveSummary {
     if (!permissions.has('section.exec')) return err('forbidden');
     const context = await prepareReport(this.deps, raw);
     const { window } = context.panel.filter;
-    const previous = previousPeriodWindow(window);
+    const { comparison } = context;
+    const previous = comparison.previous;
     const chart = planChart(window);
     return ok({
       now: context.now,
@@ -40,10 +44,21 @@ export class GetExecutiveSummary {
         current: window,
         previous,
         buckets: chart.buckets,
-        trimLeadingEmpty: chart.trimLeadingEmpty,
+        // With the year before beside it, no bar is dropped: the positions have to match.
+        trimLeadingEmpty: chart.trimLeadingEmpty && !comparison.yearOn,
+        ...(comparison.yearOn
+          ? {
+              year: {
+                previousBuckets: bucketsOf(previous, chart.granularity),
+                volume: comparison.volume.coverage !== 'none',
+                sla: comparison.sla.coverage !== 'none',
+              },
+            }
+          : {}),
         now: context.now,
       }),
       previous,
+      comparison,
       granularity: chart.granularity,
     });
   }

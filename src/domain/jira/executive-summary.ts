@@ -25,11 +25,16 @@ export interface FlowPoint {
   readonly bucket: Bucket;
   readonly created: number;
   readonly resolved: number;
+  /** The same bar one year earlier (the comparison is on and the data reaches it). */
+  readonly previousCreated?: number;
+  readonly previousResolved?: number;
 }
 
 export interface RequestTypeCount {
   readonly requestType: string;
   readonly count: number;
+  /** Created in the same days one year earlier; only with the comparison on. */
+  readonly previousCount?: number;
 }
 
 /**
@@ -47,7 +52,8 @@ export interface ExecutiveSummary {
   /** Median days from creation to resolution of the tickets resolved in the period. */
   readonly resolutionDays: Comparison;
   readonly sla: SlaCompliance;
-  readonly previousSla: SlaCompliance;
+  /** Null when the data does not reach the previous side at all. */
+  readonly previousSla: SlaCompliance | null;
   /** One entry per bar of the chart, oldest first. */
   readonly flow: readonly FlowPoint[];
   /** Tickets created in the period, most frequent first. */
@@ -112,14 +118,70 @@ export function flowPoints(
   return trimLeadingEmpty ? points.slice(first) : points;
 }
 
-function requestTypeCounts(created: readonly Ticket[]): RequestTypeCount[] {
-  const counts = new Map<string, number>();
-  for (const ticket of created) {
-    counts.set(ticket.requestType, (counts.get(ticket.requestType) ?? 0) + 1);
-  }
-  return [...counts]
-    .map(([requestType, count]) => ({ requestType, count }))
-    .sort((a, b) => b.count - a.count || a.requestType.localeCompare(b.requestType));
+/**
+ * Bars with the bars of another stretch beside them, lined up by position (D-0i): bar 3 of this
+ * period against bar 3 of the one a year earlier. Every bar is kept, empty ones included, or the
+ * positions would stop matching. Nothing at all happened on either side: no bars.
+ */
+export function flowPointsCompared(
+  tickets: readonly Ticket[],
+  buckets: readonly Bucket[],
+  previousBuckets: readonly Bucket[],
+): FlowPoint[] {
+  const points = buckets.map((bucket, index) => {
+    const before = previousBuckets[index];
+    return {
+      bucket,
+      created: createdIn(tickets, bucket.range).length,
+      resolved: resolvedIn(tickets, bucket.range).length,
+      ...(before === undefined
+        ? {}
+        : {
+            previousCreated: createdIn(tickets, before.range).length,
+            previousResolved: resolvedIn(tickets, before.range).length,
+          }),
+    };
+  });
+  const active = points.some(
+    (point) =>
+      point.created > 0 ||
+      point.resolved > 0 ||
+      (point.previousCreated ?? 0) > 0 ||
+      (point.previousResolved ?? 0) > 0,
+  );
+  return active ? points : [];
+}
+
+/**
+ * Created per request type. With `previous`, a type that had tickets a year ago and none now is
+ * listed too (with 0), so the comparison does not hide what disappeared.
+ */
+export function requestTypeCounts(
+  created: readonly Ticket[],
+  previous?: readonly Ticket[] | null,
+): RequestTypeCount[] {
+  const count = (list: readonly Ticket[]): Map<string, number> => {
+    const counts = new Map<string, number>();
+    for (const ticket of list) {
+      counts.set(ticket.requestType, (counts.get(ticket.requestType) ?? 0) + 1);
+    }
+    return counts;
+  };
+  const now = count(created);
+  const before = previous === undefined || previous === null ? null : count(previous);
+  const names = new Set([...now.keys(), ...(before?.keys() ?? [])]);
+  return [...names]
+    .map((requestType) => ({
+      requestType,
+      count: now.get(requestType) ?? 0,
+      ...(before === null ? {} : { previousCount: before.get(requestType) ?? 0 }),
+    }))
+    .sort(
+      (a, b) =>
+        b.count - a.count ||
+        (b.previousCount ?? 0) - (a.previousCount ?? 0) ||
+        a.requestType.localeCompare(b.requestType),
+    );
 }
 
 function complianceIn(cycles: readonly SlaCycle[], range: TimeRange, now: Date): SlaCompliance {
@@ -140,27 +202,37 @@ export function buildExecutiveSummary(input: {
   previous: DayWindow;
   buckets: readonly Bucket[];
   trimLeadingEmpty?: boolean;
+  /**
+   * The comparison with the previous year is on: the bars are lined up with those of the previous
+   * side (none are dropped) and each request type carries its previous count. `volume` and `sla` say
+   * whether the data reaches the previous side at all; when it does not, nothing is computed there.
+   */
+  year?: { previousBuckets: readonly Bucket[]; volume: boolean; sla: boolean };
   now: Date;
 }): ExecutiveSummary {
-  const { tickets, cycles, current, previous, buckets, now } = input;
+  const { tickets, cycles, current, previous, buckets, now, year } = input;
+  const volume = year?.volume ?? true;
+  const createdNow = createdIn(tickets, current.range);
+  const createdBefore = volume ? createdIn(tickets, previous.range) : null;
+  const resolvedBefore = volume ? resolvedIn(tickets, previous.range) : null;
   return {
     days: current.days,
-    created: {
-      current: createdIn(tickets, current.range).length,
-      previous: createdIn(tickets, previous.range).length,
-    },
+    created: { current: createdNow.length, previous: createdBefore?.length ?? null },
     resolved: {
       current: resolvedIn(tickets, current.range).length,
-      previous: resolvedIn(tickets, previous.range).length,
+      previous: resolvedBefore?.length ?? null,
     },
     openNow: tickets.filter((ticket) => !isDone(ticket)).length,
     resolutionDays: {
       current: medianResolutionDays(resolvedIn(tickets, current.range)),
-      previous: medianResolutionDays(resolvedIn(tickets, previous.range)),
+      previous: resolvedBefore === null ? null : medianResolutionDays(resolvedBefore),
     },
     sla: complianceIn(cycles, current.range, now),
-    previousSla: complianceIn(cycles, previous.range, now),
-    flow: flowPoints(tickets, buckets, input.trimLeadingEmpty ?? false),
-    requestTypes: requestTypeCounts(createdIn(tickets, current.range)),
+    previousSla: year?.sla === false ? null : complianceIn(cycles, previous.range, now),
+    flow:
+      year === undefined
+        ? flowPoints(tickets, buckets, input.trimLeadingEmpty ?? false)
+        : flowPointsCompared(tickets, buckets, volume ? year.previousBuckets : []),
+    requestTypes: requestTypeCounts(createdNow, year === undefined ? undefined : createdBefore),
   };
 }

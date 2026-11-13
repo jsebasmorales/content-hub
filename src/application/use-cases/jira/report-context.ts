@@ -1,4 +1,5 @@
 import { bucketsOf, type Bucket } from '@domain/jira/chart-buckets';
+import { planComparison, type ComparisonPlan, type DataStart } from '@domain/jira/comparison';
 import {
   filterRecordsByTypes,
   filterTicketsByTypes,
@@ -29,6 +30,8 @@ export const COMPARE_ENABLED = false;
 export interface ReportDeps {
   readonly issues: IssueRepository;
   readonly clock: Clock;
+  /** Tests turn the switch on; the application leaves it as `COMPARE_ENABLED`. */
+  readonly compareEnabled?: boolean;
 }
 
 /** What the filter card of a page needs to draw itself. */
@@ -49,6 +52,21 @@ export interface ReportContext {
   /** Tickets and cycles narrowed to the request types of the filter. */
   readonly tickets: readonly Ticket[];
   readonly records: readonly SlaCycleRecord[];
+  /** What the previous side is, and how much of it the data covers. */
+  readonly comparison: ComparisonPlan;
+}
+
+/** The first record of each kind, over everything (not narrowed to the request types chosen). */
+export function dataStartOf(
+  tickets: readonly Ticket[],
+  records: readonly SlaCycleRecord[],
+): DataStart {
+  const earliest = (moments: readonly Date[]): Date | null =>
+    moments.length === 0 ? null : new Date(Math.min(...moments.map((moment) => moment.getTime())));
+  return {
+    tickets: earliest(tickets.map((ticket) => ticket.createdAt)),
+    cycles: earliest(records.map((record) => record.cycle.startedAt)),
+  };
 }
 
 /** The years from the oldest ticket to this one, newest first; this year alone when there is none. */
@@ -76,10 +94,11 @@ export async function prepareReport(
     deps.issues.listSlaCycles(),
   ]);
   const typeOptions = summaryTypeOptions(allTickets);
+  const compareAvailable = deps.compareEnabled ?? COMPARE_ENABLED;
   const filter = resolveGlobalFilter(raw, {
     now,
     knownTypes: typeOptions.map((option) => option.value),
-    compareAvailable: COMPARE_ENABLED,
+    compareAvailable,
   });
   return {
     now,
@@ -88,10 +107,11 @@ export async function prepareReport(
       typeOptions,
       years: yearsOffered(allTickets, now),
       today: dayOf(now),
-      compareAvailable: COMPARE_ENABLED,
+      compareAvailable,
     },
     tickets: filterTicketsByTypes(allTickets, filter.types),
     records: filterRecordsByTypes(stored, allTickets, filter.types),
+    comparison: planComparison(filter.window, filter.compare, dataStartOf(allTickets, stored)),
   };
 }
 

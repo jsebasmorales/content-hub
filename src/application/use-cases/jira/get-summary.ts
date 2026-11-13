@@ -1,4 +1,6 @@
 import type { PermissionSet } from '@domain/access/permission-set';
+import { bucketsOf } from '@domain/jira/chart-buckets';
+import type { ComparisonPlan } from '@domain/jira/comparison';
 import type { RawGlobalFilter } from '@domain/jira/global-filter';
 import type { Granularity } from '@domain/jira/period-window';
 import { buildSummaryReport, type SummaryReport } from '@domain/jira/summary-report';
@@ -10,6 +12,7 @@ export interface SummaryPage {
   readonly panel: FilterPanel;
   readonly report: SummaryReport;
   readonly granularity: Granularity;
+  readonly comparison: ComparisonPlan;
 }
 
 /** Data for /resumen: the base view of tickets, open to every role that may see the section. */
@@ -24,6 +27,8 @@ export class GetSummary {
     const context = await prepareReport(this.deps, raw);
     const { window } = context.panel.filter;
     const chart = planChart(window);
+    const { comparison } = context;
+    const reaches = comparison.volume.coverage !== 'none';
     return ok({
       now: context.now,
       panel: context.panel,
@@ -31,9 +36,20 @@ export class GetSummary {
         tickets: context.tickets,
         range: window.range,
         buckets: chart.buckets,
-        trimLeadingEmpty: chart.trimLeadingEmpty,
+        trimLeadingEmpty: chart.trimLeadingEmpty && !comparison.yearOn,
+        ...(comparison.yearOn
+          ? {
+              year: reaches
+                ? {
+                    range: comparison.previous.range,
+                    buckets: bucketsOf(comparison.previous, chart.granularity),
+                  }
+                : null,
+            }
+          : {}),
       }),
       granularity: chart.granularity,
+      comparison,
     });
   }
 }
