@@ -1,0 +1,36 @@
+---
+import type { SyncStatus } from '@application/use-cases/jira/get-sync-status';
+import type { SupportedTimeZone } from '@domain/access/time-zone';
+import type { Flash } from '../admin-messages';
+import { formatMoment } from '../format-moment';
+import Icon from './Icon.astro';
+
+interface Props {
+  status: SyncStatus;
+  timeZone: SupportedTimeZone;
+  canSync: boolean;
+  flash: Flash | null;
+}
+
+const { status, timeZone, canSync, flash } = Astro.props;
+---
+
+{status.lastAttemptFailed && (
+  <p class="notice notice-warning" role="alert">
+    <Icon name="alert-triangle" />
+    <span>
+      El último intento de actualizar falló. Estás viendo los datos de la última vez que funcionó
+      {status.lastUpdateAt && ` (${formatMoment(status.lastUpdateAt, timeZone)})`}.
+      {canSync && status.lastError && (
+        <span class="notice-detail">Detalle: {status.lastError}</span>
+      )}
+    </span>
+  </p>
+)}
+
+{canSync && flash && (
+  <p class={`notice notice-${flash.kind}`} role={flash.kind === 'error' ? 'alert' : 'status'}>
+    <Icon name={flash.kind === 'error' ? 'x-circle' : 'check-circle'} />
+    <span>{flash.text}</span>
+  </p>
+)}

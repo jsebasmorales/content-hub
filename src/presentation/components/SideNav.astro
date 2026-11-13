@@ -1,0 +1,128 @@
+---
+import type { Principal } from '@application/use-cases/resolve-session';
+import { SUPPORTED_TIME_ZONES } from '@domain/access/time-zone';
+import { zoneLabel } from '../format-moment';
+import { groupMenu, type MenuItem } from '../navigation';
+import type { ThemeChoice } from '../theme';
+import Icon from './Icon.astro';
+import ThemeToggle from './ThemeToggle.astro';
+
+interface Props {
+  menu: readonly MenuItem[];
+  /** Path of the page being shown, to mark its entry. */
+  current: string;
+  principal: Principal;
+  csrfToken: string;
+  theme: ThemeChoice;
+  /** Page to come back to after changing the theme or the zone. */
+  back: string;
+}
+
+const { menu, current, principal, csrfToken, theme, back } = Astro.props;
+
+const sections = groupMenu(menu);
+const name = principal.user.name ?? principal.user.email;
+const initial = name.trim().charAt(0).toUpperCase() || '?';
+const zone = principal.user.timeZone;
+---
+
+<!--
+  A `popover`: below 768 px it opens from the button in the top bar (no script); from 768 px up the
+  stylesheet simply keeps it on screen. Sections the person cannot see are not rendered at all, and a
+  heading whose entries are all hidden is not rendered either (SDD §10.3).
+-->
+<aside class="sidebar" id="site-nav" popover>
+  <div class="sidebar-main">
+    <div class="sidebar-top">
+      <a class="brand" href="/">
+        <span class="brand-mark" aria-hidden="true">
+          H
+        </span>
+        <span class="brand-text">
+          <span class="brand-name">Content Hub</span>
+          <span class="brand-sub">Operaciones de contenido</span>
+        </span>
+      </a>
+      <button
+        class="icon-btn sidebar-close"
+        type="button"
+        popovertarget="site-nav"
+        popovertargetaction="hide"
+        aria-label="Cerrar el menú"
+      >
+        <Icon name="close" />
+      </button>
+    </div>
+
+    <nav class="menu" aria-label="Principal">
+      {sections.map((section) => (
+        <div class="menu-section">
+          <span class="menu-title">{section.title}</span>
+          {section.items.map((item) => (
+            <a
+              href={item.href}
+              aria-current={item.href === current ? 'page' : undefined}
+              data-label={item.label}
+            >
+              <Icon name={item.icon} />
+              <span class="nav-label">{item.label}</span>
+            </a>
+          ))}
+        </div>
+      ))}
+    </nav>
+  </div>
+
+  <div class="sidebar-foot">
+    <button type="button" popovertarget="user-menu" data-label="Tu perfil y ajustes">
+      <span class="avatar" aria-hidden="true">
+        {initial}
+      </span>
+      <span class="user-text">
+        <span class="user-name">{name}</span>
+        <span class="user-meta">
+          {principal.user.role.name} · {zoneLabel(zone)}
+        </span>
+      </span>
+    </button>
+    <form method="post" action="/api/auth/logout">
+      <input type="hidden" name="_csrf" value={csrfToken} />
+      <button type="submit" data-label="Cerrar sesión">
+        <Icon name="logout" />
+        <span class="nav-label">Cerrar sesión</span>
+      </button>
+    </form>
+
+    <div class="user-menu" id="user-menu" popover>
+      <h2>{name}</h2>
+      <p class="user-menu-meta">
+        {principal.user.email} · {principal.user.role.name}
+      </p>
+
+      <form class="user-menu-section" method="post" action="/api/time-zone">
+        <input type="hidden" name="_csrf" value={csrfToken} />
+        <input type="hidden" name="back" value={back} />
+        <label for="profile-zone">Mostrar las horas en</label>
+        <select id="profile-zone" name="zone">
+          {SUPPORTED_TIME_ZONES.map((option) => (
+            <option value={option.id} selected={option.id === zone}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+        <p class="user-menu-note">
+          Solo cambia cómo ves las horas. Los trimestres y los meses se agrupan siempre en hora de
+          Bogotá, así todo el equipo ve las mismas cifras.
+        </p>
+        <button class="btn btn-compact" type="submit">
+          Guardar
+        </button>
+      </form>
+
+      <div class="user-menu-section">
+        <p class="user-menu-note">Tema</p>
+        <ThemeToggle current={theme} csrfToken={csrfToken} back={back} />
+      </div>
+    </div>
+  </div>
+</aside>

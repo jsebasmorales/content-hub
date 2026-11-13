@@ -1,24 +1,39 @@
 ---
+import type { SyncStatus } from '@application/use-cases/jira/get-sync-status';
 import { getApp } from '@infrastructure/container';
-import AppSidebar from '../components/AppSidebar.astro';
+import type { Flash } from '../admin-messages';
+import SideNav from '../components/SideNav.astro';
+import SyncBanners from '../components/SyncBanners.astro';
 import TopBar from '../components/TopBar.astro';
 import { buildMenu } from '../navigation';
 import { readTheme } from '../theme';
 import '../styles/tokens.css';
 import '../styles/base.css';
+import '../styles/shell.css';
+import '../styles/components.css';
 
 interface Props {
   title: string;
+  /**
+   * The state of the Jira data, handed over by the page (which already has it). When given, the top
+   * bar shows "Datos al ‹hora›" and the sync button, and the banners show what went wrong.
+   * Pages not yet migrated leave it out and keep their own sync panel.
+   */
+  sync?: { status: SyncStatus; flash: Flash | null } | undefined;
 }
 
-const { title } = Astro.props;
+const { title, sync } = Astro.props;
 const principal = Astro.locals.principal;
 const menu = principal ? buildMenu(principal.permissions) : [];
 const csrfToken = principal ? (await getApp()).csrf.tokenFor(principal.sessionId) : '';
 const pathname = Astro.url.pathname;
+const back = `${pathname}${Astro.url.search}`;
 const theme = readTheme(Astro.cookies);
 // The person's own choice, when they made one; otherwise the stylesheet follows the device.
 const dataTheme = theme === 'system' ? undefined : theme;
+// The button exists only for people who may sync: nothing about it is rendered for the rest.
+const canSync = principal?.permissions.has('action.sync') ?? false;
+const timeZone = principal?.user.timeZone;
 ---
 
 <!doctype html>
@@ -28,20 +43,47 @@ const dataTheme = theme === 'system' ? undefined : theme;
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="color-scheme" content="light dark" />
     <meta name="robots" content="noindex, nofollow" />
+    <link
+      rel="preload"
+      href="/fonts/mulish-latin-wght.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
     <title>{title} · Content Hub</title>
   </head>
   <body>
-    {principal ? (
+    {principal && timeZone ? (
       <div class="app">
-        <AppSidebar menu={menu} current={pathname} />
+        <SideNav
+          menu={menu}
+          current={pathname}
+          principal={principal}
+          csrfToken={csrfToken}
+          theme={theme}
+          back={back}
+        />
         <div class="main-col">
           <TopBar
-            principal={principal}
-            csrfToken={csrfToken}
-            theme={theme}
-            back={`${pathname}${Astro.url.search}`}
+            sync={
+              sync && {
+                status: sync.status,
+                timeZone,
+                canSync,
+                csrfToken,
+                back: pathname,
+              }
+            }
           />
           <main class="content">
+            {sync && (
+              <SyncBanners
+                status={sync.status}
+                timeZone={timeZone}
+                canSync={canSync}
+                flash={sync.flash}
+              />
+            )}
             <slot />
           </main>
         </div>

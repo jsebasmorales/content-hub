@@ -56,12 +56,13 @@ test('the Leader sees the administration entry, can ask Jira for an update and c
   await signIn(page, LEADER);
   await expect(page.getByRole('navigation', { name: 'Principal' })).toContainText('Permisos');
 
-  // Layout: every section lives in the sidebar; the top bar holds only the profile, theme and sign-out.
+  // Layout: every section lives in the sidebar, which also holds the profile and sign-out; the top
+  // bar holds only the sync state (its brand link and menu button exist for phones only).
   await expect(page.locator('aside.sidebar').getByRole('link', { name: 'Tareas' })).toBeVisible();
   await expect(page.locator('header.topbar').getByRole('link')).toHaveCount(0);
-  await expect(page.locator('header.topbar')).toContainText(LEADER);
+  await expect(page.locator('aside.sidebar')).toContainText(LEADER);
   await expect(
-    page.locator('header.topbar').getByRole('button', { name: 'Cerrar sesión' }),
+    page.locator('aside.sidebar').getByRole('button', { name: 'Cerrar sesión' }),
   ).toBeVisible();
 
   // Status: the Leader reads how the sync is going and how far to trust the data.
@@ -71,14 +72,14 @@ test('the Leader sees the administration entry, can ask Jira for an update and c
   await expect(page.getByRole('heading', { name: 'Calidad del dato' })).toBeVisible();
 
   // Time zone: each person sees dates in their own zone; a forged request changes nothing.
-  await expect(page.locator('header.topbar')).toContainText('Hora: Colombia · Bogotá');
-  await page.locator('summary.profile-summary').click();
+  await expect(page.locator('aside.sidebar')).toContainText('Colombia · Bogotá');
+  await page.locator('button[popovertarget="user-menu"]').click();
   await page.getByLabel('Mostrar las horas en').selectOption({ label: 'España · Madrid' });
   await page.getByRole('button', { name: 'Guardar', exact: true }).click();
-  await expect(page.locator('header.topbar')).toContainText('Hora: España · Madrid');
+  await expect(page.locator('aside.sidebar')).toContainText('España · Madrid');
   await page.request.post('/api/time-zone', { form: { _csrf: 'forged', zone: 'Asia/Bangkok' } });
   await page.goto('/estado');
-  await expect(page.locator('header.topbar')).toContainText('Hora: España · Madrid');
+  await expect(page.locator('aside.sidebar')).toContainText('España · Madrid');
   await expect(page.getByRole('columnheader', { name: 'Inicio (España · Madrid)' })).toBeVisible();
 
   // Lo aprendido: the Leader writes, every save is a version, and repeating it adds nothing.
@@ -101,13 +102,16 @@ test('the Leader sees the administration entry, can ask Jira for an update and c
 
   // Theme: the choice is applied by the server, survives a reload and keeps the page's filters.
   await page.goto('/tareas?tipo=Edit');
+  await page.locator('button[popovertarget="user-menu"]').click();
   await page.getByRole('button', { name: 'Tema oscuro' }).click();
   await expect(page).toHaveURL('/tareas?tipo=Edit');
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
   await page.reload();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+  await page.locator('button[popovertarget="user-menu"]').click();
   await page.getByRole('button', { name: 'Tema claro' }).click();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+  await page.locator('button[popovertarget="user-menu"]').click();
   await page.getByRole('button', { name: 'Tema del dispositivo' }).click();
   await expect(page.locator('html')).not.toHaveAttribute('data-theme', /.+/);
   await page.goto('/');
