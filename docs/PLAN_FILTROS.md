@@ -427,7 +427,7 @@ Orden propuesto: (1) commit y fusión de `feat/rediseno-stitch`; (2) tu aprobaci
 
 ## 11. Decisiones D-0xx a registrar
 
-La última registrada es D-076, así que empiezan en D-077. Las letras son provisionales hasta que se numeren al aprobar.
+La última registrada es D-077 (la prueba de rendimiento de CI), así que empiezan en D-078. Las letras son provisionales hasta que se numeren al aprobar.
 
 | Id provisional | Decisión                                                                                                                                                                | Requiere tu respuesta                                    |
 | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
@@ -483,7 +483,7 @@ La última registrada es D-076, así que empiezan en D-077. Las letras son provi
 ## 13. Cambios en documentación
 
 - **SDD:** sección nueva "Filtros globales y comparación"; §5 (la tabla de páginas deja de decir "filtro por periodo" en cada fila y apunta a la sección nueva); §6 (consultas por período, en memoria); §16 (fila "1.5"). §15 sin cambios, no hay variables nuevas.
-- **`docs/DECISIONES.md`:** las del §11, numeradas desde D-077.
+- **`docs/DECISIONES.md`:** las del §11, numeradas desde D-078.
 - **`docs/DESIGN.md`:** sección "Filtros globales y comparación" y tokens; ajustes de §7.2 ("Restablecer"), §8 (reserva del morado) y §10 (fecha del filtro).
 - **`docs/PLAN_DISENO.md` §10:** corregir el estado (Fase C casi completa) cuando se fusione.
 - **Definiciones:** período por defecto, comparación, acotado a hoy y alineación por posición.

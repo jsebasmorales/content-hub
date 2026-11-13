@@ -22,6 +22,10 @@ export default defineConfig({
   integrations: [contentHub()],
   // Sessions live in our own database (SDD §2), not in Netlify Blobs.
   session: false,
+  // The dev toolbar tags every element with data-astro-source-* attributes (about half of a page's
+  // HTML under `astro dev`). The performance gate in CI measures pages served by `astro dev`, so it
+  // would be measuring that debugging noise, which production never ships. Off in CI only.
+  devToolbar: { enabled: process.env['CI'] === undefined },
   // Always ship CSS as files, never inline <style>, so styles never depend on CSP hashes (D-026).
   build: { inlineStylesheets: 'never' },
   security: {
