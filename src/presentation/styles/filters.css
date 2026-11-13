@@ -1,0 +1,281 @@
+/*
+ * The global filter of the four report pages (DESIGN.md §14). A plain GET form: radios for the chips,
+ * <details> for the request types, two date inputs for the range. Tokens only; see check-design.
+ */
+.gfilter {
+  margin-bottom: var(--space-2xl);
+  padding: var(--space-xl) var(--space-2xl);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-l);
+  background: var(--surface);
+}
+
+.gfilter-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-m);
+  padding-bottom: var(--space-l);
+  margin-bottom: var(--space-l);
+  border-bottom: 1px solid var(--border);
+}
+
+.gfilter-icon {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-m);
+  background: var(--selected-bg);
+  color: var(--accent);
+}
+
+.gfilter-title {
+  margin: 0;
+  font-size: var(--fs-h3);
+  font-weight: 400;
+  line-height: var(--lh-h3);
+}
+
+.gfilter-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-s);
+  min-height: 24px;
+  padding: 0 var(--space-m);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-full);
+  background: var(--surface);
+  color: var(--text-muted);
+  font-size: var(--fs-label);
+  font-weight: 600;
+}
+
+.gfilter-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  background: var(--accent);
+}
+
+.gfilter .notice {
+  margin-bottom: var(--space-l);
+}
+
+.gfilter-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-m);
+}
+
+.gfilter-controls fieldset {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+/* The five chips are one group on a sunken strip; the checked one is the "selected" tone. */
+.gfilter-chips {
+  display: flex;
+  gap: var(--space-xs);
+  padding: var(--space-xs);
+  border-radius: var(--radius-m);
+  background: var(--surface-sunken);
+}
+
+.gfilter-chip {
+  position: relative;
+  display: inline-flex;
+}
+
+.gfilter-chip input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  margin: 0;
+  cursor: pointer;
+}
+
+.gfilter-chip span {
+  display: inline-flex;
+  align-items: center;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 var(--space-l);
+  justify-content: center;
+  border: 1px solid transparent;
+  border-radius: var(--radius-m);
+  color: var(--text);
+  font-size: var(--fs-small);
+  font-weight: 600;
+}
+
+.gfilter-chip input:checked + span {
+  border-color: var(--accent);
+  background: var(--selected-bg);
+  color: var(--selected-text);
+}
+
+.gfilter-chip input:focus-visible + span {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+/* Year, date range and request types share the look of a field. */
+.gfilter-control {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-s);
+  min-height: 44px;
+  padding: 0 var(--space-m);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-m);
+  background: var(--surface);
+  color: var(--text);
+  font-size: var(--fs-small);
+}
+
+.gfilter-control:hover {
+  border-color: var(--text-muted);
+}
+
+.gfilter-control:focus-within {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.gfilter-control-label {
+  color: var(--text-muted);
+}
+
+.gfilter-control select,
+.gfilter-control input[type='date'] {
+  min-height: 40px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+}
+
+.gfilter-control select:focus,
+.gfilter-control input:focus {
+  outline: none;
+}
+
+.gfilter-range {
+  flex-wrap: wrap;
+}
+
+.gfilter-days {
+  padding-left: var(--space-s);
+  border-left: 1px solid var(--border);
+  color: var(--text-muted);
+}
+
+.gfilter-types {
+  position: relative;
+}
+
+.gfilter-types > summary {
+  cursor: pointer;
+  list-style: none;
+  min-width: 14rem;
+  justify-content: space-between;
+}
+
+.gfilter-types > summary::-webkit-details-marker {
+  display: none;
+}
+
+.gfilter-types-panel {
+  position: absolute;
+  z-index: 5;
+  inset-block-start: calc(100% + var(--space-xs));
+  inset-inline-start: 0;
+  display: grid;
+  gap: var(--space-xs);
+  min-width: 100%;
+  max-height: 20rem;
+  overflow-y: auto;
+  padding: var(--space-s);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-l);
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-float);
+}
+
+.gfilter-check {
+  display: flex;
+  align-items: center;
+  gap: var(--space-s);
+  min-height: 44px;
+  padding: 0 var(--space-s);
+  border-radius: var(--radius-s);
+  font-size: var(--fs-small);
+}
+
+.gfilter-check:hover {
+  background: var(--surface-sunken);
+}
+
+.gfilter-check input {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--accent);
+}
+
+.gfilter-count {
+  margin-inline-start: auto;
+  padding-inline-start: var(--space-l);
+  color: var(--text-muted);
+}
+
+.gfilter-actions {
+  display: flex;
+  flex-basis: 100%;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-l);
+}
+
+.gfilter-reset {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-s);
+  min-height: 44px;
+  color: var(--text-muted);
+  font-size: var(--fs-small);
+  text-decoration: none;
+}
+
+.gfilter-reset:hover {
+  color: var(--link);
+  text-decoration: underline;
+}
+
+.gfilter-note {
+  margin: var(--space-l) 0 0;
+  color: var(--text-muted);
+  font-size: var(--fs-label);
+}
+
+/* Narrow screens have no design yet: the controls wrap and stack, and nothing else is promised. */
+@media (max-width: 767px) {
+  .gfilter {
+    padding: var(--space-l);
+  }
+
+  .gfilter-controls {
+    justify-content: flex-start;
+  }
+
+  .gfilter-chips {
+    flex-wrap: wrap;
+  }
+
+  .gfilter-actions {
+    justify-content: space-between;
+  }
+}

@@ -163,7 +163,7 @@ test('a collaborator gets no trace of the administration page', async ({ browser
   await page.getByRole('link', { name: 'Resumen', exact: true }).click();
   await expect(page).toHaveURL('/resumen');
   await expect(page.getByRole('heading', { name: 'Resumen', level: 1, exact: true })).toBeVisible();
-  await expect(page.getByLabel('Tipo de solicitud')).toBeVisible();
+  await expect(page.getByRole('form', { name: 'Filtros del período y los tipos' })).toBeVisible();
   await page.getByRole('link', { name: 'Tareas' }).click();
   await expect(page).toHaveURL('/tareas');
   await expect(page.getByRole('heading', { name: 'Tareas' })).toBeVisible();
@@ -175,7 +175,7 @@ test('a collaborator gets no trace of the administration page', async ({ browser
   await page.getByRole('link', { name: 'SLAs', exact: true }).click();
   await expect(page).toHaveURL('/sla');
   await expect(page.getByRole('heading', { name: 'SLAs', exact: true })).toBeVisible();
-  await expect(page.getByRole('link', { name: 'T4 2026' })).toBeVisible();
+  await expect(page.getByRole('group', { name: 'Período' }).getByLabel('T4')).toBeVisible();
   await expect(page.getByLabel('Desde')).toBeVisible();
   await expect(nav).toContainText('SLAs incumplidos');
   await page.getByRole('link', { name: 'SLAs incumplidos' }).click();

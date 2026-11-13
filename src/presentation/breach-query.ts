@@ -1,11 +1,13 @@
 import { z } from 'zod';
 import type { BreachesInput } from '@application/use-cases/jira/get-sla-breaches';
-import { parseSlaQuery, SLA_PARAMS } from './sla-query';
+import type { RawGlobalFilter } from '@domain/jira/global-filter';
 
-/** Names of the filters in the address bar of /incumplimientos. */
+/**
+ * Names of the filters of the list in the address bar of /incumplimientos. The period and the request
+ * type are the global filter's (see filter-query.ts), not the list's.
+ */
 export const BREACH_PARAMS = {
   metric: 'metrica',
-  requestType: 'tipo',
   assigneeId: 'asignado',
   page: 'pagina',
 } as const;
@@ -13,7 +15,6 @@ export const BREACH_PARAMS = {
 const text = z.string().max(200).optional();
 const query = z.object({
   [BREACH_PARAMS.metric]: text,
-  [BREACH_PARAMS.requestType]: text,
   [BREACH_PARAMS.assigneeId]: text,
   [BREACH_PARAMS.page]: z
     .string()
@@ -21,31 +22,22 @@ const query = z.object({
     .optional(),
 });
 
-/** Reads the period, the filters and the page. Whether each value is usable is decided later. */
-export function parseBreachQuery(params: URLSearchParams): BreachesInput {
+/** Reads the list's filters and page, next to the global filter. Whether each value is usable is decided later. */
+export function parseBreachQuery(params: URLSearchParams, global: RawGlobalFilter): BreachesInput {
   const parsed = query.safeParse(Object.fromEntries(params));
   const value = parsed.success ? parsed.data : {};
   const page = value[BREACH_PARAMS.page];
   return {
-    period: parseSlaQuery(params),
+    global,
     filter: {
       metric: value[BREACH_PARAMS.metric],
-      requestType: value[BREACH_PARAMS.requestType],
       assigneeId: value[BREACH_PARAMS.assigneeId],
     },
     page: page === undefined ? 1 : Number(page),
   };
 }
 
-/** The period parts of the address, to carry them through a filter form or a page link. */
-export function periodParams(params: URLSearchParams): [string, string][] {
-  return Object.values(SLA_PARAMS).flatMap((name) => {
-    const value = params.get(name);
-    return value ? [[name, value] as [string, string]] : [];
-  });
-}
-
-/** A link to another page of the same list, keeping the period and the filters. */
+/** A link to another page of the same list, keeping the filters of the address. */
 export function breachPageHref(current: URLSearchParams, page: number): string {
   const next = new URLSearchParams(current);
   next.delete('sync');

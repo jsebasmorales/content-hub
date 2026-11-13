@@ -16,9 +16,11 @@ interface Props {
   theme: ThemeChoice;
   /** Page to come back to after changing the theme or the zone. */
   back: string;
+  /** The global filter as a query string, added to the links of the pages that show it. */
+  filterQuery?: string;
 }
 
-const { menu, current, principal, csrfToken, theme, back } = Astro.props;
+const { menu, current, principal, csrfToken, theme, back, filterQuery = '' } = Astro.props;
 
 const sections = groupMenu(menu);
 const name = principal.user.name ?? principal.user.email;
@@ -60,7 +62,7 @@ const zone = principal.user.timeZone;
           <span class="menu-title">{section.title}</span>
           {section.items.map((item) => (
             <a
-              href={item.href}
+              href={item.globalFilter ? `${item.href}${filterQuery}` : item.href}
               aria-current={item.href === current ? 'page' : undefined}
               data-label={item.label}
             >

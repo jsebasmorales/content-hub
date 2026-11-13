@@ -163,9 +163,9 @@ const ticketsGroup: DefinitionGroup = {
     },
     {
       id: 'mismo-tramo',
-      term: 'Mismo tramo del trimestre anterior',
+      term: 'Con qué se compara el Resumen ejecutivo',
       meaning:
-        'Para comparar el trimestre en curso con el anterior sin engañar, se compara con el mismo número de días del anterior: si van 43 días de T4, se compara con los primeros 43 días de T3.',
+        'Siempre se compara con el mismo número de días, para no medir un tramo corto contra uno largo. Con un trimestre elegido, se usan los primeros días del trimestre anterior: si van 43 días de T4, se compara con los primeros 43 días de T3. Con "30 días" o con un rango de fechas propio, se usan los mismos días justo antes: los 30 días anteriores.',
       seenIn: [EXEC],
     },
     {
@@ -304,10 +304,38 @@ const presentationGroup: DefinitionGroup = {
     },
     {
       id: 'periodo',
-      term: 'Periodo',
+      term: 'Período por defecto',
       meaning:
-        'Puedes elegir un trimestre con un clic o un rango de fechas propio (hasta 3 años, con el último día incluido). Si el periodo pedido no es válido, se muestra el trimestre en curso y la página lo avisa.',
-      seenIn: [SLA, BREACHES, SUMMARY],
+        'Las cuatro páginas con filtro (Resumen ejecutivo, Resumen, SLAs y SLAs incumplidos) abren con los últimos 30 días, hoy incluido, en hora de Bogotá, y con todos los tipos de solicitud. Puedes elegir un trimestre de cualquier año con datos, o un rango de fechas propio de hasta 3 años, con el último día incluido. Si lo pedido no es válido, se muestran los últimos 30 días y la página lo avisa.',
+      seenIn: [EXEC, SUMMARY, SLA, BREACHES],
+    },
+    {
+      id: 'periodo-hasta-hoy',
+      term: 'Período "hasta hoy"',
+      meaning:
+        'Un trimestre en curso, o un rango que termina en el futuro, se corta en hoy: las cifras llegan hasta hoy y la página lo dice ("T4 2026, hasta hoy"). Así no se mezclan días que todavía no han pasado con días completos.',
+      seenIn: [EXEC, SUMMARY, SLA, BREACHES],
+    },
+    {
+      id: 'filtro-tipos',
+      term: 'Filtro por tipo de solicitud',
+      meaning:
+        'Puedes elegir varios tipos a la vez, pero no ninguno: si no queda ninguno, se muestran todos. Con "Todos los tipos" se cuentan también los tipos retirados, igual que en los totales; si eliges tipos concretos, solo se cuentan esos. Elegir todos los tipos vigentes equivale a "todos".',
+      seenIn: [EXEC, SUMMARY, SLA, BREACHES],
+    },
+    {
+      id: 'filtro-persistencia',
+      term: 'Cómo se recuerda el filtro',
+      meaning:
+        'El filtro va en la dirección de la página, así que puedes compartir el enlace tal cual. Mientras no cierres el navegador, el Hub recuerda tu última elección al pasar de una de estas cuatro páginas a otra. Una sesión nueva vuelve a los últimos 30 días. "Restablecer" borra lo recordado.',
+      seenIn: [EXEC, SUMMARY, SLA, BREACHES],
+    },
+    {
+      id: 'granularidad-grafico',
+      term: 'Qué muestra cada barra de un gráfico',
+      meaning:
+        'Hasta 14 días, una barra por día; hasta 100 días, una por semana, contadas desde el primer día del período; más largo, una por mes. En SLAs nunca hay barras diarias, porque un porcentaje calculado con uno o dos ciclos al día no dice nada.',
+      seenIn: [EXEC, SUMMARY, SLA],
     },
     {
       id: 'personas',

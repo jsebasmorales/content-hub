@@ -88,13 +88,13 @@ describe('resolveGlobalFilter: the period', () => {
 
 describe('resolveTypes', () => {
   it('means every type when none were asked for', () => {
-    expect(resolveTypes([], known, false)).toEqual({ types: { all: true }, notice: false });
+    expect(resolveTypes([], known, false)).toEqual({ types: { all: true }, notice: null });
   });
 
   it('keeps the chosen types, in the order they are offered', () => {
     expect(resolveTypes(['Push', 'Email'], known, true)).toEqual({
       types: { all: false, names: ['Email', 'Push'] },
-      notice: false,
+      notice: null,
     });
   });
 
@@ -103,15 +103,21 @@ describe('resolveTypes', () => {
   });
 
   it('cannot be empty: an emptied box in the form means todos, with a notice', () => {
-    expect(resolveTypes([], known, true)).toEqual({ types: { all: true }, notice: true });
+    expect(resolveTypes([], known, true)).toEqual({
+      types: { all: true },
+      notice: 'types-empty',
+    });
   });
 
   it('drops types that do not exist, and falls back to todos when none is left', () => {
     expect(resolveTypes(['Email', 'Nope'], known, false)).toEqual({
       types: { all: false, names: ['Email'] },
-      notice: true,
+      notice: 'types-unknown',
     });
-    expect(resolveTypes(['Nope'], known, false)).toEqual({ types: { all: true }, notice: true });
+    expect(resolveTypes(['Nope'], known, false)).toEqual({
+      types: { all: true },
+      notice: 'types-unknown',
+    });
   });
 
   it('counts a selection as an active filter', () => {

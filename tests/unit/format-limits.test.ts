@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import { describeLimit, formatCalendarDay } from '@presentation/format-moment';
-import { parseSlaQuery, slaQuarterHref } from '@presentation/sla-query';
 
 const now = new Date('2026-11-12T15:00:00Z');
 const hours = (n: number): Date => new Date(now.getTime() + n * 3_600_000);
@@ -28,26 +27,5 @@ describe('formatCalendarDay', () => {
   it('prints a day without any time zone shifting it', () => {
     expect(formatCalendarDay({ year: 2026, month: 10, day: 5 })).toBe('5 oct 2026');
     expect(formatCalendarDay({ year: 2026, month: 1, day: 1 })).toBe('1 ene 2026');
-  });
-});
-
-describe('the address of /sla', () => {
-  it('reads the period in Spanish', () => {
-    expect(parseSlaQuery(new URLSearchParams('trimestre=2026-T3'))).toEqual({
-      quarter: '2026-T3',
-      from: undefined,
-      to: undefined,
-    });
-    expect(parseSlaQuery(new URLSearchParams('desde=2026-10-05&hasta=2026-10-10'))).toEqual({
-      quarter: undefined,
-      from: '2026-10-05',
-      to: '2026-10-10',
-    });
-  });
-
-  it('drops oversized values and builds quarter links', () => {
-    const huge = parseSlaQuery(new URLSearchParams(`desde=${'9'.repeat(200)}`));
-    expect(huge).toEqual({ quarter: undefined, from: undefined, to: undefined });
-    expect(slaQuarterHref('2026-T3')).toBe('/sla?trimestre=2026-T3');
   });
 });

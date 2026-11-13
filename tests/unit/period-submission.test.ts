@@ -96,4 +96,12 @@ describe('presetFromSubmission: what an "Aplicar" without script means', () => {
     expect(presetFromSubmission({ ...base, year: 99999 }, today)).toEqual(DEFAULT_PRESET);
     expect(presetFromSubmission({ ...base, year: 2000 }, today)).toEqual(quarter(2000, 4));
   });
+
+  it('keeps a custom range when the page showed no chip and the dates were left alone', () => {
+    expect(presetFromSubmission({ ...base, chip: null }, today)).toEqual({
+      kind: 'custom',
+      from: day(2026, 10, 1),
+      to: day(2026, 12, 31),
+    });
+  });
 });

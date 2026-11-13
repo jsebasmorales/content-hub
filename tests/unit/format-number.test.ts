@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   describeChange,
+  describeComparedDelta,
   describeDelta,
   formatNumber,
   formatPercent,
@@ -76,5 +77,82 @@ describe('describeDelta', () => {
     expect(describeDelta(3, null, 'T3 2026', 'better').text).toBe(
       'Sin dato de T3 2026 para comparar',
     );
+  });
+});
+
+describe('describeComparedDelta', () => {
+  const base = { reference: 'período anterior', higherIs: 'better' as const };
+
+  it('says a count moved as a percentage, with the previous value in brackets', () => {
+    expect(describeComparedDelta({ ...base, kind: 'count', current: 118, previous: 102 })).toEqual({
+      direction: 'up',
+      tone: 'good',
+      text: '+16 % vs período anterior (102)',
+    });
+    expect(describeComparedDelta({ ...base, kind: 'count', current: 80, previous: 100 }).text).toBe(
+      '−20 % vs período anterior (100)',
+    );
+  });
+
+  it('says a rate moved in points and a time in days', () => {
+    expect(describeComparedDelta({ ...base, kind: 'rate', current: 87.2, previous: 84 }).text).toBe(
+      '+3,2 pp vs período anterior (84 %)',
+    );
+    const days = describeComparedDelta({
+      reference: 'año previo',
+      higherIs: 'worse',
+      kind: 'days',
+      current: 10.5,
+      previous: 12,
+    });
+    expect(days).toEqual({
+      direction: 'down',
+      tone: 'good',
+      text: '−1,5 días vs año previo (12 días)',
+    });
+  });
+
+  it('shows the plain gap, not a percentage, when the previous side has too few cases', () => {
+    const small = { ...base, kind: 'count' as const, current: 100, previous: 12 };
+    expect(describeComparedDelta({ ...small, previousSample: 12 }).text).toBe(
+      '+88 vs período anterior (12)',
+    );
+    expect(describeComparedDelta({ ...small, previousSample: 29 }).text).toContain('+88 vs');
+    expect(describeComparedDelta({ ...small, previousSample: 30 }).text).toBe(
+      '+733 % vs período anterior (12)',
+    );
+    expect(describeComparedDelta({ ...small, previousSample: null }).text).toContain('%');
+  });
+
+  it('does not divide by zero', () => {
+    expect(describeComparedDelta({ ...base, kind: 'count', current: 5, previous: 0 }).text).toBe(
+      '— vs período anterior (0)',
+    );
+  });
+
+  it('says so when there is nothing to compare, or nothing moved', () => {
+    expect(describeComparedDelta({ ...base, kind: 'count', current: null, previous: 3 }).text).toBe(
+      'Sin datos todavía',
+    );
+    expect(describeComparedDelta({ ...base, kind: 'count', current: 3, previous: null }).text).toBe(
+      'Sin datos del período anterior',
+    );
+    expect(describeComparedDelta({ ...base, kind: 'count', current: 3, previous: 3 })).toEqual({
+      direction: 'flat',
+      tone: 'neutral',
+      text: 'Igual que período anterior (3)',
+    });
+  });
+
+  it('is neutral when more is neither better nor worse', () => {
+    expect(
+      describeComparedDelta({
+        ...base,
+        higherIs: 'neutral',
+        kind: 'count',
+        current: 9,
+        previous: 3,
+      }).tone,
+    ).toBe('neutral');
   });
 });
