@@ -147,6 +147,10 @@ const PAIRS = [
   // white: see the advisory lines below.
   ...[1, 2].map((n) => [`chart-${String(n)}`, 'surface', GRAPHIC]),
   ['text-muted', 'surface', TEXT],
+  // Previous-year comparison: text and lines, the box that holds them, and the bars' fill.
+  ['compare', 'surface', TEXT],
+  ['compare', 'compare-bg', TEXT],
+  ['compare-fill', 'surface', GRAPHIC],
 ];
 
 for (const theme of ['light', 'dark']) {
@@ -225,12 +229,12 @@ for (const theme of ['light', 'dark']) {
 // Known limit of DESIGN.md §7.2, reported but not failed: the input border #CCD0D7 is a light line.
 const border = contrast(token('border-strong', 'light'), token('surface', 'light'));
 for (const theme of ['light', 'dark']) {
-  const pale = [3, 4, 5, 6].map(
+  const pale = [3, 4, 5].map(
     (n) =>
       `chart-${String(n)} ${contrast(token(`chart-${String(n)}`, theme), token('surface', theme)).toFixed(2)}`,
   );
   console.log(
-    `ℹ ${theme} series 3-6 on surface (DESIGN.md §8, below 3:1 when pale; always used with direct labels): ${pale.join(', ')}`,
+    `ℹ ${theme} series 3-5 on surface (DESIGN.md §8, below 3:1 when pale; always used with direct labels): ${pale.join(', ')}`,
   );
 }
 console.log(
@@ -247,6 +251,12 @@ for (const theme of ['light', 'dark']) {
   const g = (name, bg) => contrast(token(name, theme), token(bg, theme)).toFixed(2);
   console.log(
     `ℹ ${theme}: chart-1 on surface ${g('chart-1', 'surface')}:1, chart-2 on surface ${g('chart-2', 'surface')}:1, text-muted on surface ${g('text-muted', 'surface')}:1`,
+  );
+}
+
+for (const theme of ['light', 'dark']) {
+  console.log(
+    `ℹ ${theme}: striped bar of the previous year (compare-fill on compare-bg) is ${contrast(token('compare-fill', theme), token('compare-bg', theme)).toFixed(2)}:1; that is why each bar also has a 1.5 px outline in --compare`,
   );
 }
 

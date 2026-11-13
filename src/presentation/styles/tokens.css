@@ -45,7 +45,12 @@
   --red-300: #ff876d;
   --red-500: #c83d1e;
   --red-600: #841c05;
+  --purple-100: #ffeefe;
+  --purple-200: #e2bee0;
   --purple-300: #bd78b8;
+  --purple-400: #643560;
+  --purple-500: #4d2b49;
+  --purple-600: #3c263a;
 
   --gradient-primary: linear-gradient(135deg, #e12b57, #c8094e);
   --effect-100: rgb(41 43 46 / 12%);
@@ -171,13 +176,25 @@
   --neutral-bg: light-dark(var(--neutral-200), var(--night-300));
   --neutral-accent: light-dark(var(--neutral-400), var(--neutral-400));
 
-  /* Chart series, in order (DESIGN.md §8). More than six are grouped as "Otros". */
+  /*
+   * Chart series, in order (DESIGN.md §8). More than five are grouped as "Otros". Purple is not a
+   * series color: it is reserved for the previous year (see "Comparison" below).
+   */
   --chart-1: light-dark(var(--magenta-400), var(--magenta-300));
   --chart-2: light-dark(var(--blue-400), var(--blue-300));
   --chart-3: var(--amber-400);
   --chart-4: light-dark(var(--green-500), var(--green-400));
-  --chart-5: var(--purple-300);
-  --chart-6: var(--baby-blue-500);
+  --chart-5: var(--baby-blue-500);
   --chart-other: var(--neutral-400);
   --chart-grid: var(--border);
+
+  /*
+   * Comparison with the previous year (DESIGN.md "Filtros globales y comparación"). One tint of
+   * Volare purple, the same on every page: text and lines, bar fill, box background, box border.
+   * Never the only signal: bars use stripes, lines are dashed, and the legend says "Año previo".
+   */
+  --compare: light-dark(var(--purple-400), var(--purple-200));
+  --compare-fill: var(--purple-300);
+  --compare-bg: light-dark(var(--purple-100), var(--purple-600));
+  --compare-border: light-dark(var(--purple-200), var(--purple-500));
 }
